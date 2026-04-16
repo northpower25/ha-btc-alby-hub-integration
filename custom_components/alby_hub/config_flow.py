@@ -113,7 +113,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 session = async_get_clientsession(self.hass)
                 api_client = AlbyHubApiClient(session, hub_url)
                 if not await api_client.health_check():
-                    warnings.append("local_api_unreachable")
+                    warnings.append("Local API health check failed")
 
                 relay_override = None
                 if user_input[CONF_PREFER_LOCAL_RELAY]:
@@ -191,20 +191,33 @@ def _expert_schema(user_input) -> vol.Schema:
 def _warnings_from_scope_result(scope_result: ScopeValidationResult) -> list[str]:
     warnings: list[str] = []
     if not scope_result.scope_info_available:
-        warnings.append("scope_info_missing")
+        warnings.append("Could not verify scopes from NWC URI")
     elif scope_result.missing_required:
-        warnings.append("missing_required_scopes: " + ", ".join(sorted(scope_result.missing_required)))
+        warnings.append(
+            "Missing required scopes: " + ", ".join(sorted(scope_result.missing_required))
+        )
 
     if scope_result.missing_optional:
-        warnings.append("missing_optional_scopes: " + ", ".join(sorted(scope_result.missing_optional)))
+        warnings.append(
+            "Missing optional scopes: " + ", ".join(sorted(scope_result.missing_optional))
+        )
 
     return warnings
 
 
 def _build_local_relay(hub_url: str) -> str | None:
     parsed = urlparse(hub_url)
+    if not parsed.scheme or not parsed.hostname:
+        parsed = urlparse(f"http://{hub_url}")
+
     if not parsed.hostname:
         return None
 
-    scheme = "wss" if parsed.scheme == "https" else "ws"
+    if parsed.scheme == "https":
+        scheme = "wss"
+    elif parsed.scheme == "http":
+        scheme = "ws"
+    else:
+        return None
+
     return f"{scheme}://{parsed.hostname}:{RELAY_PROXY_PORT}"

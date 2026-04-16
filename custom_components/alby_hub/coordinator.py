@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Any
 
@@ -11,6 +12,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api import AlbyHubApiClient, AlbyHubApiError
 from .const import MODE_EXPERT
 from .nwc import NwcConnectionInfo
+
+_LOGGER = logging.getLogger(__name__)
+_BALANCE_KEYS: tuple[str, ...] = ("balance", "sat", "sats", "total")
 
 
 class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -26,7 +30,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     ) -> None:
         super().__init__(
             hass,
-            hass.logger,
+            _LOGGER,
             name="alby_hub",
             update_interval=timedelta(seconds=60),
         )
@@ -71,12 +75,13 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 
 def _read_sat_value(value: Any) -> int | None:
+    """Read satoshi-like values from known Alby API balance shapes."""
     if isinstance(value, int):
         return value
     if isinstance(value, float):
         return int(value)
     if isinstance(value, dict):
-        for key in ("balance", "sat", "sats", "total"):
+        for key in _BALANCE_KEYS:
             nested = value.get(key)
             if isinstance(nested, (int, float)):
                 return int(nested)

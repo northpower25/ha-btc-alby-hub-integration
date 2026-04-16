@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import voluptuous as vol
 
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -17,6 +19,8 @@ from .const import (
     SERVICE_SEND_PAYMENT,
 )
 from .helpers import AlbyHubRuntime
+
+_LOGGER = logging.getLogger(__name__)
 
 SERVICE_CREATE_INVOICE_SCHEMA = vol.Schema(
     {
@@ -47,11 +51,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise ServiceValidationError("Expert mode API client is unavailable")
 
         try:
-            await runtime.api_client.create_invoice(
+            result = await runtime.api_client.create_invoice(
                 amount_sat=call.data["amount_sat"],
                 memo=call.data.get("memo"),
                 expiry_seconds=call.data.get("expiry_seconds"),
             )
+            _LOGGER.debug("Invoice created successfully: %s", result)
         except AlbyHubApiError as err:
             raise HomeAssistantError(f"Failed to create invoice: {err}") from err
 
@@ -62,7 +67,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise ServiceValidationError("Expert mode API client is unavailable")
 
         try:
-            await runtime.api_client.send_payment(call.data["payment_request"])
+            result = await runtime.api_client.send_payment(call.data["payment_request"])
+            _LOGGER.debug("Payment sent successfully: %s", result)
         except AlbyHubApiError as err:
             raise HomeAssistantError(f"Failed to send payment: {err}") from err
 

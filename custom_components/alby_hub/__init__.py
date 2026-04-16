@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -36,7 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     nwc_info = parse_nwc_connection_uri(entry.data[CONF_NWC_URI])
     relay_override = entry.data.get(CONF_RELAY_OVERRIDE)
     if relay_override:
-        nwc_info.relay = relay_override
+        nwc_info = replace(nwc_info, relay=relay_override)
 
     mode = entry.data[CONF_MODE]
     session = async_get_clientsession(hass)

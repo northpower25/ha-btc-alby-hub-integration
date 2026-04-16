@@ -4,10 +4,12 @@ create_invoice:
   fields:
     config_entry_id:
       required: false
+      description: Optional config entry ID if multiple Alby Hub entries exist.
       selector:
         text:
     amount_sat:
       required: true
+      description: Invoice amount in satoshis.
       selector:
         number:
           min: 1
@@ -15,10 +17,12 @@ create_invoice:
           step: 1
     memo:
       required: false
+      description: Optional description shown on the invoice.
       selector:
         text:
     expiry_seconds:
       required: false
+      description: Optional invoice expiry time in seconds.
       selector:
         number:
           min: 1
@@ -30,9 +34,11 @@ send_payment:
   fields:
     config_entry_id:
       required: false
+      description: Optional config entry ID if multiple Alby Hub entries exist.
       selector:
         text:
     payment_request:
       required: true
+      description: BOLT11 payment request string.
       selector:
         text:

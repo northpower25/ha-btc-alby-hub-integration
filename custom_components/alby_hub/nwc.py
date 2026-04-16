@@ -10,7 +10,7 @@ from .const import OPTIONAL_NWC_SCOPES, REQUIRED_NWC_SCOPES
 _SCOPE_KEYS = ("permissions", "scopes", "commands")
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class NwcConnectionInfo:
     """Parsed NWC connection information."""
 
@@ -33,7 +33,8 @@ class ScopeValidationResult:
 
 def parse_nwc_connection_uri(uri: str) -> NwcConnectionInfo:
     """Parse a NWC URI and return structured metadata."""
-    parsed = urlparse(uri.strip())
+    normalized_uri = uri.strip()
+    parsed = urlparse(normalized_uri)
     if parsed.scheme != "nostr+walletconnect":
         raise ValueError("invalid_scheme")
 
@@ -55,13 +56,10 @@ def parse_nwc_connection_uri(uri: str) -> NwcConnectionInfo:
     scopes: set[str] = set()
     for key in _SCOPE_KEYS:
         for raw_value in params.get(key, []):
-            for scope in raw_value.replace(";", ",").replace(" ", ",").split(","):
-                cleaned = scope.strip()
-                if cleaned:
-                    scopes.add(cleaned)
+            scopes.update(_split_scope_values(raw_value))
 
     return NwcConnectionInfo(
-        raw_uri=uri.strip(),
+        raw_uri=normalized_uri,
         wallet_pubkey=wallet_pubkey,
         relay=relay,
         secret=secret,
@@ -94,3 +92,12 @@ def _first_param(params: dict[str, list[str]], key: str) -> str | None:
         return None
     value = values[0].strip()
     return value or None
+
+
+def _split_scope_values(raw_value: str) -> set[str]:
+    values: set[str] = set()
+    for scope in raw_value.replace(";", ",").replace(" ", ",").split(","):
+        cleaned = scope.strip()
+        if cleaned:
+            values.add(cleaned)
+    return values

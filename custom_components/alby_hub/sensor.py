@@ -84,6 +84,6 @@ class AlbyHubSensor(AlbyHubCoordinatorEntity):
         self._attr_unique_id = f"{entry_id}_{description.key}"
 
     @property
-    def native_value(self):
+    def native_value(self) -> object | None:
         """Return the current sensor value."""
         return self.entity_description.value_fn(self.coordinator.data)

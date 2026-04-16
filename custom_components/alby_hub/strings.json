@@ -11,7 +11,7 @@
       },
       "cloud": {
         "title": "Cloud mode (NWC)",
-        "description": "Paste the NWC connection string from Alby Hub. Learn more: https://github.com/northpower25/ha-btc-alby-hub-integration/blob/main/docs/handbook.en.md",
+        "description": "Paste the NWC connection string from Alby Hub. Learn more: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.en.md",
         "data": {
           "nwc_uri": "NWC connection string",
           "allow_continue_with_warning": "Continue with warning"
