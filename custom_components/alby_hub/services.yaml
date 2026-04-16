@@ -1,0 +1,38 @@
+create_invoice:
+  name: Create Lightning invoice
+  description: Create a Lightning invoice via local Alby Hub API (expert mode).
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        text:
+    amount_sat:
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
+          step: 1
+    memo:
+      required: false
+      selector:
+        text:
+    expiry_seconds:
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
+          step: 1
+send_payment:
+  name: Send Lightning payment
+  description: Send a BOLT11 payment request via local Alby Hub API (expert mode).
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        text:
+    payment_request:
+      required: true
+      selector:
+        text:

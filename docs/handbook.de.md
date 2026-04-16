@@ -10,15 +10,28 @@
 
 - In Alby Hub eine NWC-Verbindung mit den benötigten Rechten anlegen.
 - NWC-URI in den Config-Flow der Integration einfügen.
-- Nur die tatsächlich benötigten Scopes freigeben.
+- Pflichtrechte für MVP: `get_info`, `get_balance`, `list_transactions`, `make_invoice`.
+- Optional: `pay_invoice`.
+- Bei Warnungen kann MVP-konform bewusst mit „Mit Warnung fortfahren“ weitergemacht werden.
+
+## Modus-Logik
+
+- **Cloud-Modus:** vollständig über NWC, ohne lokale Hub-API.
+- **Expert-Modus:** kombiniert NWC mit optionaler lokaler Hub-API.
+- Bei aktiviertem Expert-Flag wird das lokale Relay `ws://<ha-host>:3334` bevorzugt.
 
 ## Entitäten
 
-Die Integration stellt Alby-Hub-bezogene Entitäten bereit (abhängig von den freigegebenen Rechten und verfügbaren Daten im Hub).
+Die Integration stellt aktuell Basis-Entitäten bereit:
+
+- Verbindung (`binary_sensor`)
+- Lightning-/On-Chain-Balance (`sensor`)
+- Lightning-Adresse, Relay, Hub-Version (`sensor`)
 
 ## Services
 
-Service-Aufrufe basieren auf den freigegebenen NWC-Funktionen. Fehlende Rechte führen zu abgelehnten Aktionen.
+- `alby_hub.create_invoice` (Expert-Modus, lokale API)
+- `alby_hub.send_payment` (Expert-Modus, lokale API)
 
 ## Troubleshooting
 

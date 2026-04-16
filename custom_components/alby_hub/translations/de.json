@@ -1,0 +1,63 @@
+{
+  "title": "Alby Hub",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbindungstyp",
+        "description": "Wähle aus, wie diese Integration mit Alby Hub verbunden wird.",
+        "data": {
+          "mode": "Modus"
+        }
+      },
+      "cloud": {
+        "title": "Cloud-Modus (NWC)",
+        "description": "Füge den NWC-Connection-String aus Alby Hub ein. Mehr erfahren: https://github.com/northpower25/ha-btc-alby-hub-integration/blob/main/docs/handbook.de.md",
+        "data": {
+          "nwc_uri": "NWC-Connection-String",
+          "allow_continue_with_warning": "Mit Warnung fortfahren"
+        }
+      },
+      "expert": {
+        "title": "Expert-Modus",
+        "description": "Nutze die lokale Hub-URL und priorisiere optional das Relay ws://<host>:3334.",
+        "data": {
+          "nwc_uri": "NWC-Connection-String",
+          "hub_url": "Lokale Hub-URL",
+          "prefer_local_relay": "Lokales Relay priorisieren",
+          "allow_continue_with_warning": "Mit Warnung fortfahren"
+        }
+      }
+    },
+    "error": {
+      "invalid_scheme": "Ungültiges URI-Schema. Erwartet: nostr+walletconnect://",
+      "missing_wallet_pubkey": "Wallet-Pubkey fehlt im NWC-String.",
+      "missing_relay": "Relay-Parameter fehlt im NWC-String.",
+      "missing_secret": "Secret-Parameter fehlt im NWC-String.",
+      "warning_ack_required": "Die Pflichtprüfungen ergaben Warnungen. Aktiviere 'Mit Warnung fortfahren', um trotzdem fortzufahren.\n{warnings}"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "balance_lightning": {
+        "name": "Lightning-Balance"
+      },
+      "balance_onchain": {
+        "name": "On-Chain-Balance"
+      },
+      "lightning_address": {
+        "name": "Lightning-Adresse"
+      },
+      "relay": {
+        "name": "NWC-Relay"
+      },
+      "version": {
+        "name": "Hub-Version"
+      }
+    },
+    "binary_sensor": {
+      "node_online": {
+        "name": "Node online"
+      }
+    }
+  }
+}
