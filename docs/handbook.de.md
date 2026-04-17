@@ -1,5 +1,12 @@
 # Alby Hub Integration – Handbuch (DE)
 
+## Integration vs. Add-on (wichtig)
+
+- **Diese Integration ist erforderlich**, um Alby Hub in Home Assistant einzubinden und Entitäten/Services in HA zu nutzen.
+- Das Add-on [`ha-btc-alby-hub-addon`](https://github.com/northpower25/ha-btc-alby-hub-addon/) ist dafür da, Alby Hub lokal als Supervisor-Add-on auf Home Assistant OS bereitzustellen.
+- Bei reiner Cloud-/NWC-Nutzung der Integration ist das Add-on nicht zwingend notwendig.
+- Für lokale Expert-Funktionen (lokale API/Relay) kann das Add-on erforderlich sein.
+
 ## Installation
 
 1. HACS öffnen.

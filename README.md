@@ -7,6 +7,13 @@ Home Assistant Custom Integration für **Alby Hub** (Bitcoin Lightning).
 
 Diese Integration ist für alle Home-Assistant-Installationsarten gedacht (HA OS, Container, Core), insbesondere dort, wo das Supervisor-Add-on nicht genutzt werden kann.
 
+## Wofür ist was gedacht?
+
+- **Diese Integration (`ha-btc-alby-hub-integration`) ist erforderlich**, damit Home Assistant mit Alby Hub verbunden wird und Entitäten/Services in Home Assistant bereitstellt (z. B. Balance, Verbindungsstatus, Rechnungen).
+- Das **Add-on (`ha-btc-alby-hub-addon`)** ist dafür gedacht, Alby Hub lokal als Supervisor-Add-on auf **Home Assistant OS** zu betreiben.
+- Für reine **Cloud-/NWC-Nutzung** der Integration ist das Add-on **nicht zwingend erforderlich**.
+- Für lokale Expert-Funktionen (lokale API/Relay) kann das Add-on sinnvoll bzw. erforderlich sein.
+
 ## Status
 
 MVP-Implementierung mit:
