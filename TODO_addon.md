@@ -1,5 +1,7 @@
 # TODO für das Add-on aus Sicht der Integration
 
+> ⚠️ **Beta-Hinweis:** Add-on und Integration sind Beta-Software. Tests nur mit kleinen Beträgen durchführen. Für verantwortungsvolle Nutzung und Risikomanagement ist der Benutzer selbst verantwortlich.
+
 1. **Scopes serverseitig abfragbar machen**  
    Für verlässliche Pflicht-Checks im Integration-Config-Flow sollte das Add-on (bzw. lokaler Hub) einen Endpoint liefern, der die effektiven NWC-Rechte einer Verbindung ausgibt.
 

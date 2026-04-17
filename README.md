@@ -7,6 +7,8 @@ Home Assistant Custom Integration für **Alby Hub** (Bitcoin Lightning).
 
 Diese Integration ist für alle Home-Assistant-Installationsarten gedacht (HA OS, Container, Core), insbesondere dort, wo das Supervisor-Add-on nicht genutzt werden kann.
 
+> ⚠️ **Beta-Warnung:** Diese Integration und das zugehörige Add-on sind Beta-Software. Unter bestimmten Bedingungen können Fehlfunktionen, Fehlkonfigurationen oder externe Störungen zu finanziellen Verlusten führen. Nutze zum Testen nur kleine Beträge und **keine größeren Geldbeträge**. Du bist selbst für die verantwortungsvolle und sichere Nutzung verantwortlich.
+
 ## Wofür ist was gedacht?
 
 - **Diese Integration (`ha-btc-alby-hub-integration`) ist erforderlich**, damit Home Assistant mit Alby Hub verbunden wird und Entitäten/Services in Home Assistant bereitstellt (z. B. Balance, Verbindungsstatus, Rechnungen).
@@ -38,6 +40,23 @@ MVP-Implementierung mit:
 2. Verbindungs-URI kopieren.
 3. In Home Assistant beim Einrichten der Integration einfügen.
 4. Verbindung testen und speichern.
+
+## Risiken und Eigenverantwortung
+
+Typische Benutzerfehler:
+
+- Falscher oder unvollständiger NWC-URI
+- Zu weitreichende Scopes/Berechtigungen in Alby Hub
+- Testen mit zu hohen Beträgen
+- Unbeabsichtigte Zahlungen durch fehlerhafte Automationen
+
+Systemische Risiken:
+
+- Beta-bedingte Bugs oder unerwartetes Verhalten
+- Netzwerk-/Relay-/API-Ausfälle oder inkonsistente Zustände
+- Verzögerte oder fehlgeschlagene Statusaktualisierungen in Home Assistant
+
+Bitte prüfe jede Konfiguration sorgfältig und setze Betragsgrenzen. Die Verantwortung für die Nutzung des Add-ons und der Integration liegt beim Benutzer.
 
 ## Kompatibilität
 

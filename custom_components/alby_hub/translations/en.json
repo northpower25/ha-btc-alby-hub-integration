@@ -4,27 +4,27 @@
     "step": {
       "user": {
         "title": "Connection type",
-        "description": "Choose how this integration connects to Alby Hub.",
+        "description": "Choose how this integration connects to Alby Hub. Warning: this is beta software and may cause financial loss under some conditions. Use only small test amounts. You are responsible for safe usage.",
         "data": {
           "mode": "Mode"
         }
       },
       "cloud": {
         "title": "Cloud mode (NWC)",
-        "description": "Paste the NWC connection string from Alby Hub. Learn more: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.en.md",
+        "description": "Paste the NWC connection string from Alby Hub. Warning: beta software can fail or behave unexpectedly and could lead to financial loss. Do not test with large amounts. Learn more: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.en.md",
         "data": {
           "nwc_uri": "NWC connection string",
-          "allow_continue_with_warning": "Continue with warning"
+          "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },
       "expert": {
         "title": "Expert mode",
-        "description": "Use local hub URL and optionally prioritize ws://<host>:3334 relay proxy.",
+        "description": "Use local hub URL and optionally prioritize ws://<host>:3334 relay proxy. Warning: beta software can fail or behave unexpectedly and could lead to financial loss. Do not test with large amounts.",
         "data": {
           "nwc_uri": "NWC connection string",
           "hub_url": "Local hub URL",
           "prefer_local_relay": "Prefer local relay",
-          "allow_continue_with_warning": "Continue with warning"
+          "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       }
     },
