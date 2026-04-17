@@ -82,7 +82,7 @@ Wichtig: Home Assistant und diese Integration ersetzen **kein** Wallet-/Node-Bac
 - Home-Assistant-Backup/Snapshot
 - NWC-Verbindungsdaten oder dokumentierter Neuerstellungsprozess
 - Alby-Hub-Zugangsdaten/Recovery-Informationen
-- Wallet-/Node-Recovery-Daten des tatsächlich funds-führenden Backends
+- Wallet-/Node-Recovery-Daten des tatsächlich guthabenführenden Backends
 
 Ohne diese Daten kann nach fehlgeschlagenem Update oder Neuinstallation der Zugriff auf Funktionen und ggf. auf Funds verloren gehen.
 
