@@ -4,27 +4,27 @@
     "step": {
       "user": {
         "title": "Verbindungstyp",
-        "description": "Wähle aus, wie diese Integration mit Alby Hub verbunden wird.",
+        "description": "Wähle aus, wie diese Integration mit Alby Hub verbunden wird. Warnung: Dies ist Beta-Software und kann unter bestimmten Bedingungen zu finanziellen Verlusten führen. Nur mit kleinen Beträgen testen. Du bist für die sichere Nutzung selbst verantwortlich.",
         "data": {
           "mode": "Modus"
         }
       },
       "cloud": {
         "title": "Cloud-Modus (NWC)",
-        "description": "Füge den NWC-Connection-String aus Alby Hub ein. Mehr erfahren: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.de.md",
+        "description": "Füge den NWC-Connection-String aus Alby Hub ein. Warnung: Beta-Software kann fehlschlagen oder unerwartet reagieren und zu finanziellen Verlusten führen. Nicht mit großen Beträgen testen. Mehr erfahren: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.de.md",
         "data": {
           "nwc_uri": "NWC-Connection-String",
-          "allow_continue_with_warning": "Mit Warnung fortfahren"
+          "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       },
       "expert": {
         "title": "Expert-Modus",
-        "description": "Nutze die lokale Hub-URL und priorisiere optional das Relay ws://<host>:3334.",
+        "description": "Nutze die lokale Hub-URL und priorisiere optional das Relay ws://<host>:3334. Warnung: Beta-Software kann fehlschlagen oder unerwartet reagieren und zu finanziellen Verlusten führen. Nicht mit großen Beträgen testen.",
         "data": {
           "nwc_uri": "NWC-Connection-String",
           "hub_url": "Lokale Hub-URL",
           "prefer_local_relay": "Lokales Relay priorisieren",
-          "allow_continue_with_warning": "Mit Warnung fortfahren"
+          "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       }
     },

@@ -13,6 +13,26 @@
 2. Add `northpower25/ha-btc-alby-hub-integration` as a custom integration repository.
 3. Install the integration and restart Home Assistant.
 
+## Beta, safety, and responsibility notice
+
+⚠️ This integration and its related add-on are beta software. Under certain conditions, malfunctions, misconfiguration, or external failures can lead to financial loss. Use only small test amounts and do not use large amounts of money for testing.
+
+Common user mistakes:
+
+- Pasting an invalid NWC URI (missing scheme, relay, secret, or pubkey)
+- Granting broader scopes/permissions than needed
+- Automating payments without strict limits and review
+- Trusting local API/relay availability even when connectivity is unstable
+
+Systemic risks:
+
+- Beta bugs, edge cases, or incomplete error handling
+- Network, relay, or API outages
+- Delayed/inconsistent state updates between Home Assistant and Alby Hub
+- Security risks from weak network setup, exposed systems, or compromised keys/secrets
+
+You are solely responsible for the safe and responsible use of the add-on and this integration.
+
 ## Configuration (NWC scopes)
 
 - Create an NWC connection in Alby Hub with the required permissions.
