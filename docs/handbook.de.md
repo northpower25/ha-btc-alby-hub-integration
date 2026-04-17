@@ -65,3 +65,40 @@ Die Integration stellt aktuell Basis-Entitäten bereit:
 - URI prüfen (vollständig, korrektes Schema).
 - Rechte/Scopes in Alby Hub prüfen.
 - Home-Assistant-Logs auf Integrationsfehler prüfen.
+
+## Update-Sicherheit: Was vor jedem Update zu tun ist
+
+Vor **jedem** Update von Integration, Add-on oder Alby-Hub-Umgebung:
+
+1. **Home-Assistant-Backup/Snapshot erstellen** (inkl. Konfiguration).
+2. Sicherstellen, dass NWC-Verbindungsdaten (URI/Secret) sicher verfügbar sind oder neu erstellt werden können.
+3. Sicherstellen, dass Recovery-Daten des Wallet-/Node-Backends vorliegen (z. B. Seed, Channel-Backups, Zugangsdaten – abhängig vom Setup).
+4. Prüfen, ob Automationen mit Zahlungen temporär deaktiviert werden sollten, bis das Update verifiziert ist.
+
+Wichtig: Home Assistant und diese Integration ersetzen **kein** Wallet-/Node-Backup.
+
+## Welche Daten du vor Update/Neuinstallation gesichert haben musst
+
+- Home-Assistant-Backup/Snapshot
+- NWC-Verbindungsdaten oder dokumentierter Neuerstellungsprozess
+- Alby-Hub-Zugangsdaten/Recovery-Informationen
+- Wallet-/Node-Recovery-Daten des tatsächlich funds-führenden Backends
+
+Ohne diese Daten kann nach fehlgeschlagenem Update oder Neuinstallation der Zugriff auf Funktionen und ggf. auf Funds verloren gehen.
+
+## Wo liegen die Bitcoin-Funds je nach Szenario?
+
+- **Cloud-/NWC-Szenario:** Funds liegen in der Wallet/Node-Umgebung hinter der verwendeten Alby-Hub-/NWC-Verbindung, nicht in Home Assistant.
+- **Lokales Add-on-/Expert-Szenario:** Funds liegen in der lokal betriebenen Alby-Hub-/Wallet-/Node-Umgebung bzw. deren angebundenem Backend, nicht in dieser Integration.
+
+Die Integration stellt Steuerung/Anzeige bereit, hält aber keine Funds.
+
+## Recovery nach fehlgeschlagenem Update oder Neuinstallation
+
+1. Home Assistant bzw. Add-on/Umgebung stabil neu herstellen.
+2. Gesicherte Konfigurations- und Verbindungsdaten wieder einspielen.
+3. Integration neu konfigurieren (NWC/Expert-Einstellungen).
+4. Zugriff auf die Wallet/Node-Umgebung über deren eigene Recovery-Prozesse wiederherstellen.
+5. Erst danach Zahlungsautomationen wieder aktivieren.
+
+Wenn die Wallet-/Node-Recovery-Daten fehlen, kann der Zugriff auf Funds dauerhaft verloren sein.
