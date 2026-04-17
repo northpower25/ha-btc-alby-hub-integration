@@ -84,7 +84,7 @@ Wichtig: Home Assistant und diese Integration ersetzen **kein** Wallet-/Node-Bac
 - Alby-Hub-Zugangsdaten/Recovery-Informationen
 - Wallet-/Node-Recovery-Daten des tatsächlich guthabenführenden Backends
 
-Ohne diese Daten kann nach fehlgeschlagenem Update oder Neuinstallation der Zugriff auf Funktionen und ggf. auf Funds verloren gehen.
+Ohne diese Daten kann nach fehlgeschlagenem Update oder Neuinstallation der Zugriff auf Funktionen und ggf. auf Funds verloren gehen (siehe Abschnitt „Recovery nach fehlgeschlagenem Update oder Neuinstallation“).
 
 ## Wo liegen die Bitcoin-Funds je nach Szenario?
 

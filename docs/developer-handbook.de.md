@@ -4,7 +4,7 @@
 
 Diese Integration verarbeitet keine Bitcoin-Funds selbst, kann aber über Konfigurationen, Automationen und API-Aufrufe indirekt Zahlungen auslösen. Änderungen müssen daher so entwickelt werden, dass Nutzer vor und nach Updates sicher arbeiten können.
 
-Grundsatz: **Sicherheit zuerst, Guthaben zweitens, Features drittens**.
+Grundsätze: **Sicherheit zuerst, Guthaben zweitens, Features drittens**.
 
 ## Sicherheits- und Qualitätsprinzipien für Weiterentwicklung
 
