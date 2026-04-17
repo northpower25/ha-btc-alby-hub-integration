@@ -58,6 +58,16 @@ Systemische Risiken:
 
 Bitte prüfe jede Konfiguration sorgfältig und setze Betragsgrenzen. Die Verantwortung für die Nutzung des Add-ons und der Integration liegt beim Benutzer.
 
+## Update-Sicherheit (wichtig)
+
+Vor jedem Update sicherstellen:
+
+- Home-Assistant-Backup/Snapshot vorhanden
+- NWC-Verbindungsdaten (URI/Secret) oder ein sicherer Neuerstellungsprozess vorhanden
+- Wallet-/Node-Recovery-Daten (z. B. Seed/Channel-Backups/Zugangsdaten je nach Setup) verfügbar
+
+Diese Integration speichert keine Bitcoin-Funds. Funds liegen in der Alby-Hub-/Wallet-/Node-Umgebung des jeweiligen Setups.
+
 ## Kompatibilität
 
 | Komponente | Version |
@@ -72,4 +82,5 @@ Bitte prüfe jede Konfiguration sorgfältig und setze Betragsgrenzen. Die Verant
 ## Dokumentation
 
 - Deutsch: [`docs/handbook.de.md`](docs/handbook.de.md)
+- Entwicklerhandbuch (DE): [`docs/developer-handbook.de.md`](docs/developer-handbook.de.md)
 - English: [`docs/handbook.en.md`](docs/handbook.en.md)
