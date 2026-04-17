@@ -1,0 +1,63 @@
+{
+  "title": "Alby Hub",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connection type",
+        "description": "Choose the mode for the Alby Hub connection.",
+        "data": {
+          "mode": "Mode"
+        }
+      },
+      "cloud": {
+        "title": "Cloud mode (NWC)",
+        "description": "Paste the NWC connection string from Alby Hub. Learn more: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.en.md",
+        "data": {
+          "nwc_uri": "NWC connection string",
+          "allow_continue_with_warning": "Continue with warning"
+        }
+      },
+      "expert": {
+        "title": "Expert mode",
+        "description": "Use local hub URL and optionally prioritize ws://<host>:3334 relay proxy.",
+        "data": {
+          "nwc_uri": "NWC connection string",
+          "hub_url": "Local hub URL",
+          "prefer_local_relay": "Prefer local relay",
+          "allow_continue_with_warning": "Continue with warning"
+        }
+      }
+    },
+    "error": {
+      "invalid_scheme": "Invalid URI scheme. Expected nostr+walletconnect://",
+      "missing_wallet_pubkey": "Missing wallet pubkey in NWC string.",
+      "missing_relay": "Missing relay parameter in NWC string.",
+      "missing_secret": "Missing secret parameter in NWC string.",
+      "warning_ack_required": "Required setup checks raised warnings. Enable 'Continue with warning' if you still want to continue.\n{warnings}"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "balance_lightning": {
+        "name": "Lightning balance"
+      },
+      "balance_onchain": {
+        "name": "On-chain balance"
+      },
+      "lightning_address": {
+        "name": "Lightning address"
+      },
+      "relay": {
+        "name": "NWC relay"
+      },
+      "version": {
+        "name": "Hub version"
+      }
+    },
+    "binary_sensor": {
+      "node_online": {
+        "name": "Node online"
+      }
+    }
+  }
+}

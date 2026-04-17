@@ -7,6 +7,16 @@ Home Assistant Custom Integration für **Alby Hub** (Bitcoin Lightning).
 
 Diese Integration ist für alle Home-Assistant-Installationsarten gedacht (HA OS, Container, Core), insbesondere dort, wo das Supervisor-Add-on nicht genutzt werden kann.
 
+## Status
+
+MVP-Implementierung mit:
+
+- Config-Flow für Cloud- und Expert-Modus
+- NWC-URI- und Scope-Prüfung inklusive „Continue with warning“-Verhalten
+- Expert-Modus: optionaler lokaler API-Health-Check und Relay-Priorisierung (`ws://<host>:3334`)
+- Basis-Entitäten für Verbindung, Balances und Metadaten
+- Basis-Services für Invoice-Erstellung und Payment (lokale API, Expert-Modus)
+
 ## Installation (HACS)
 
 1. HACS installieren und einrichten.

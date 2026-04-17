@@ -1,0 +1,89 @@
+"""Sensor platform for Alby Hub."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Callable
+
+from homeassistant.components.sensor import SensorEntityDescription
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .entity import AlbyHubCoordinatorEntity
+from .helpers import get_runtime
+
+
+@dataclass(frozen=True, kw_only=True)
+class AlbyHubSensorDescription(SensorEntityDescription):
+    value_fn: Callable[[dict[str, Any]], object]
+
+
+SENSOR_DESCRIPTIONS: tuple[AlbyHubSensorDescription, ...] = (
+    AlbyHubSensorDescription(
+        key="balance_lightning",
+        translation_key="balance_lightning",
+        native_unit_of_measurement="sat",
+        icon="mdi:lightning-bolt",
+        value_fn=lambda data: data.get("balance_lightning"),
+    ),
+    AlbyHubSensorDescription(
+        key="balance_onchain",
+        translation_key="balance_onchain",
+        native_unit_of_measurement="sat",
+        icon="mdi:bitcoin",
+        value_fn=lambda data: data.get("balance_onchain"),
+    ),
+    AlbyHubSensorDescription(
+        key="lightning_address",
+        translation_key="lightning_address",
+        icon="mdi:email-outline",
+        value_fn=lambda data: data.get("lightning_address"),
+    ),
+    AlbyHubSensorDescription(
+        key="relay",
+        translation_key="relay",
+        icon="mdi:transit-connection-variant",
+        value_fn=lambda data: data.get("relay"),
+    ),
+    AlbyHubSensorDescription(
+        key="version",
+        translation_key="version",
+        icon="mdi:information-outline",
+        value_fn=lambda data: data.get("version"),
+    ),
+)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Alby Hub sensors from a config entry."""
+    runtime = get_runtime(hass, entry.entry_id)
+    async_add_entities(
+        AlbyHubSensor(runtime.coordinator, entry.entry_id, description)
+        for description in SENSOR_DESCRIPTIONS
+    )
+
+
+class AlbyHubSensor(AlbyHubCoordinatorEntity):
+    """Sensor backed by coordinator data."""
+
+    entity_description: AlbyHubSensorDescription
+
+    def __init__(
+        self,
+        coordinator,
+        entry_id: str,
+        description: AlbyHubSensorDescription,
+    ) -> None:
+        super().__init__(coordinator, entry_id)
+        self.entity_description = description
+        self._attr_unique_id = f"{entry_id}_{description.key}"
+
+    @property
+    def native_value(self) -> object | None:
+        """Return the current sensor value."""
+        return self.entity_description.value_fn(self.coordinator.data)
