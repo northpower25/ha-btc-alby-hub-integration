@@ -26,13 +26,22 @@ MVP-Implementierung mit:
 - Basis-Entitäten für Verbindung, Balances und Metadaten
 - Basis-Services für Invoice-Erstellung und Payment (lokale API, Expert-Modus)
 
-## Installation (HACS)
+## Installation (HACS) – Kurzanleitung
 
 1. HACS installieren und einrichten.
 2. Dieses Repository in HACS als Custom Repository vom Typ **Integration** hinzufügen.
 3. Integration **Alby Hub** installieren.
 4. Home Assistant neu starten.
 5. Integration über **Einstellungen → Geräte & Dienste → Integration hinzufügen** konfigurieren.
+
+Für eine ausführliche Schritt-für-Schritt Anleitung (inkl. **HACS**, **manueller Installation** und **Konfiguration**) siehe:
+
+- Deutsch: [`docs/handbook.de.md`](docs/handbook.de.md)
+- English: [`docs/handbook.en.md`](docs/handbook.en.md)
+
+Wenn du Alby Hub lokal als Supervisor Add-on auf Home Assistant OS betreiben möchtest, nutze zusätzlich das Add-on:
+
+- [`ha-btc-alby-hub-addon`](https://github.com/northpower25/ha-btc-alby-hub-addon)
 
 ## NWC Quickstart
 

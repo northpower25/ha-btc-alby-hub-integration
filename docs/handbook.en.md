@@ -7,11 +7,47 @@
 - For cloud/NWC-only use of this integration, the add-on is not strictly required.
 - For local expert features (local API/relay), the add-on can be required.
 
-## Installation
+## Installation & Configuration (step by step)
 
-1. Open HACS.
-2. Add `northpower25/ha-btc-alby-hub-integration` as a custom integration repository.
-3. Install the integration and restart Home Assistant.
+### Prerequisites
+
+1. A running Home Assistant instance.
+2. For HACS installation: HACS is already installed and set up.
+3. For local Alby Hub usage on HA OS, optionally use the add-on:  
+   [`ha-btc-alby-hub-addon`](https://github.com/northpower25/ha-btc-alby-hub-addon/).
+
+### Option A: Install via HACS (recommended)
+
+1. Open Home Assistant.
+2. Go to **HACS → Integrations**.
+3. Open the menu (⋮) and select **Custom repositories**.
+4. Add repository URL `https://github.com/northpower25/ha-btc-alby-hub-integration`.
+5. Select type **Integration** and confirm.
+6. Search for **Alby Hub** in HACS.
+7. Install the integration.
+8. Restart Home Assistant.
+
+### Option B: Manual installation
+
+1. Download the current integration from this repository (ZIP or Git checkout).
+2. Copy folder `custom_components/alby_hub` into your Home Assistant config directory at  
+   `/config/custom_components/alby_hub`.
+3. Verify at least this file exists:  
+   `/config/custom_components/alby_hub/manifest.json`.
+4. Restart Home Assistant.
+
+### Configure in Home Assistant
+
+1. Go to **Settings → Devices & Services** in Home Assistant.
+2. Click **Add Integration**.
+3. Search for and select **Alby Hub**.
+4. Choose mode:
+   - **Cloud mode** (NWC-based), or
+   - **Expert mode** (optional local API/relay).
+5. Paste the NWC connection URI from Alby Hub.
+6. Run the connection check and review warnings intentionally.
+7. Save the configuration.
+8. Verify entities and status in Home Assistant.
 
 ## Beta, safety, and responsibility notice
 
