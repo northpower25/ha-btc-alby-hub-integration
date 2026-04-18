@@ -50,6 +50,29 @@ Wenn du Alby Hub lokal als Supervisor Add-on auf Home Assistant OS betreiben mö
 3. In Home Assistant beim Einrichten der Integration einfügen.
 4. Verbindung testen und speichern.
 
+## Abgleich mit offiziellen Alby-Hub-Guides (relevant für diese Integration)
+
+Offizielle Alby-Dokumentation:
+
+- Hub Übersicht: https://guides.getalby.com/user-guide/alby-hub
+- Getting Started: https://guides.getalby.com/user-guide/alby-hub/getting-started
+- Flavors: https://guides.getalby.com/user-guide/alby-hub/alby-hub-flavors
+
+Für diese Integration wichtig:
+
+- Die Integration kann mit allen offiziellen Alby-Hub-Flavors genutzt werden (Alby Cloud, Desktop, Docker, Umbrel/Start9/etc., Linux), sofern eine passende NWC-Verbindung vorliegt.
+- Auf Home Assistant OS/Supervised kann zusätzlich das Add-on genutzt werden, um Alby Hub lokal im HA-Umfeld zu betreiben.
+- Ohne Add-on nutzt die Integration einen extern betriebenen Hub (z. B. Alby Cloud oder eigener Docker-/Linux-Host) via NWC.
+- Ein Alby Account ist für viele Nutzer empfehlenswert (z. B. Lightning Address, einfachere App-Verknüpfung, Benachrichtigungen/Support), aber nicht in jedem Setup zwingend.
+
+## Alby-Getting-Started: Was vor der Integration abgeschlossen sein sollte
+
+1. Alby Hub-Grundeinrichtung abschließen (gewählten Flavor bereitstellen).
+2. Bei selbst gehosteten Setups initiale Hub-Tasks erledigen (Channel/Spending-Balance/Backup-Recovery-Daten je nach Setup).
+3. In Alby Hub unter **Apps → Add Connection** eine dedizierte NWC-Verbindung für Home Assistant anlegen.
+4. Nur die benötigten Rechte/Scopes freigeben (Least Privilege).
+5. NWC-Secret wie ein Passwort behandeln (nicht teilen, bei Verdacht rotieren).
+
 ## Risiken und Eigenverantwortung
 
 Typische Benutzerfehler:
