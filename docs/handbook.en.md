@@ -45,7 +45,7 @@
    - **Cloud mode** (NWC-based), or
    - **Expert mode** (optional local API/relay).
 5. Paste the NWC connection URI from Alby Hub.
-6. Run the connection check and review warnings intentionally.
+6. Run the connection check and carefully review all warnings before proceeding.
 7. Save the configuration.
 8. Verify entities and status in Home Assistant.
 
