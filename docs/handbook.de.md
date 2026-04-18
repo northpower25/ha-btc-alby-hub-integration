@@ -7,6 +7,34 @@
 - Bei reiner Cloud-/NWC-Nutzung der Integration ist das Add-on nicht zwingend notwendig.
 - Für lokale Expert-Funktionen (lokale API/Relay) kann das Add-on erforderlich sein.
 
+## Abgleich mit offiziellen Alby-Hub-Guides
+
+Offizielle Quellen:
+
+- Hub Übersicht: https://guides.getalby.com/user-guide/alby-hub
+- Getting Started: https://guides.getalby.com/user-guide/alby-hub/getting-started
+- Flavors: https://guides.getalby.com/user-guide/alby-hub/alby-hub-flavors
+
+Die offiziellen Alby-Hub-Flavors beschreiben, **wo** dein Hub läuft:
+Alby Cloud, Desktop, Docker, Umbrel/Start9/etc., Linux.
+
+Einordnung für diese Integration:
+
+| Szenario | Bedeutung für die Integration |
+|---|---|
+| Externer Hub (Alby Cloud/Desktop/Docker/Linux/Umbrel/Start9/etc.) | Integration verbindet sich per NWC-URI direkt mit dem vorhandenen Hub |
+| Hub lokal im HA Add-on (Expert-Modus) | Integration verbindet sich per NWC und kann optional lokale Expert-Funktionen nutzen |
+
+Hinweis aus Alby-Sicht: Ein Alby Account ist häufig empfehlenswert (z. B. Lightning Address, einfachere App-Verknüpfung, Benachrichtigungen/Support), aber je nach Setup nicht technisch zwingend.
+
+## Was laut Alby-Getting-Started vor der Integration erledigt sein sollte
+
+1. Gewünschten Alby-Hub-Flavor auswählen und Hub initial bereitstellen.
+2. Ersteinrichtung im Hub abschließen (z. B. Account-Linking, Channel/Spending-Balance, Backup-/Recovery-Daten je nach Setup).
+3. In Alby Hub unter **Apps → Add Connection** eine eigene NWC-Verbindung für Home Assistant anlegen.
+4. Nur benötigte Scopes vergeben (Least Privilege).
+5. NWC-Secret sicher speichern und bei Verdacht auf Kompromittierung erneuern.
+
 ## Installation & Konfiguration (Schritt für Schritt)
 
 ### Voraussetzungen
