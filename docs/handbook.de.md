@@ -7,11 +7,47 @@
 - Bei reiner Cloud-/NWC-Nutzung der Integration ist das Add-on nicht zwingend notwendig.
 - Für lokale Expert-Funktionen (lokale API/Relay) kann das Add-on erforderlich sein.
 
-## Installation
+## Installation & Konfiguration (Schritt für Schritt)
 
-1. HACS öffnen.
-2. Repository `northpower25/ha-btc-alby-hub-integration` als Custom Integration hinzufügen.
-3. Integration installieren und Home Assistant neu starten.
+### Voraussetzungen
+
+1. Laufende Home-Assistant-Instanz.
+2. Für HACS-Installation: HACS ist bereits installiert und eingerichtet.
+3. Für lokale Alby-Hub-Nutzung auf HA OS optional das Add-on:
+   [`ha-btc-alby-hub-addon`](https://github.com/northpower25/ha-btc-alby-hub-addon/).
+
+### Option A: Installation über HACS (empfohlen)
+
+1. Home Assistant öffnen.
+2. **HACS → Integrationen** öffnen.
+3. Menü (⋮) öffnen und **Custom repositories** wählen.
+4. Repository-URL `https://github.com/northpower25/ha-btc-alby-hub-integration` einfügen.
+5. Typ **Integration** auswählen und hinzufügen.
+6. In HACS nach **Alby Hub** suchen.
+7. Integration installieren.
+8. Home Assistant neu starten.
+
+### Option B: Manuelle Installation
+
+1. Die aktuelle Integration aus dem Repository herunterladen (ZIP oder Git-Checkout).
+2. Den Ordner `custom_components/alby_hub` in dein Home-Assistant-Konfigurationsverzeichnis nach  
+   `/config/custom_components/alby_hub` kopieren.
+3. Prüfen, dass mindestens folgende Datei vorhanden ist:  
+   `/config/custom_components/alby_hub/manifest.json`.
+4. Home Assistant neu starten.
+
+### Konfiguration in Home Assistant
+
+1. In Home Assistant zu **Einstellungen → Geräte & Dienste** wechseln.
+2. **Integration hinzufügen** klicken.
+3. Nach **Alby Hub** suchen und auswählen.
+4. Modus wählen:
+   - **Cloud-Modus** (NWC-basiert), oder
+   - **Expert-Modus** (optional mit lokaler API/Relay).
+5. NWC-Verbindungs-URI aus Alby Hub einfügen.
+6. Verbindung prüfen und alle Warnungen sorgfältig prüfen, bevor du fortfährst.
+7. Konfiguration speichern.
+8. Danach Entitäten und Status in Home Assistant prüfen.
 
 ## Beta-, Sicherheits- und Haftungshinweis
 
