@@ -1,0 +1,278 @@
+# Alby Hub Dashboard Template
+#
+# Ready-to-use Lovelace dashboard for the Alby Hub Bitcoin Lightning integration.
+#
+# QUICK START:
+# 1. Copy this file's content
+# 2. In Home Assistant: Settings → Dashboards → + ADD DASHBOARD
+# 3. Choose "New dashboard from scratch", give it a title (e.g. "Alby Hub")
+# 4. Open the new dashboard → ⋮ (three dots) → Edit Dashboard → ⋮ → Raw configuration editor
+# 5. Paste this content and replace YOUR_CONNECTION_NAME with your actual connection name
+# 6. Save and enjoy!
+#
+# NOTE: The integration also creates this dashboard automatically on first setup.
+# Use this template if you want a customised layout or a second dashboard instance.
+#
+# CUSTOMISATION:
+# - Replace YOUR_CONNECTION_NAME with your connection name slug
+#   e.g. if your connection name is "Alby Hub", use "alby_hub"
+#   e.g. if your connection name is "My Node", use "my_node"
+# - Adjust history-graph hours_to_show values
+# - Rearrange, add or remove cards as desired
+
+title: Alby Hub
+icon: mdi:lightning-bolt
+views:
+
+  # ── Overview ──────────────────────────────────────────────────────────────
+  - title: Overview
+    path: overview
+    icon: mdi:view-dashboard
+    badges:
+      - binary_sensor.YOUR_CONNECTION_NAME_node_online
+    cards:
+      # Status & balance summary
+      - type: markdown
+        content: |
+          # ⚡ Alby Hub
+
+          {% set lightning = states('sensor.YOUR_CONNECTION_NAME_balance_lightning') | int(0) %}
+          {% set onchain = states('sensor.YOUR_CONNECTION_NAME_balance_onchain') | int(0) %}
+          {% set price = states('sensor.YOUR_CONNECTION_NAME_bitcoin_price') | float(0) %}
+          {% set currency = state_attr('sensor.YOUR_CONNECTION_NAME_bitcoin_price', 'unit_of_measurement') | default('') %}
+          {% set connected = is_state('binary_sensor.YOUR_CONNECTION_NAME_node_online', 'on') %}
+          {% if connected %}✅ **Connected**{% else %}🔴 **Offline**{% endif %}
+
+          | | ⚡ Lightning | ₿ On-chain |
+          |---|---|---|
+          | **sat** | {{ lightning }} | {{ onchain }} |
+          | **BTC** | {{ (lightning / 100000000) | round(8) }} | {{ (onchain / 100000000) | round(8) }} |
+          {% if price > 0 %}
+          | **≈ {{ currency }}** | {{ ((lightning / 100000000) * price) | round(2) }} | {{ ((onchain / 100000000) * price) | round(2) }} |
+          {% endif %}
+
+      # Balance entities side by side
+      - type: horizontal-stack
+        cards:
+          - type: entity
+            entity: sensor.YOUR_CONNECTION_NAME_balance_lightning
+            name: Lightning Balance
+            icon: mdi:lightning-bolt
+          - type: entity
+            entity: sensor.YOUR_CONNECTION_NAME_balance_onchain
+            name: On-chain Balance
+            icon: mdi:bitcoin
+
+      # Bitcoin price & block height side by side
+      - type: horizontal-stack
+        cards:
+          - type: entity
+            entity: sensor.YOUR_CONNECTION_NAME_bitcoin_price
+            name: Bitcoin Price
+            icon: mdi:currency-btc
+          - type: entity
+            entity: sensor.YOUR_CONNECTION_NAME_bitcoin_block_height
+            name: Block Height
+            icon: mdi:cube-outline
+
+      # Connection info
+      - type: entities
+        title: Connection
+        show_header_toggle: false
+        entities:
+          - binary_sensor.YOUR_CONNECTION_NAME_node_online
+          - sensor.YOUR_CONNECTION_NAME_relay
+          - sensor.YOUR_CONNECTION_NAME_version
+          - sensor.YOUR_CONNECTION_NAME_lightning_address
+
+  # ── Receive ───────────────────────────────────────────────────────────────
+  - title: Receive
+    path: receive
+    icon: mdi:arrow-bottom-left
+    cards:
+      # Create Invoice
+      - type: entities
+        title: Create Invoice
+        show_header_toggle: false
+        entities:
+          - entity: number.YOUR_CONNECTION_NAME_invoice_amount
+            name: Amount
+          - entity: select.YOUR_CONNECTION_NAME_invoice_amount_unit
+            name: Unit (SAT / BTC / Fiat)
+          - entity: button.YOUR_CONNECTION_NAME_create_invoice_btn
+            name: Create Invoice
+
+      # Invoice display + QR
+      - type: markdown
+        title: BOLT11 Invoice & QR Code
+        content: |
+          {% set inv = states('text.YOUR_CONNECTION_NAME_last_invoice') %}
+          {% if inv and inv not in ('unavailable', 'unknown', '') %}
+          **Invoice:**
+          ```
+          {{ inv }}
+          ```
+
+          [![QR Code](https://api.qrserver.com/v1/create-qr-code/?data=lightning:{{ inv }}&size=300x300&margin=10)](https://api.qrserver.com/v1/create-qr-code/?data=lightning:{{ inv }}&size=300x300&margin=10)
+          *(Scan or copy the invoice above)*
+          {% else %}
+          No invoice yet. Set the amount and unit above, then press **Create Invoice**.
+          {% endif %}
+
+      # Lightning address
+      - type: entities
+        title: Lightning Address
+        show_header_toggle: false
+        entities:
+          - sensor.YOUR_CONNECTION_NAME_lightning_address
+
+      # Lightning address QR
+      - type: markdown
+        title: Lightning Address QR (receive without fixed amount)
+        content: |
+          {% set addr = states('sensor.YOUR_CONNECTION_NAME_lightning_address') %}
+          {% if addr and addr not in ('unavailable', 'unknown', '') %}
+          [![QR Code](https://api.qrserver.com/v1/create-qr-code/?data=lightning:{{ addr }}&size=250x250&margin=10)](https://api.qrserver.com/v1/create-qr-code/?data=lightning:{{ addr }}&size=250x250&margin=10)
+          **{{ addr }}**
+          {% else %}
+          Lightning address not available.
+          {% endif %}
+
+      # Balance
+      - type: horizontal-stack
+        cards:
+          - type: entity
+            entity: sensor.YOUR_CONNECTION_NAME_balance_lightning
+            name: Lightning Balance
+          - type: entity
+            entity: sensor.YOUR_CONNECTION_NAME_balance_onchain
+            name: On-chain Balance
+
+  # ── Send ──────────────────────────────────────────────────────────────────
+  - title: Send
+    path: send
+    icon: mdi:arrow-top-right
+    cards:
+      # Invoice input
+      - type: entities
+        title: Payment
+        show_header_toggle: false
+        entities:
+          - entity: text.YOUR_CONNECTION_NAME_invoice_input
+            name: BOLT11 Invoice / Lightning Address
+
+      # How-to guide
+      - type: markdown
+        title: How to pay
+        content: |
+          **Option 1 – Paste:**
+          Copy a BOLT11 invoice (or Lightning address) and paste it into the field above.
+
+          **Option 2 – QR scan (HA Companion App):**
+          Tap the QR-code icon next to the input field to scan a Lightning invoice with your phone camera.
+
+          Then press **Send Payment** below.
+
+      # Send button
+      - type: button
+        name: Send Payment
+        icon: mdi:send
+        tap_action:
+          action: call-service
+          service: alby_hub.send_payment
+
+      # Balance
+      - type: horizontal-stack
+        cards:
+          - type: entity
+            entity: sensor.YOUR_CONNECTION_NAME_balance_lightning
+            name: Lightning Balance
+          - type: entity
+            entity: sensor.YOUR_CONNECTION_NAME_balance_onchain
+            name: On-chain Balance
+
+  # ── NWC Budget ────────────────────────────────────────────────────────────
+  - title: NWC Budget
+    path: budget
+    icon: mdi:cash-lock
+    cards:
+      # Dynamic budget summary
+      - type: markdown
+        title: Budget Usage
+        content: |
+          {% set total = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_total') | int(0) %}
+          {% set used = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_used') | int(0) %}
+          {% set remaining = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_remaining') | int(0) %}
+          {% set renewal = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_renewal') %}
+          {% if total > 0 %}
+          {% set pct_used = (used / total * 100) | round(1) %}
+          {% set pct_remaining = (remaining / total * 100) | round(1) %}
+          {% if pct_used >= 90 %}🔴{% elif pct_used >= 70 %}🟠{% elif pct_used >= 50 %}🟡{% else %}🟢{% endif %} **{{ pct_used }}% used** ({{ used }} / {{ total }} sat)
+
+          Remaining: **{{ remaining }} sat** ({{ pct_remaining }}%)
+          Renewal: **{{ renewal }}**
+          {% else %}
+          *No budget limit configured, or hub does not support get_budget.*
+          {% endif %}
+
+      # Budget entities
+      - type: entities
+        title: NWC Spending Limits
+        show_header_toggle: false
+        entities:
+          - sensor.YOUR_CONNECTION_NAME_nwc_budget_total
+          - sensor.YOUR_CONNECTION_NAME_nwc_budget_used
+          - sensor.YOUR_CONNECTION_NAME_nwc_budget_remaining
+          - sensor.YOUR_CONNECTION_NAME_nwc_budget_renewal
+
+      # Info
+      - type: markdown
+        title: About NWC Budget
+        content: |
+          These sensors show the spending limits configured for this NWC connection.
+
+          - **Total budget** – maximum amount this connection may spend per renewal period
+          - **Used budget** – amount already spent in the current period
+          - **Remaining budget** – amount still available to spend
+          - **Renewal period** – how often the budget resets (daily / weekly / monthly / …)
+
+          *Sensors show 'unavailable' if the NWC connection has no budget limit or if your hub does not support the get_budget method.*
+
+  # ── Network ───────────────────────────────────────────────────────────────
+  - title: Network
+    path: network
+    icon: mdi:bitcoin
+    cards:
+      # Market & network data
+      - type: entities
+        title: Bitcoin Market & Network
+        show_header_toggle: false
+        entities:
+          - sensor.YOUR_CONNECTION_NAME_bitcoin_price
+          - sensor.YOUR_CONNECTION_NAME_bitcoin_block_height
+          - sensor.YOUR_CONNECTION_NAME_bitcoin_hashrate
+          - sensor.YOUR_CONNECTION_NAME_blocks_until_halving
+          - sensor.YOUR_CONNECTION_NAME_next_halving_eta
+
+      # Bitcoin price history graph (last 7 days)
+      - type: history-graph
+        title: Bitcoin Price (last 7 days)
+        hours_to_show: 168
+        refresh_interval: 0
+        entities:
+          - entity: sensor.YOUR_CONNECTION_NAME_bitcoin_price
+            name: BTC Price
+
+      # Halving countdown
+      - type: markdown
+        title: Next Halving
+        content: |
+          {% set blocks = states('sensor.YOUR_CONNECTION_NAME_blocks_until_halving') | int(0) %}
+          {% set eta = states('sensor.YOUR_CONNECTION_NAME_next_halving_eta') %}
+          {% if blocks > 0 %}
+          ⛏️ **{{ blocks | int }} blocks** remaining until the next halving.
+
+          📅 Estimated date: **{{ as_timestamp(eta) | timestamp_local }}**
+          {% else %}
+          *Halving data not available.*
+          {% endif %}

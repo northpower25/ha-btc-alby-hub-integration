@@ -227,6 +227,86 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
         "title": connection_name,
         "_version": DASHBOARD_VERSION,
         "views": [
+            # ── Overview ──────────────────────────────────────────────────────
+            {
+                "title": "Overview",
+                "path": "overview",
+                "icon": "mdi:view-dashboard",
+                "badges": [
+                    f"binary_sensor.{p}_node_online",
+                ],
+                "cards": [
+                    # ── Status & balance summary ─────────────────────────────
+                    {
+                        "type": "markdown",
+                        "content": (
+                            f"# ⚡ {connection_name}\n\n"
+                            f"{{% set lightning = states('sensor.{p}_balance_lightning') | int(0) %}}\n"
+                            f"{{% set onchain = states('sensor.{p}_balance_onchain') | int(0) %}}\n"
+                            f"{{% set price = states('sensor.{p}_bitcoin_price') | float(0) %}}\n"
+                            f"{{% set currency = state_attr('sensor.{p}_bitcoin_price', 'unit_of_measurement') | default('') %}}\n"
+                            f"{{% set connected = is_state('binary_sensor.{p}_node_online', 'on') %}}\n"
+                            "{% if connected %}✅ **Connected**{% else %}🔴 **Offline**{% endif %}\n\n"
+                            "| | ⚡ Lightning | ₿ On-chain |\n"
+                            "|---|---|---|\n"
+                            "| **sat** | {{ lightning }} | {{ onchain }} |\n"
+                            "| **BTC** | {{ (lightning / 100000000) | round(8) }} | {{ (onchain / 100000000) | round(8) }} |\n"
+                            "{% if price > 0 %}"
+                            "| **≈ {{ currency }}** | {{ ((lightning / 100000000) * price) | round(2) }} | {{ ((onchain / 100000000) * price) | round(2) }} |\n"
+                            "{% endif %}"
+                        ),
+                    },
+                    # ── Balance entities side by side ────────────────────────
+                    {
+                        "type": "horizontal-stack",
+                        "cards": [
+                            {
+                                "type": "entity",
+                                "entity": f"sensor.{p}_balance_lightning",
+                                "name": "Lightning Balance",
+                                "icon": "mdi:lightning-bolt",
+                            },
+                            {
+                                "type": "entity",
+                                "entity": f"sensor.{p}_balance_onchain",
+                                "name": "On-chain Balance",
+                                "icon": "mdi:bitcoin",
+                            },
+                        ],
+                    },
+                    # ── Bitcoin price & block height side by side ────────────
+                    {
+                        "type": "horizontal-stack",
+                        "cards": [
+                            {
+                                "type": "entity",
+                                "entity": f"sensor.{p}_bitcoin_price",
+                                "name": "Bitcoin Price",
+                                "icon": "mdi:currency-btc",
+                            },
+                            {
+                                "type": "entity",
+                                "entity": f"sensor.{p}_bitcoin_block_height",
+                                "name": "Block Height",
+                                "icon": "mdi:cube-outline",
+                            },
+                        ],
+                    },
+                    # ── Connection info ──────────────────────────────────────
+                    {
+                        "type": "entities",
+                        "title": "Connection",
+                        "show_header_toggle": False,
+                        "entities": [
+                            f"binary_sensor.{p}_node_online",
+                            f"sensor.{p}_relay",
+                            f"sensor.{p}_version",
+                            f"sensor.{p}_lightning_address",
+                        ],
+                    },
+                ],
+            },
+            # ── Receive ───────────────────────────────────────────────────────
             {
                 "title": "Receive",
                 "path": "receive",
@@ -273,7 +353,7 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                             "{% endif %}"
                         ),
                     },
-                    # ── Lightning address & BOLT12 offer QR ──────────────────
+                    # ── Lightning address & QR ────────────────────────────────
                     {
                         "type": "entities",
                         "title": "Lightning Address",
@@ -299,16 +379,23 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                     },
                     # ── Balance summary ───────────────────────────────────────
                     {
-                        "type": "entities",
-                        "title": "Balance",
-                        "show_header_toggle": False,
-                        "entities": [
-                            f"sensor.{p}_balance_lightning",
-                            f"sensor.{p}_balance_onchain",
+                        "type": "horizontal-stack",
+                        "cards": [
+                            {
+                                "type": "entity",
+                                "entity": f"sensor.{p}_balance_lightning",
+                                "name": "Lightning Balance",
+                            },
+                            {
+                                "type": "entity",
+                                "entity": f"sensor.{p}_balance_onchain",
+                                "name": "On-chain Balance",
+                            },
                         ],
                     },
                 ],
             },
+            # ── Send ──────────────────────────────────────────────────────────
             {
                 "title": "Send",
                 "path": "send",
@@ -351,21 +438,50 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                     },
                     # ── Balance summary ───────────────────────────────────────
                     {
-                        "type": "entities",
-                        "title": "Balance",
-                        "show_header_toggle": False,
-                        "entities": [
-                            f"sensor.{p}_balance_lightning",
-                            f"sensor.{p}_balance_onchain",
+                        "type": "horizontal-stack",
+                        "cards": [
+                            {
+                                "type": "entity",
+                                "entity": f"sensor.{p}_balance_lightning",
+                                "name": "Lightning Balance",
+                            },
+                            {
+                                "type": "entity",
+                                "entity": f"sensor.{p}_balance_onchain",
+                                "name": "On-chain Balance",
+                            },
                         ],
                     },
                 ],
             },
+            # ── NWC Budget ────────────────────────────────────────────────────
             {
                 "title": "NWC Budget",
                 "path": "budget",
                 "icon": "mdi:cash-lock",
                 "cards": [
+                    # ── Dynamic budget summary ───────────────────────────────
+                    {
+                        "type": "markdown",
+                        "title": "Budget Usage",
+                        "content": (
+                            f"{{% set total = states('sensor.{p}_nwc_budget_total') | int(0) %}}\n"
+                            f"{{% set used = states('sensor.{p}_nwc_budget_used') | int(0) %}}\n"
+                            f"{{% set remaining = states('sensor.{p}_nwc_budget_remaining') | int(0) %}}\n"
+                            f"{{% set renewal = states('sensor.{p}_nwc_budget_renewal') %}}\n"
+                            "{% if total > 0 %}\n"
+                            "{% set pct_used = (used / total * 100) | round(1) %}\n"
+                            "{% set pct_remaining = (remaining / total * 100) | round(1) %}\n"
+                            "{% if pct_used >= 90 %}🔴{% elif pct_used >= 70 %}🟠{% elif pct_used >= 50 %}🟡{% else %}🟢{% endif %} "
+                            "**{{ pct_used }}% used** ({{ used }} / {{ total }} sat)\n\n"
+                            "Remaining: **{{ remaining }} sat** ({{ pct_remaining }}%)  \n"
+                            "Renewal: **{{ renewal }}**\n"
+                            "{% else %}\n"
+                            "*No budget limit configured, or hub does not support get_budget.*\n"
+                            "{% endif %}"
+                        ),
+                    },
+                    # ── Budget entities ──────────────────────────────────────
                     {
                         "type": "entities",
                         "title": "NWC Spending Limits",
@@ -393,11 +509,13 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                     },
                 ],
             },
+            # ── Network ───────────────────────────────────────────────────────
             {
                 "title": "Network",
                 "path": "network",
                 "icon": "mdi:bitcoin",
                 "cards": [
+                    # ── Market & network entities ────────────────────────────
                     {
                         "type": "entities",
                         "title": "Bitcoin Market & Network",
@@ -409,6 +527,34 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                             f"sensor.{p}_blocks_until_halving",
                             f"sensor.{p}_next_halving_eta",
                         ],
+                    },
+                    # ── Bitcoin price history graph ───────────────────────────
+                    {
+                        "type": "history-graph",
+                        "title": "Bitcoin Price (last 7 days)",
+                        "hours_to_show": 168,
+                        "refresh_interval": 0,
+                        "entities": [
+                            {
+                                "entity": f"sensor.{p}_bitcoin_price",
+                                "name": "BTC Price",
+                            }
+                        ],
+                    },
+                    # ── Halving countdown markdown ───────────────────────────
+                    {
+                        "type": "markdown",
+                        "title": "Next Halving",
+                        "content": (
+                            f"{{% set blocks = states('sensor.{p}_blocks_until_halving') | int(0) %}}\n"
+                            f"{{% set eta = states('sensor.{p}_next_halving_eta') %}}\n"
+                            "{% if blocks > 0 %}\n"
+                            "⛏️ **{{ blocks | int }} blocks** remaining until the next halving.\n\n"
+                            "📅 Estimated date: **{{ as_timestamp(eta) | timestamp_local }}**\n"
+                            "{% else %}\n"
+                            "*Halving data not available.*\n"
+                            "{% endif %}"
+                        ),
                     },
                 ],
             },
