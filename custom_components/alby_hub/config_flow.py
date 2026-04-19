@@ -15,6 +15,7 @@ from .const import (
     CONF_ALLOW_CONTINUE_WITH_WARNING,
     CONF_HUB_URL,
     CONF_MODE,
+    CONF_NETWORK_API_BASE,
     CONF_NETWORK_PROVIDER,
     CONF_NWC_URI,
     CONF_PREFER_LOCAL_RELAY,
@@ -101,6 +102,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                             CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
+                            CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
                             CONF_SETUP_WARNINGS: warnings,
                         },
                     )
@@ -152,6 +154,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                         CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                         CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
+                        CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
                         CONF_SETUP_WARNINGS: warnings,
                         CONF_PREFER_LOCAL_RELAY: user_input[CONF_PREFER_LOCAL_RELAY],
                     }
@@ -173,6 +176,7 @@ def _cloud_schema(user_input) -> vol.Schema:
     default_price_provider = DEFAULT_PRICE_PROVIDER
     default_price_currency = DEFAULT_PRICE_CURRENCY
     default_network_provider = DEFAULT_NETWORK_PROVIDER
+    default_network_api_base = ""
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
         default_warning = user_input.get(CONF_ALLOW_CONTINUE_WITH_WARNING, False)
@@ -181,6 +185,7 @@ def _cloud_schema(user_input) -> vol.Schema:
         default_network_provider = user_input.get(
             CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER
         )
+        default_network_api_base = user_input.get(CONF_NETWORK_API_BASE, "")
 
     return vol.Schema(
         {
@@ -218,6 +223,7 @@ def _cloud_schema(user_input) -> vol.Schema:
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
+            vol.Optional(CONF_NETWORK_API_BASE, default=default_network_api_base): str,
             vol.Optional(
                 CONF_ALLOW_CONTINUE_WITH_WARNING,
                 default=default_warning,
@@ -234,6 +240,7 @@ def _expert_schema(user_input) -> vol.Schema:
     default_price_provider = DEFAULT_PRICE_PROVIDER
     default_price_currency = DEFAULT_PRICE_CURRENCY
     default_network_provider = DEFAULT_NETWORK_PROVIDER
+    default_network_api_base = ""
 
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
@@ -245,6 +252,7 @@ def _expert_schema(user_input) -> vol.Schema:
         default_network_provider = user_input.get(
             CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER
         )
+        default_network_api_base = user_input.get(CONF_NETWORK_API_BASE, "")
 
     return vol.Schema(
         {
@@ -284,6 +292,7 @@ def _expert_schema(user_input) -> vol.Schema:
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
+            vol.Optional(CONF_NETWORK_API_BASE, default=default_network_api_base): str,
             vol.Optional(
                 CONF_ALLOW_CONTINUE_WITH_WARNING,
                 default=default_warning,

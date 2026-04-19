@@ -17,6 +17,7 @@
           "price_provider": "Datenanbieter für Bitcoin-Preis",
           "price_currency": "Preiswährung (z. B. EUR, USD)",
           "network_provider": "Datenanbieter für Bitcoin-Netzwerk",
+          "network_api_base": "Basis-URL der Netzwerk-API (eigene Node / Mempool-API)",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       },
@@ -30,6 +31,7 @@
           "price_provider": "Datenanbieter für Bitcoin-Preis",
           "price_currency": "Preiswährung (z. B. EUR, USD)",
           "network_provider": "Datenanbieter für Bitcoin-Netzwerk",
+          "network_api_base": "Basis-URL der Netzwerk-API (eigene Node / Mempool-API)",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       }

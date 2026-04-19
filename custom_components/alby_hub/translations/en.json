@@ -17,6 +17,7 @@
           "price_provider": "Bitcoin price data provider",
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
+          "network_api_base": "Network API base URL (for own node / mempool API)",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },
@@ -30,6 +31,7 @@
           "price_provider": "Bitcoin price data provider",
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
+          "network_api_base": "Network API base URL (for own node / mempool API)",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       }

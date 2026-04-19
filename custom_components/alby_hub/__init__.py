@@ -24,6 +24,7 @@ from .api import AlbyHubApiClient
 from .const import (
     CONF_HUB_URL,
     CONF_MODE,
+    CONF_NETWORK_API_BASE,
     CONF_NETWORK_PROVIDER,
     CONF_NWC_URI,
     CONF_PRICE_CURRENCY,
@@ -79,7 +80,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         price_provider=entry.data.get(CONF_PRICE_PROVIDER, DEFAULT_PRICE_PROVIDER),
         price_currency=entry.data.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY),
         network_provider=entry.data.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER),
-        network_api_base=entry.data.get(CONF_HUB_URL),
+        network_api_base=entry.data.get(CONF_NETWORK_API_BASE),
     )
     await coordinator.async_config_entry_first_refresh()
 
