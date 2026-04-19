@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from decimal import ROUND_DOWN, Decimal
+from decimal import Decimal
 
 import voluptuous as vol
 
@@ -163,7 +163,7 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
         return int(data["amount_sat"])
 
     if "amount_btc" in data:
-        raw_sat = int((Decimal(str(data["amount_btc"])) * Decimal(SATS_PER_BTC)).to_integral_value(ROUND_DOWN))
+        raw_sat = int(Decimal(str(data["amount_btc"])) * Decimal(SATS_PER_BTC))
         if raw_sat < 1:
             raise ServiceValidationError(
                 f"amount_btc too small: {data['amount_btc']} BTC converts to {raw_sat} sat (minimum 1 sat)."
@@ -178,8 +178,7 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
                 "Check network/price provider configuration."
             )
         raw_sat = int(
-            (Decimal(str(data["amount_fiat"])) / Decimal(str(btc_price)) * Decimal(SATS_PER_BTC))
-            .to_integral_value(ROUND_DOWN)
+            Decimal(str(data["amount_fiat"])) / Decimal(str(btc_price)) * Decimal(SATS_PER_BTC)
         )
         if raw_sat < 1:
             raise ServiceValidationError(
