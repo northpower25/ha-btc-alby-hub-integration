@@ -1,5 +1,5 @@
 {
-  "name": "Alby Hub",
+  "name": "Alby Hub integration for Bitcoin and Lightning",
   "render_readme": true,
   "homeassistant": "2026.1"
 }
