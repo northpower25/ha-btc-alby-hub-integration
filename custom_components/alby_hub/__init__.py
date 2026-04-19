@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
 
 from homeassistant.components import frontend
@@ -30,6 +31,7 @@ from .const import (
     CONF_PRICE_CURRENCY,
     CONF_PRICE_PROVIDER,
     CONF_RELAY_OVERRIDE,
+    DASHBOARD_VERSION,
     DEFAULT_NETWORK_PROVIDER,
     DEFAULT_PRICE_CURRENCY,
     DEFAULT_PRICE_PROVIDER,
@@ -41,7 +43,16 @@ from .helpers import AlbyHubRuntime
 from .nwc import parse_nwc_connection_uri
 from .services import async_setup_services, async_unload_services
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.TEXT]
+_LOGGER = logging.getLogger(__name__)
+
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.TEXT,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.BUTTON,
+]
 _DASHBOARD_URL = "alby-hub"
 _DASHBOARD_ICON = "mdi:lightning-bolt"
 _DASHBOARD_TITLE = "Alby Hub"
@@ -58,16 +69,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Alby Hub from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    nwc_info = parse_nwc_connection_uri(entry.data[CONF_NWC_URI])
-    relay_override = entry.data.get(CONF_RELAY_OVERRIDE)
+    # Merge options over data so reconfiguration via the gear icon takes effect
+    merged = dict(entry.data)
+    merged.update(entry.options)
+
+    nwc_info = parse_nwc_connection_uri(merged[CONF_NWC_URI])
+    relay_override = merged.get(CONF_RELAY_OVERRIDE)
     if relay_override:
         nwc_info = replace(nwc_info, relay=relay_override)
 
-    mode = entry.data[CONF_MODE]
+    mode = merged[CONF_MODE]
     session = async_get_clientsession(hass)
     api_client = None
     if mode == MODE_EXPERT:
-        hub_url = entry.data.get(CONF_HUB_URL)
+        hub_url = merged.get(CONF_HUB_URL)
         if hub_url:
             api_client = AlbyHubApiClient(session, hub_url)
 
@@ -77,10 +92,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         nwc_info=nwc_info,
         api_client=api_client,
         session=session,
-        price_provider=entry.data.get(CONF_PRICE_PROVIDER, DEFAULT_PRICE_PROVIDER),
-        price_currency=entry.data.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY),
-        network_provider=entry.data.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER),
-        network_api_base=entry.data.get(CONF_NETWORK_API_BASE),
+        price_provider=merged.get(CONF_PRICE_PROVIDER, DEFAULT_PRICE_PROVIDER),
+        price_currency=merged.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY),
+        network_provider=merged.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER),
+        network_api_base=merged.get(CONF_NETWORK_API_BASE),
     )
     await coordinator.async_config_entry_first_refresh()
 
@@ -88,12 +103,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator=coordinator,
         api_client=api_client,
         nwc_info=nwc_info,
+        session=session,
     )
 
     await async_setup_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await _async_ensure_dashboard(hass)
+
+    # Reload the entry whenever options are saved via the gear icon
+    entry.async_on_unload(entry.add_update_listener(_async_options_update_listener))
+
     return True
+
+
+async def _async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the config entry when options are updated."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -109,11 +134,28 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
-    """Create an Alby Hub dashboard with starter cards when missing."""
+    """Create or update the Alby Hub dashboard with versioned starter cards."""
     if LOVELACE_DATA not in hass.data:
         return
 
+    # If dashboard already registered: check version and update content if stale
     if _DASHBOARD_URL in hass.data[LOVELACE_DATA].dashboards:
+        existing = hass.data[LOVELACE_DATA].dashboards[_DASHBOARD_URL]
+        try:
+            current_config = await existing.async_load(False)
+            if current_config.get("_version") != DASHBOARD_VERSION:
+                _LOGGER.debug(
+                    "Alby Hub dashboard version mismatch (%s != %s) – updating",
+                    current_config.get("_version"),
+                    DASHBOARD_VERSION,
+                )
+                await existing.async_save(_default_dashboard_config())
+        except Exception:  # noqa: BLE001
+            # Dashboard not yet saved or load failed – save the default
+            try:
+                await existing.async_save(_default_dashboard_config())
+            except Exception:  # noqa: BLE001
+                pass
         return
 
     dashboards_collection = DashboardsCollection(hass)
@@ -153,39 +195,82 @@ async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
 
 
 def _default_dashboard_config() -> dict:
-    """Return initial Lovelace dashboard cards for Alby Hub."""
+    """Return versioned Lovelace dashboard config for Alby Hub."""
     return {
         "title": "Alby Hub",
+        "_version": DASHBOARD_VERSION,
         "views": [
             {
                 "title": "Receive",
                 "path": "receive",
                 "icon": "mdi:arrow-bottom-left",
                 "cards": [
+                    # ── Create a new BOLT11 invoice ──────────────────────────
+                    {
+                        "type": "entities",
+                        "title": "Create Invoice",
+                        "show_header_toggle": False,
+                        "entities": [
+                            {
+                                "entity": "number.alby_hub_invoice_amount",
+                                "name": "Amount",
+                            },
+                            {
+                                "entity": "select.alby_hub_invoice_amount_unit",
+                                "name": "Unit (SAT / BTC / Fiat)",
+                            },
+                            {
+                                "entity": "button.alby_hub_create_invoice_btn",
+                                "name": "Create Invoice",
+                            },
+                        ],
+                    },
+                    # ── Show generated BOLT11 invoice + QR ───────────────────
+                    {
+                        "type": "markdown",
+                        "title": "BOLT11 Invoice & QR Code",
+                        "content": (
+                            "{% set inv = states('text.alby_hub_last_invoice') %}\n"
+                            "{% if inv and inv not in ('unavailable', 'unknown', '') %}\n"
+                            "**Invoice:**\n"
+                            "```\n{{ inv }}\n```\n\n"
+                            "[![QR Code]"
+                            "(https://api.qrserver.com/v1/create-qr-code/"
+                            "?data=lightning:{{ inv }}&size=300x300&margin=10)]"
+                            "(https://api.qrserver.com/v1/create-qr-code/"
+                            "?data=lightning:{{ inv }}&size=300x300&margin=10)  \n"
+                            "*(Scan or copy the invoice above)*\n"
+                            "{% else %}\n"
+                            "No invoice yet. Set the amount and unit above, then press "
+                            "**Create Invoice**.\n"
+                            "{% endif %}"
+                        ),
+                    },
+                    # ── Lightning address & BOLT12 offer QR ──────────────────
                     {
                         "type": "entities",
                         "title": "Lightning Address",
                         "show_header_toggle": False,
-                        "entities": [
-                            "sensor.alby_hub_lightning_address",
-                        ],
+                        "entities": ["sensor.alby_hub_lightning_address"],
                     },
                     {
                         "type": "markdown",
-                        "title": "Last Invoice",
+                        "title": "Lightning Address QR (receive without fixed amount)",
                         "content": (
-                            "{% set inv = states('text.alby_hub_last_invoice') %}\n"
-                            "{% if inv and inv != 'unavailable' and inv != 'unknown' and inv != '' %}\n"
-                            "**BOLT11 Invoice:**  \n"
-                            "```\n{{ inv }}\n```\n\n"
-                            "[Show QR Code](https://api.qrserver.com/v1/create-qr-code/"
-                            "?data=lightning:{{ inv }}&size=300x300)  \n"
-                            "*(Copy and share, or let the recipient scan the QR link above)*\n"
+                            "{% set addr = states('sensor.alby_hub_lightning_address') %}\n"
+                            "{% if addr and addr not in ('unavailable', 'unknown', '') %}\n"
+                            "[![QR Code]"
+                            "(https://api.qrserver.com/v1/create-qr-code/"
+                            "?data=lightning:{{ addr }}&size=250x250&margin=10)]"
+                            "(https://api.qrserver.com/v1/create-qr-code/"
+                            "?data=lightning:{{ addr }}&size=250x250&margin=10)  \n"
+                            "**{{ addr }}**\n"
                             "{% else %}\n"
-                            "No invoice generated yet. Use `alby_hub.create_invoice` to generate one.\n"
+                            "Lightning address not available.\n"
                             "{% endif %}"
                         ),
                     },
+                    # ── Balance summary ───────────────────────────────────────
                     {
                         "type": "entities",
                         "title": "Balance",
@@ -202,38 +287,50 @@ def _default_dashboard_config() -> dict:
                 "path": "send",
                 "icon": "mdi:arrow-top-right",
                 "cards": [
+                    # ── Invoice / address input ───────────────────────────────
                     {
                         "type": "entities",
-                        "title": "Invoice Input",
+                        "title": "Payment",
                         "show_header_toggle": False,
                         "entities": [
                             {
                                 "entity": "text.alby_hub_invoice_input",
-                                "name": "BOLT11 Invoice",
+                                "name": "BOLT11 Invoice / Lightning Address",
                             }
                         ],
                     },
                     {
                         "type": "markdown",
-                        "title": "How to send",
+                        "title": "How to pay",
                         "content": (
-                            "1. **Scan QR code:** Use Home Assistant Companion App "
-                            "(Android/iOS) → tap the QR icon in the entity row above, "
-                            "or scan with your device camera and copy the result here.\n"
-                            "2. **Paste invoice:** Copy a BOLT11 invoice string from any "
-                            "Lightning wallet and paste it into the field above.\n"
-                            "3. **Send:** Call service `alby_hub.send_payment` "
-                            "(no parameters needed – it reads from the input field automatically)."
+                            "**Option 1 – Paste:**  \n"
+                            "Copy a BOLT11 invoice (or Lightning address) and paste it "
+                            "into the field above.\n\n"
+                            "**Option 2 – QR scan (HA Companion App):**  \n"
+                            "Tap the QR-code icon next to the input field to scan a "
+                            "Lightning invoice with your phone camera.\n\n"
+                            "Then press **Send Payment** below."
                         ),
                     },
+                    # ── Send button ───────────────────────────────────────────
                     {
                         "type": "button",
-                        "name": "Send payment",
+                        "name": "Send Payment",
                         "icon": "mdi:send",
                         "tap_action": {
                             "action": "call-service",
                             "service": "alby_hub.send_payment",
                         },
+                    },
+                    # ── Balance summary ───────────────────────────────────────
+                    {
+                        "type": "entities",
+                        "title": "Balance",
+                        "show_header_toggle": False,
+                        "entities": [
+                            "sensor.alby_hub_balance_lightning",
+                            "sensor.alby_hub_balance_onchain",
+                        ],
                     },
                 ],
             },

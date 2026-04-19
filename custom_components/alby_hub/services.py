@@ -23,8 +23,10 @@ from .const import (
     TEXT_KEY_LAST_INVOICE,
 )
 from .helpers import AlbyHubRuntime
+from .nwc_client import async_nwc_request
 
 _LOGGER = logging.getLogger(__name__)
+_MSATS_PER_SAT = 1000
 
 SERVICE_CREATE_INVOICE_SCHEMA = vol.Schema(
     {
@@ -53,23 +55,41 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_create_invoice(call: ServiceCall) -> ServiceResponse:
         runtime = _resolve_runtime(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
-        _assert_expert_mode(runtime)
-        if runtime.api_client is None:
-            raise ServiceValidationError("Expert mode API client is unavailable")
 
         amount_sat = _resolve_amount_sat(call.data, runtime)
 
-        try:
-            result = await runtime.api_client.create_invoice(
-                amount_sat=amount_sat,
-                memo=call.data.get("memo"),
-                expiry_seconds=call.data.get("expiry_seconds"),
-            )
-            _LOGGER.debug("Invoice created successfully: %s", result)
-        except AlbyHubApiError as err:
-            raise HomeAssistantError(f"Failed to create invoice: {err}") from err
+        mode = runtime.coordinator.data.get("mode")
+        invoice_str = ""
 
-        invoice_str: str = result.get("payment_request") or result.get("invoice") or ""
+        if mode == MODE_EXPERT and runtime.api_client is not None:
+            try:
+                result = await runtime.api_client.create_invoice(
+                    amount_sat=amount_sat,
+                    memo=call.data.get("memo"),
+                    expiry_seconds=call.data.get("expiry_seconds"),
+                )
+                _LOGGER.debug("Invoice created successfully: %s", result)
+            except AlbyHubApiError as err:
+                raise HomeAssistantError(f"Failed to create invoice: {err}") from err
+            invoice_str = result.get("payment_request") or result.get("invoice") or ""
+        else:
+            # Cloud mode: use NWC make_invoice
+            params: dict = {"amount": amount_sat * _MSATS_PER_SAT}
+            if memo := call.data.get("memo"):
+                params["description"] = memo
+            if expiry := call.data.get("expiry_seconds"):
+                params["expiry"] = expiry
+            result = await async_nwc_request(
+                runtime.session, runtime.nwc_info, "make_invoice", params
+            )
+            if result is None or result.get("error"):
+                raise HomeAssistantError(
+                    f"NWC make_invoice failed: {result.get('error') if result else 'no response'}"
+                )
+            inv_result = result.get("result") or {}
+            invoice_str = inv_result.get("invoice") or inv_result.get("payment_request") or ""
+            _LOGGER.debug("NWC invoice created: %s…", invoice_str[:20] if invoice_str else "")
+
         if invoice_str:
             last_invoice_entity = runtime.text_entities.get(TEXT_KEY_LAST_INVOICE)
             if last_invoice_entity is not None:
@@ -87,9 +107,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_send_payment(call: ServiceCall) -> ServiceResponse:
         runtime = _resolve_runtime(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
-        _assert_expert_mode(runtime)
-        if runtime.api_client is None:
-            raise ServiceValidationError("Expert mode API client is unavailable")
 
         payment_request = call.data.get("payment_request") or ""
         if not payment_request:
@@ -101,11 +118,28 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "No payment_request provided and invoice_input entity is empty"
             )
 
-        try:
-            result = await runtime.api_client.send_payment(payment_request)
-            _LOGGER.debug("Payment sent successfully: %s", result)
-        except AlbyHubApiError as err:
-            raise HomeAssistantError(f"Failed to send payment: {err}") from err
+        mode = runtime.coordinator.data.get("mode")
+
+        if mode == MODE_EXPERT and runtime.api_client is not None:
+            try:
+                result = await runtime.api_client.send_payment(payment_request)
+                _LOGGER.debug("Payment sent successfully: %s", result)
+            except AlbyHubApiError as err:
+                raise HomeAssistantError(f"Failed to send payment: {err}") from err
+        else:
+            # Cloud mode: use NWC pay_invoice
+            result = await async_nwc_request(
+                runtime.session,
+                runtime.nwc_info,
+                "pay_invoice",
+                {"invoice": payment_request},
+            )
+            if result is None or result.get("error"):
+                raise HomeAssistantError(
+                    f"NWC pay_invoice failed: {result.get('error') if result else 'no response'}"
+                )
+            result = result.get("result") or {}
+            _LOGGER.debug("NWC payment sent: %s", result)
 
         # Clear invoice_input after successful payment
         invoice_input_entity = runtime.text_entities.get(TEXT_KEY_INVOICE_INPUT)
@@ -148,13 +182,6 @@ def _resolve_runtime(hass: HomeAssistant, entry_id: str | None) -> AlbyHubRuntim
         return runtime
 
     return next(iter(runtimes.values()))
-
-
-def _assert_expert_mode(runtime: AlbyHubRuntime) -> None:
-    if runtime.coordinator.data.get("mode") != MODE_EXPERT:
-        raise ServiceValidationError(
-            "This service currently requires expert mode with local API access"
-        )
 
 
 def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
