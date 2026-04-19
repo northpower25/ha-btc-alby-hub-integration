@@ -39,7 +39,7 @@ TEXT_DESCRIPTIONS: tuple[AlbyHubTextDescription, ...] = (
         native_min=0,
         native_max=2048,
         mode=TextMode.TEXT,
-        read_only=False,
+        read_only=True,
     ),
 )
 

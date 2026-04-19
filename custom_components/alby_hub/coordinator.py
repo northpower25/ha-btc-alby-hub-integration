@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from aiohttp import ClientError, ClientSession
@@ -79,7 +78,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "bitcoin_hashrate": None,
             "bitcoin_price": None,
             "blocks_until_halving": None,
-            "next_halving_eta": None,
+            "minutes_per_block": _MINUTES_PER_BLOCK,
             "price_currency": self._price_currency,
             "version": None,
             "alias": None,
@@ -209,24 +208,21 @@ async def _fetch_network_stats(
 
     next_halving_height = _calculate_next_halving_height(height_data)
     blocks_until_halving = max(next_halving_height - height_data, 0)
-    next_halving_eta = datetime.now(UTC) + timedelta(
-        minutes=blocks_until_halving * minutes_per_block
-    )
 
     return {
         "bitcoin_block_height": height_data,
         "bitcoin_hashrate": hashrate,
         "blocks_until_halving": blocks_until_halving,
-        "next_halving_eta": next_halving_eta,
+        "minutes_per_block": minutes_per_block,
     }
 
 
-def _empty_network_payload() -> dict[str, None]:
+def _empty_network_payload() -> dict[str, None | float]:
     return {
         "bitcoin_block_height": None,
         "bitcoin_hashrate": None,
         "blocks_until_halving": None,
-        "next_halving_eta": None,
+        "minutes_per_block": _MINUTES_PER_BLOCK,
     }
 
 

@@ -162,7 +162,12 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
         return int(data["amount_sat"])
 
     if "amount_btc" in data:
-        return max(1, int(float(data["amount_btc"]) * SATS_PER_BTC))
+        raw_sat = int(float(data["amount_btc"]) * SATS_PER_BTC)
+        if raw_sat < 1:
+            raise ServiceValidationError(
+                f"amount_btc too small: {data['amount_btc']} BTC converts to {raw_sat} sat (minimum 1 sat)."
+            )
+        return raw_sat
 
     if "amount_fiat" in data:
         btc_price = runtime.coordinator.data.get("bitcoin_price")
@@ -172,7 +177,13 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
                 "Check network/price provider configuration."
             )
         amount_fiat = float(data["amount_fiat"])
-        return max(1, int((amount_fiat / float(btc_price)) * SATS_PER_BTC))
+        raw_sat = int((amount_fiat / float(btc_price)) * SATS_PER_BTC)
+        if raw_sat < 1:
+            raise ServiceValidationError(
+                f"amount_fiat too small: {amount_fiat} converts to {raw_sat} sat (minimum 1 sat). "
+                "Use a larger amount."
+            )
+        return raw_sat
 
     raise ServiceValidationError(
         "One of amount_sat, amount_btc, or amount_fiat must be provided."

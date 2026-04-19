@@ -84,9 +84,21 @@ SENSOR_DESCRIPTIONS: tuple[AlbyHubSensorDescription, ...] = (
         translation_key="next_halving_eta",
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:calendar-clock",
-        value_fn=lambda data: data.get("next_halving_eta"),
+        # ETA is computed dynamically from blocks_until_halving + avg_minutes_per_block
+        value_fn=lambda data: _compute_halving_eta(data),
     ),
 )
+
+
+def _compute_halving_eta(data: dict) -> object | None:
+    """Compute halving ETA dynamically so it stays fresh between coordinator updates."""
+    from datetime import UTC, datetime, timedelta
+
+    blocks = data.get("blocks_until_halving")
+    if blocks is None:
+        return None
+    minutes_per_block = data.get("minutes_per_block", 10.0)
+    return datetime.now(UTC) + timedelta(minutes=float(blocks) * float(minutes_per_block))
 
 
 async def async_setup_entry(
