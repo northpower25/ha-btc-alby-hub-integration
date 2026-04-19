@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 
@@ -11,14 +12,18 @@ from .const import DOMAIN
 from .coordinator import AlbyHubDataUpdateCoordinator
 from .nwc import NwcConnectionInfo
 
+if TYPE_CHECKING:
+    from .text import AlbyHubTextEntity
 
-@dataclass(slots=True)
+
+@dataclass(slots=False)  # slots=False: dict field (text_entities) is populated after __init__ via platform setup
 class AlbyHubRuntime:
     """Runtime objects bound to one config entry."""
 
     coordinator: AlbyHubDataUpdateCoordinator
     api_client: AlbyHubApiClient | None
     nwc_info: NwcConnectionInfo
+    text_entities: dict[str, "AlbyHubTextEntity"] = field(default_factory=dict)
 
 
 def get_runtime(hass: HomeAssistant, entry_id: str) -> AlbyHubRuntime:

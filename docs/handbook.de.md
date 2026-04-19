@@ -113,16 +113,65 @@ Du bist selbst für die verantwortungsvolle Verwendung des Add-ons und der zugeh
 
 ## Entitäten
 
-Die Integration stellt aktuell Basis-Entitäten bereit:
+Aktuelle Entitäten:
 
-- Verbindung (`binary_sensor`)
-- Lightning-/On-Chain-Balance (`sensor`)
-- Lightning-Adresse, Relay, Hub-Version (`sensor`)
+### Sensoren
+
+- Verbindung (`binary_sensor`) – Node-Online-Status
+- Lightning-Balance / On-Chain-Balance (`sensor`) – in Satoshi
+- Lightning-Adresse, NWC-Relay, Hub-Version (`sensor`)
+- **Bitcoin-Preis** (`sensor`) – in der konfigurierten Währung (z. B. EUR, USD)
+- **Bitcoin-Blockhöhe** (`sensor`)
+- **Bitcoin-Hashrate** (`sensor`) – in EH/s
+- **Blöcke bis Halving** (`sensor`)
+- **Nächstes Halving (Schätzung)** (`sensor`) – Zeitstempel
+
+### Text-Entitäten (Zahlungsworkflow)
+
+- **`text.alby_hub_invoice_input`** – BOLT11-Rechnung hier einfügen oder per QR-Scan befüllen, bevor gesendet wird
+- **`text.alby_hub_last_invoice`** – zeigt die zuletzt erstellte Rechnung (BOLT11-String)
 
 ## Services
 
 - `alby_hub.create_invoice` (Expert-Modus, lokale API)
+  - Betrag kann in **Satoshi** (`amount_sat`), **BTC** (`amount_btc`) oder **Fiat** angegeben werden
+    (`amount_fiat` + `fiat_currency` – verwendet den Bitcoin-Preis-Sensor für die Umrechnung).
+  - Die erzeugte Rechnung wird automatisch in `text.alby_hub_last_invoice` gespeichert.
+  - Antwort enthält `payment_request`, `amount_sat` und `qr_url`.
 - `alby_hub.send_payment` (Expert-Modus, lokale API)
+  - `payment_request` ist optional: wenn nicht angegeben, wird `text.alby_hub_invoice_input` verwendet.
+  - Nach erfolgreicher Zahlung wird `text.alby_hub_invoice_input` automatisch geleert.
+
+## Lightning empfangen
+
+1. Service `alby_hub.create_invoice` mit gewünschtem Betrag (Satoshi / BTC / Fiat) aufrufen.
+2. Die BOLT11-Rechnung wird in `text.alby_hub_last_invoice` gespeichert.
+3. Alby-Hub-Dashboard → View „Empfangen" öffnen: zeigt den Invoice-Text und einen QR-Code-Link.
+4. Rechnungs-String teilen oder den QR-Code vom Zahler scannen lassen.
+
+Alternativ: Lightning-Adresse (`sensor.alby_hub_lightning_address`) direkt teilen – kein Invoice-Erstellen nötig.
+
+## Lightning senden
+
+1. BOLT11-Rechnung vom Zahlungsempfänger erhalten (per QR-Code oder Kopieren).
+2. In `text.alby_hub_invoice_input` einfügen (Alby-Hub-Dashboard → View „Senden"),
+   oder QR-Code mit der Home-Assistant-Companion-App (Android/iOS) scannen – der gescannte Wert
+   wird über die App direkt in die Text-Entität geschrieben.
+3. Service `alby_hub.send_payment` aufrufen (ohne Parameter, wenn die Entität befüllt ist).
+
+## Sprache / Anzeigesprache
+
+Home Assistant zeigt alle Entitäten und den Config-Flow automatisch in der Sprache an, die unter
+**Profil → Sprache** in Home Assistant eingestellt ist. Kein zusätzliches Setup erforderlich.
+Verfügbare Übersetzungen: Englisch (`en`), Deutsch (`de`).
+
+## Dashboard
+
+Nach der Einrichtung wird automatisch ein **Alby Hub**-Dashboard mit drei Views erstellt:
+
+- **Empfangen** – Lightning-Adresse, letzter Invoice mit QR-Code-Link, Balance
+- **Senden** – Invoice-Eingabefeld, Anleitung (Companion App QR / Einfügen), Sende-Button
+- **Netzwerk** – Bitcoin-Preis, Blockhöhe, Hashrate, Halving-Countdown
 
 ## Troubleshooting
 

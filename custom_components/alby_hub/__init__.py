@@ -4,17 +4,35 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from homeassistant.components import frontend
+from homeassistant.components.lovelace.const import (
+    CONF_ICON,
+    CONF_REQUIRE_ADMIN,
+    CONF_SHOW_IN_SIDEBAR,
+    CONF_TITLE,
+    CONF_URL_PATH,
+    LOVELACE_DATA,
+)
+from homeassistant.components.lovelace.dashboard import DashboardsCollection, LovelaceStorage
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import AlbyHubApiClient
 from .const import (
     CONF_HUB_URL,
     CONF_MODE,
+    CONF_NETWORK_API_BASE,
+    CONF_NETWORK_PROVIDER,
     CONF_NWC_URI,
+    CONF_PRICE_CURRENCY,
+    CONF_PRICE_PROVIDER,
     CONF_RELAY_OVERRIDE,
+    DEFAULT_NETWORK_PROVIDER,
+    DEFAULT_PRICE_CURRENCY,
+    DEFAULT_PRICE_PROVIDER,
     DOMAIN,
     MODE_EXPERT,
 )
@@ -23,7 +41,12 @@ from .helpers import AlbyHubRuntime
 from .nwc import parse_nwc_connection_uri
 from .services import async_setup_services, async_unload_services
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.TEXT]
+_DASHBOARD_URL = "alby-hub"
+_DASHBOARD_ICON = "mdi:lightning-bolt"
+_DASHBOARD_TITLE = "Alby Hub"
+_DASHBOARD_REQUIRE_ADMIN = False
+_DASHBOARD_SHOW_IN_SIDEBAR = True
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -53,6 +76,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         mode=mode,
         nwc_info=nwc_info,
         api_client=api_client,
+        session=session,
+        price_provider=entry.data.get(CONF_PRICE_PROVIDER, DEFAULT_PRICE_PROVIDER),
+        price_currency=entry.data.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY),
+        network_provider=entry.data.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER),
+        network_api_base=entry.data.get(CONF_NETWORK_API_BASE),
     )
     await coordinator.async_config_entry_first_refresh()
 
@@ -64,6 +92,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await async_setup_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await _async_ensure_dashboard(hass)
     return True
 
 
@@ -77,3 +106,155 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_unload_services(hass)
 
     return unload_ok
+
+
+async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
+    """Create an Alby Hub dashboard with starter cards when missing."""
+    if LOVELACE_DATA not in hass.data:
+        return
+
+    if _DASHBOARD_URL in hass.data[LOVELACE_DATA].dashboards:
+        return
+
+    dashboards_collection = DashboardsCollection(hass)
+    await dashboards_collection.async_load()
+    for item in dashboards_collection.async_items():
+        if item.get(CONF_URL_PATH) == _DASHBOARD_URL:
+            return
+
+    try:
+        item = await dashboards_collection.async_create_item(
+            {
+                CONF_ICON: _DASHBOARD_ICON,
+                CONF_TITLE: _DASHBOARD_TITLE,
+                CONF_URL_PATH: _DASHBOARD_URL,
+                CONF_REQUIRE_ADMIN: _DASHBOARD_REQUIRE_ADMIN,
+                CONF_SHOW_IN_SIDEBAR: _DASHBOARD_SHOW_IN_SIDEBAR,
+            }
+        )
+    except (HomeAssistantError, ValueError):
+        return
+
+    lovelace_config = LovelaceStorage(hass, item)
+    await lovelace_config.async_save(_default_dashboard_config())
+    hass.data[LOVELACE_DATA].dashboards[_DASHBOARD_URL] = lovelace_config
+
+    frontend.async_register_built_in_panel(
+        hass,
+        "lovelace",
+        frontend_url_path=_DASHBOARD_URL,
+        require_admin=_DASHBOARD_REQUIRE_ADMIN,
+        show_in_sidebar=_DASHBOARD_SHOW_IN_SIDEBAR,
+        sidebar_title=_DASHBOARD_TITLE,
+        sidebar_icon=_DASHBOARD_ICON,
+        config={"mode": "storage"},
+        update=False,
+    )
+
+
+def _default_dashboard_config() -> dict:
+    """Return initial Lovelace dashboard cards for Alby Hub."""
+    return {
+        "title": "Alby Hub",
+        "views": [
+            {
+                "title": "Receive",
+                "path": "receive",
+                "icon": "mdi:arrow-bottom-left",
+                "cards": [
+                    {
+                        "type": "entities",
+                        "title": "Lightning Address",
+                        "show_header_toggle": False,
+                        "entities": [
+                            "sensor.alby_hub_lightning_address",
+                        ],
+                    },
+                    {
+                        "type": "markdown",
+                        "title": "Last Invoice",
+                        "content": (
+                            "{% set inv = states('text.alby_hub_last_invoice') %}\n"
+                            "{% if inv and inv != 'unavailable' and inv != 'unknown' and inv != '' %}\n"
+                            "**BOLT11 Invoice:**  \n"
+                            "```\n{{ inv }}\n```\n\n"
+                            "[Show QR Code](https://api.qrserver.com/v1/create-qr-code/"
+                            "?data=lightning:{{ inv }}&size=300x300)  \n"
+                            "*(Copy and share, or let the recipient scan the QR link above)*\n"
+                            "{% else %}\n"
+                            "No invoice generated yet. Use `alby_hub.create_invoice` to generate one.\n"
+                            "{% endif %}"
+                        ),
+                    },
+                    {
+                        "type": "entities",
+                        "title": "Balance",
+                        "show_header_toggle": False,
+                        "entities": [
+                            "sensor.alby_hub_balance_lightning",
+                            "sensor.alby_hub_balance_onchain",
+                        ],
+                    },
+                ],
+            },
+            {
+                "title": "Send",
+                "path": "send",
+                "icon": "mdi:arrow-top-right",
+                "cards": [
+                    {
+                        "type": "entities",
+                        "title": "Invoice Input",
+                        "show_header_toggle": False,
+                        "entities": [
+                            {
+                                "entity": "text.alby_hub_invoice_input",
+                                "name": "BOLT11 Invoice",
+                            }
+                        ],
+                    },
+                    {
+                        "type": "markdown",
+                        "title": "How to send",
+                        "content": (
+                            "1. **Scan QR code:** Use Home Assistant Companion App "
+                            "(Android/iOS) → tap the QR icon in the entity row above, "
+                            "or scan with your device camera and copy the result here.\n"
+                            "2. **Paste invoice:** Copy a BOLT11 invoice string from any "
+                            "Lightning wallet and paste it into the field above.\n"
+                            "3. **Send:** Call service `alby_hub.send_payment` "
+                            "(no parameters needed – it reads from the input field automatically)."
+                        ),
+                    },
+                    {
+                        "type": "button",
+                        "name": "Send payment",
+                        "icon": "mdi:send",
+                        "tap_action": {
+                            "action": "call-service",
+                            "service": "alby_hub.send_payment",
+                        },
+                    },
+                ],
+            },
+            {
+                "title": "Network",
+                "path": "network",
+                "icon": "mdi:bitcoin",
+                "cards": [
+                    {
+                        "type": "entities",
+                        "title": "Bitcoin Market & Network",
+                        "show_header_toggle": False,
+                        "entities": [
+                            "sensor.alby_hub_bitcoin_price",
+                            "sensor.alby_hub_bitcoin_block_height",
+                            "sensor.alby_hub_bitcoin_hashrate",
+                            "sensor.alby_hub_blocks_until_halving",
+                            "sensor.alby_hub_next_halving_eta",
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
