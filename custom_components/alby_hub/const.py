@@ -79,4 +79,4 @@ COMMON_FIAT_CURRENCIES: list[str] = [
 ]
 
 # Dashboard version – bump whenever _default_dashboard_config() changes
-DASHBOARD_VERSION = 4
+DASHBOARD_VERSION = 5
