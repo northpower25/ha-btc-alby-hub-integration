@@ -28,6 +28,7 @@ from .nwc import NwcConnectionInfo
 
 _LOGGER = logging.getLogger(__name__)
 _BALANCE_KEYS: tuple[str, ...] = ("balance", "sat", "sats", "total")
+_HASHES_PER_EXAHASH = 1_000_000_000_000_000_000
 _HALVING_INTERVAL_BLOCKS = 210000
 _MINUTES_PER_BLOCK = 10
 _DEFAULT_MEMPOOL_API = "https://mempool.space"
@@ -200,7 +201,7 @@ async def _fetch_network_stats(
     if isinstance(hashrate_data, dict):
         current = hashrate_data.get("currentHashrate")
         if isinstance(current, (int, float)):
-            hashrate = round(float(current) / 1_000_000_000_000_000_000, 2)
+            hashrate = round(float(current) / _HASHES_PER_EXAHASH, 2)
         avg_block_time_seconds = hashrate_data.get("avgBlockTime")
         if isinstance(avg_block_time_seconds, (int, float)) and avg_block_time_seconds > 0:
             minutes_per_block = float(avg_block_time_seconds) / 60
