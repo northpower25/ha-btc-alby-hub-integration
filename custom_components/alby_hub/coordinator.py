@@ -205,10 +205,7 @@ async def _fetch_network_stats(
         if isinstance(avg_block_time_seconds, (int, float)) and avg_block_time_seconds > 0:
             minutes_per_block = float(avg_block_time_seconds) / 60
 
-    if height_data % _HALVING_INTERVAL_BLOCKS == 0:
-        next_halving_height = height_data
-    else:
-        next_halving_height = ((height_data // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS
+    next_halving_height = ((height_data // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS
     blocks_until_halving = max(next_halving_height - height_data, 0)
     next_halving_eta = datetime.now(UTC) + timedelta(
         minutes=blocks_until_halving * minutes_per_block

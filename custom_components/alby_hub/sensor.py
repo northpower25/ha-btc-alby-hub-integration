@@ -75,6 +75,7 @@ SENSOR_DESCRIPTIONS: tuple[AlbyHubSensorDescription, ...] = (
     AlbyHubSensorDescription(
         key="blocks_until_halving",
         translation_key="blocks_until_halving",
+        native_unit_of_measurement="blocks",
         icon="mdi:counter",
         value_fn=lambda data: data.get("blocks_until_halving"),
     ),
@@ -126,6 +127,4 @@ class AlbyHubSensor(AlbyHubCoordinatorEntity):
         """Return dynamic units for selected price currency."""
         if self.entity_description.key == "bitcoin_price":
             return self.coordinator.data.get("price_currency")
-        if self.entity_description.key == "blocks_until_halving":
-            return "blocks"
         return self.entity_description.native_unit_of_measurement
