@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
@@ -24,6 +25,7 @@ from .const import (
     PRICE_PROVIDER_MEMPOOL,
 )
 from .nwc import NwcConnectionInfo
+from .nwc_client import async_nwc_request
 
 _LOGGER = logging.getLogger(__name__)
 _BALANCE_KEYS: tuple[str, ...] = ("balance", "sat", "sats", "total")
@@ -103,6 +105,9 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             onchain = balance.get("onchain") if isinstance(balance, dict) else None
             data["balance_lightning"] = _read_sat_value(lightning)
             data["balance_onchain"] = _read_sat_value(onchain)
+        else:
+            # Cloud / NWC-only mode: fetch balance and info via NWC protocol
+            await self._fetch_nwc_data(data)
 
         data["bitcoin_price"] = await _fetch_bitcoin_price(
             self._session, self._price_provider, self._price_currency
@@ -113,6 +118,39 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data.update(network_stats)
 
         return data
+
+    async def _fetch_nwc_data(self, data: dict[str, Any]) -> None:
+        """Fetch Lightning balance and hub info via NWC get_balance / get_info.
+
+        Updates *data* in-place.  All failures are silently logged at DEBUG
+        level so that other sensors are not affected.
+        """
+        # get_balance → balance_lightning (response in millisatoshis)
+        try:
+            result = await async_nwc_request(self._session, self._nwc_info, "get_balance")
+            if result is not None and result.get("error") is None:
+                bal_result = result.get("result") or {}
+                bal_msat = bal_result.get("balance")
+                if isinstance(bal_msat, (int, float)):
+                    data["balance_lightning"] = int(bal_msat) // 1000
+                    data["connected"] = True
+        except Exception as err:
+            _LOGGER.debug("NWC get_balance failed: %s", err)
+
+        # get_info → version, and lightning_address fallback if not in URI
+        try:
+            result = await async_nwc_request(self._session, self._nwc_info, "get_info")
+            if result is not None and result.get("error") is None:
+                info_result = result.get("result") or {}
+                version = info_result.get("version")
+                if version:
+                    data["version"] = str(version)
+                if data.get("lightning_address") is None:
+                    lud16 = info_result.get("lud16") or info_result.get("lightning_address")
+                    if lud16:
+                        data["lightning_address"] = str(lud16)
+        except Exception as err:
+            _LOGGER.debug("NWC get_info failed: %s", err)
 
 
 def _read_sat_value(value: Any) -> int | None:
