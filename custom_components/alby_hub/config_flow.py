@@ -15,6 +15,7 @@ from .api import AlbyHubApiClient
 from .const import (
     COMMON_FIAT_CURRENCIES,
     CONF_ALLOW_CONTINUE_WITH_WARNING,
+    CONF_CONNECTION_NAME,
     CONF_HUB_URL,
     CONF_MODE,
     CONF_NETWORK_API_BASE,
@@ -25,6 +26,7 @@ from .const import (
     CONF_PRICE_PROVIDER,
     CONF_RELAY_OVERRIDE,
     CONF_SETUP_WARNINGS,
+    DEFAULT_CONNECTION_NAME,
     DEFAULT_NETWORK_PROVIDER,
     DEFAULT_HUB_URL,
     DEFAULT_PRICE_CURRENCY,
@@ -152,11 +154,16 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     await self.async_set_unique_id(f"{nwc_info.wallet_pubkey}:{nwc_info.relay}")
                     self._abort_if_unique_id_configured()
+                    connection_name = (
+                        user_input.get(CONF_CONNECTION_NAME, "").strip()
+                        or DEFAULT_CONNECTION_NAME
+                    )
                     return self.async_create_entry(
-                        title="Alby Hub",
+                        title=connection_name,
                         data={
                             CONF_MODE: MODE_CLOUD,
                             CONF_NWC_URI: nwc_info.raw_uri,
+                            CONF_CONNECTION_NAME: connection_name,
                             CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                             CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -205,9 +212,14 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     await self.async_set_unique_id(f"{nwc_info.wallet_pubkey}:{hub_url}")
                     self._abort_if_unique_id_configured()
+                    connection_name = (
+                        user_input.get(CONF_CONNECTION_NAME, "").strip()
+                        or DEFAULT_CONNECTION_NAME
+                    )
                     data = {
                         CONF_MODE: MODE_EXPERT,
                         CONF_NWC_URI: nwc_info.raw_uri,
+                        CONF_CONNECTION_NAME: connection_name,
                         CONF_HUB_URL: hub_url,
                         CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                         CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
@@ -218,7 +230,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     }
                     if relay_override:
                         data[CONF_RELAY_OVERRIDE] = relay_override
-                    return self.async_create_entry(title="Alby Hub", data=data)
+                    return self.async_create_entry(title=connection_name, data=data)
 
         return self.async_show_form(
             step_id="expert",
@@ -264,6 +276,10 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                         title="",
                         data={
                             CONF_NWC_URI: nwc_info.raw_uri,
+                            CONF_CONNECTION_NAME: (
+                                user_input.get(CONF_CONNECTION_NAME, "").strip()
+                                or DEFAULT_CONNECTION_NAME
+                            ),
                             CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                             CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -306,6 +322,10 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                 else:
                     new_data: dict = {
                         CONF_NWC_URI: nwc_info.raw_uri,
+                        CONF_CONNECTION_NAME: (
+                            user_input.get(CONF_CONNECTION_NAME, "").strip()
+                            or DEFAULT_CONNECTION_NAME
+                        ),
                         CONF_HUB_URL: hub_url,
                         CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                         CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
@@ -337,6 +357,7 @@ def _merged_entry_data(entry: config_entries.ConfigEntry) -> dict:
 
 def _cloud_schema(user_input) -> vol.Schema:
     default_uri = ""
+    default_connection_name = DEFAULT_CONNECTION_NAME
     default_warning = False
     default_price_provider = DEFAULT_PRICE_PROVIDER
     default_price_currency = DEFAULT_PRICE_CURRENCY
@@ -344,6 +365,7 @@ def _cloud_schema(user_input) -> vol.Schema:
     default_network_api_base = ""
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
+        default_connection_name = user_input.get(CONF_CONNECTION_NAME, DEFAULT_CONNECTION_NAME)
         default_warning = user_input.get(CONF_ALLOW_CONTINUE_WITH_WARNING, False)
         default_price_provider = user_input.get(CONF_PRICE_PROVIDER, DEFAULT_PRICE_PROVIDER)
         default_price_currency = user_input.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY)
@@ -355,6 +377,7 @@ def _cloud_schema(user_input) -> vol.Schema:
             vol.Required(CONF_NWC_URI, default=default_uri): selector.TextSelector(
                 selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
             ),
+            vol.Optional(CONF_CONNECTION_NAME, default=default_connection_name): str,
             vol.Optional(CONF_PRICE_PROVIDER, default=default_price_provider): _price_provider_selector(),
             vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): _currency_selector(),
             vol.Optional(CONF_NETWORK_PROVIDER, default=default_network_provider): _network_provider_selector(),
@@ -366,6 +389,7 @@ def _cloud_schema(user_input) -> vol.Schema:
 
 def _expert_schema(user_input) -> vol.Schema:
     default_uri = ""
+    default_connection_name = DEFAULT_CONNECTION_NAME
     default_hub_url = DEFAULT_HUB_URL
     default_prefer_local_relay = True
     default_warning = False
@@ -376,6 +400,7 @@ def _expert_schema(user_input) -> vol.Schema:
 
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
+        default_connection_name = user_input.get(CONF_CONNECTION_NAME, DEFAULT_CONNECTION_NAME)
         default_hub_url = user_input.get(CONF_HUB_URL, DEFAULT_HUB_URL)
         default_prefer_local_relay = user_input.get(CONF_PREFER_LOCAL_RELAY, True)
         default_warning = user_input.get(CONF_ALLOW_CONTINUE_WITH_WARNING, False)
@@ -389,6 +414,7 @@ def _expert_schema(user_input) -> vol.Schema:
             vol.Required(CONF_NWC_URI, default=default_uri): selector.TextSelector(
                 selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
             ),
+            vol.Optional(CONF_CONNECTION_NAME, default=default_connection_name): str,
             vol.Optional(CONF_HUB_URL, default=default_hub_url): str,
             vol.Optional(CONF_PREFER_LOCAL_RELAY, default=default_prefer_local_relay): bool,
             vol.Optional(CONF_PRICE_PROVIDER, default=default_price_provider): _price_provider_selector(),

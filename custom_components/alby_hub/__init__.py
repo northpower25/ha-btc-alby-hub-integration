@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import replace
 
 from homeassistant.components import frontend
@@ -23,6 +24,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import AlbyHubApiClient
 from .const import (
+    CONF_CONNECTION_NAME,
     CONF_HUB_URL,
     CONF_MODE,
     CONF_NETWORK_API_BASE,
@@ -32,6 +34,7 @@ from .const import (
     CONF_PRICE_PROVIDER,
     CONF_RELAY_OVERRIDE,
     DASHBOARD_VERSION,
+    DEFAULT_CONNECTION_NAME,
     DEFAULT_NETWORK_PROVIDER,
     DEFAULT_PRICE_CURRENCY,
     DEFAULT_PRICE_PROVIDER,
@@ -53,11 +56,19 @@ PLATFORMS: list[Platform] = [
     Platform.SELECT,
     Platform.BUTTON,
 ]
-_DASHBOARD_URL = "alby-hub"
 _DASHBOARD_ICON = "mdi:lightning-bolt"
-_DASHBOARD_TITLE = "Alby Hub"
 _DASHBOARD_REQUIRE_ADMIN = False
 _DASHBOARD_SHOW_IN_SIDEBAR = True
+
+
+def _url_slug(name: str) -> str:
+    """Convert a name to a URL-safe slug using hyphens (e.g. 'Alby Hub' → 'alby-hub')."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def _entity_slug(name: str) -> str:
+    """Convert a name to an entity-ID-safe slug using underscores (e.g. 'Alby Hub' → 'alby_hub')."""
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -72,6 +83,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Merge options over data so reconfiguration via the gear icon takes effect
     merged = dict(entry.data)
     merged.update(entry.options)
+
+    connection_name = (
+        merged.get(CONF_CONNECTION_NAME, "").strip() or DEFAULT_CONNECTION_NAME
+    )
 
     nwc_info = parse_nwc_connection_uri(merged[CONF_NWC_URI])
     relay_override = merged.get(CONF_RELAY_OVERRIDE)
@@ -96,6 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         price_currency=merged.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY),
         network_provider=merged.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER),
         network_api_base=merged.get(CONF_NETWORK_API_BASE),
+        entry_name=connection_name,
     )
     await coordinator.async_config_entry_first_refresh()
 
@@ -108,7 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await async_setup_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await _async_ensure_dashboard(hass)
+    await _async_ensure_dashboard(hass, entry.entry_id, connection_name)
 
     # Reload the entry whenever options are saved via the gear icon
     entry.async_on_unload(entry.add_update_listener(_async_options_update_listener))
@@ -133,27 +149,34 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
-    """Create or update the Alby Hub dashboard with versioned starter cards."""
+async def _async_ensure_dashboard(
+    hass: HomeAssistant, entry_id: str, connection_name: str
+) -> None:
+    """Create or update the Alby Hub dashboard for this config entry."""
     if LOVELACE_DATA not in hass.data:
         return
 
+    dashboard_url = _url_slug(connection_name)
+    dashboard_title = connection_name
+    dashboard_config = _default_dashboard_config(connection_name)
+
     # If dashboard already registered: check version and update content if stale
-    if _DASHBOARD_URL in hass.data[LOVELACE_DATA].dashboards:
-        existing = hass.data[LOVELACE_DATA].dashboards[_DASHBOARD_URL]
+    if dashboard_url in hass.data[LOVELACE_DATA].dashboards:
+        existing = hass.data[LOVELACE_DATA].dashboards[dashboard_url]
         try:
             current_config = await existing.async_load(False)
             if current_config.get("_version") != DASHBOARD_VERSION:
                 _LOGGER.debug(
-                    "Alby Hub dashboard version mismatch (%s != %s) – updating",
+                    "Alby Hub dashboard '%s' version mismatch (%s != %s) – updating",
+                    dashboard_url,
                     current_config.get("_version"),
                     DASHBOARD_VERSION,
                 )
-                await existing.async_save(_default_dashboard_config())
+                await existing.async_save(dashboard_config)
         except Exception:  # noqa: BLE001
             # Dashboard not yet saved or load failed – save the default
             try:
-                await existing.async_save(_default_dashboard_config())
+                await existing.async_save(dashboard_config)
             except Exception:  # noqa: BLE001
                 pass
         return
@@ -161,15 +184,15 @@ async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
     dashboards_collection = DashboardsCollection(hass)
     await dashboards_collection.async_load()
     for item in dashboards_collection.async_items():
-        if item.get(CONF_URL_PATH) == _DASHBOARD_URL:
+        if item.get(CONF_URL_PATH) == dashboard_url:
             return
 
     try:
         item = await dashboards_collection.async_create_item(
             {
                 CONF_ICON: _DASHBOARD_ICON,
-                CONF_TITLE: _DASHBOARD_TITLE,
-                CONF_URL_PATH: _DASHBOARD_URL,
+                CONF_TITLE: dashboard_title,
+                CONF_URL_PATH: dashboard_url,
                 CONF_REQUIRE_ADMIN: _DASHBOARD_REQUIRE_ADMIN,
                 CONF_SHOW_IN_SIDEBAR: _DASHBOARD_SHOW_IN_SIDEBAR,
             }
@@ -178,26 +201,30 @@ async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
         return
 
     lovelace_config = LovelaceStorage(hass, item)
-    await lovelace_config.async_save(_default_dashboard_config())
-    hass.data[LOVELACE_DATA].dashboards[_DASHBOARD_URL] = lovelace_config
+    await lovelace_config.async_save(dashboard_config)
+    hass.data[LOVELACE_DATA].dashboards[dashboard_url] = lovelace_config
 
     frontend.async_register_built_in_panel(
         hass,
         "lovelace",
-        frontend_url_path=_DASHBOARD_URL,
+        frontend_url_path=dashboard_url,
         require_admin=_DASHBOARD_REQUIRE_ADMIN,
         show_in_sidebar=_DASHBOARD_SHOW_IN_SIDEBAR,
-        sidebar_title=_DASHBOARD_TITLE,
+        sidebar_title=dashboard_title,
         sidebar_icon=_DASHBOARD_ICON,
         config={"mode": "storage"},
         update=False,
     )
 
 
-def _default_dashboard_config() -> dict:
-    """Return versioned Lovelace dashboard config for Alby Hub."""
+def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) -> dict:
+    """Return versioned Lovelace dashboard config for an Alby Hub instance."""
+    # Entity IDs are derived from: {domain}.{device_slug}_{entity_key}
+    # where device_slug = slugify(connection_name) and entity_key matches sensor/entity key
+    p = _entity_slug(connection_name)
+
     return {
-        "title": "Alby Hub",
+        "title": connection_name,
         "_version": DASHBOARD_VERSION,
         "views": [
             {
@@ -212,15 +239,15 @@ def _default_dashboard_config() -> dict:
                         "show_header_toggle": False,
                         "entities": [
                             {
-                                "entity": "number.alby_hub_invoice_amount",
+                                "entity": f"number.{p}_invoice_amount",
                                 "name": "Amount",
                             },
                             {
-                                "entity": "select.alby_hub_invoice_amount_unit",
+                                "entity": f"select.{p}_invoice_amount_unit",
                                 "name": "Unit (SAT / BTC / Fiat)",
                             },
                             {
-                                "entity": "button.alby_hub_create_invoice_btn",
+                                "entity": f"button.{p}_create_invoice_btn",
                                 "name": "Create Invoice",
                             },
                         ],
@@ -230,7 +257,7 @@ def _default_dashboard_config() -> dict:
                         "type": "markdown",
                         "title": "BOLT11 Invoice & QR Code",
                         "content": (
-                            "{% set inv = states('text.alby_hub_last_invoice') %}\n"
+                            f"{{% set inv = states('text.{p}_last_invoice') %}}\n"
                             "{% if inv and inv not in ('unavailable', 'unknown', '') %}\n"
                             "**Invoice:**\n"
                             "```\n{{ inv }}\n```\n\n"
@@ -251,13 +278,13 @@ def _default_dashboard_config() -> dict:
                         "type": "entities",
                         "title": "Lightning Address",
                         "show_header_toggle": False,
-                        "entities": ["sensor.alby_hub_lightning_address"],
+                        "entities": [f"sensor.{p}_lightning_address"],
                     },
                     {
                         "type": "markdown",
                         "title": "Lightning Address QR (receive without fixed amount)",
                         "content": (
-                            "{% set addr = states('sensor.alby_hub_lightning_address') %}\n"
+                            f"{{% set addr = states('sensor.{p}_lightning_address') %}}\n"
                             "{% if addr and addr not in ('unavailable', 'unknown', '') %}\n"
                             "[![QR Code]"
                             "(https://api.qrserver.com/v1/create-qr-code/"
@@ -276,8 +303,8 @@ def _default_dashboard_config() -> dict:
                         "title": "Balance",
                         "show_header_toggle": False,
                         "entities": [
-                            "sensor.alby_hub_balance_lightning",
-                            "sensor.alby_hub_balance_onchain",
+                            f"sensor.{p}_balance_lightning",
+                            f"sensor.{p}_balance_onchain",
                         ],
                     },
                 ],
@@ -294,7 +321,7 @@ def _default_dashboard_config() -> dict:
                         "show_header_toggle": False,
                         "entities": [
                             {
-                                "entity": "text.alby_hub_invoice_input",
+                                "entity": f"text.{p}_invoice_input",
                                 "name": "BOLT11 Invoice / Lightning Address",
                             }
                         ],
@@ -328,9 +355,41 @@ def _default_dashboard_config() -> dict:
                         "title": "Balance",
                         "show_header_toggle": False,
                         "entities": [
-                            "sensor.alby_hub_balance_lightning",
-                            "sensor.alby_hub_balance_onchain",
+                            f"sensor.{p}_balance_lightning",
+                            f"sensor.{p}_balance_onchain",
                         ],
+                    },
+                ],
+            },
+            {
+                "title": "NWC Budget",
+                "path": "budget",
+                "icon": "mdi:cash-lock",
+                "cards": [
+                    {
+                        "type": "entities",
+                        "title": "NWC Spending Limits",
+                        "show_header_toggle": False,
+                        "entities": [
+                            f"sensor.{p}_nwc_budget_total",
+                            f"sensor.{p}_nwc_budget_used",
+                            f"sensor.{p}_nwc_budget_remaining",
+                            f"sensor.{p}_nwc_budget_renewal",
+                        ],
+                    },
+                    {
+                        "type": "markdown",
+                        "title": "About NWC Budget",
+                        "content": (
+                            "These sensors show the spending limits configured for this NWC "
+                            "connection.  \n\n"
+                            "- **Total budget** – maximum amount this connection may spend per renewal period\n"
+                            "- **Used budget** – amount already spent in the current period\n"
+                            "- **Remaining budget** – amount still available to spend\n"
+                            "- **Renewal period** – how often the budget resets (daily / weekly / monthly / …)\n\n"
+                            "*Sensors show 'unavailable' if the NWC connection has no budget limit "
+                            "or if your hub does not support the get_budget method.*"
+                        ),
                     },
                 ],
             },
@@ -344,11 +403,11 @@ def _default_dashboard_config() -> dict:
                         "title": "Bitcoin Market & Network",
                         "show_header_toggle": False,
                         "entities": [
-                            "sensor.alby_hub_bitcoin_price",
-                            "sensor.alby_hub_bitcoin_block_height",
-                            "sensor.alby_hub_bitcoin_hashrate",
-                            "sensor.alby_hub_blocks_until_halving",
-                            "sensor.alby_hub_next_halving_eta",
+                            f"sensor.{p}_bitcoin_price",
+                            f"sensor.{p}_bitcoin_block_height",
+                            f"sensor.{p}_bitcoin_hashrate",
+                            f"sensor.{p}_blocks_until_halving",
+                            f"sensor.{p}_next_halving_eta",
                         ],
                     },
                 ],

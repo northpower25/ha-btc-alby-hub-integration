@@ -52,6 +52,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         price_currency: str,
         network_provider: str,
         network_api_base: str | None,
+        entry_name: str,
     ) -> None:
         super().__init__(
             hass,
@@ -67,10 +68,12 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._price_currency = price_currency.upper()
         self._network_provider = network_provider
         self._network_api_base = network_api_base
+        self._entry_name = entry_name
 
     async def _async_update_data(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "mode": self._mode,
+            "entry_name": self._entry_name,
             "wallet_pubkey": self._nwc_info.wallet_pubkey,
             "relay": self._nwc_info.relay,
             "lightning_address": self._nwc_info.lud16,
@@ -85,6 +88,10 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "price_currency": self._price_currency,
             "version": None,
             "alias": None,
+            "nwc_budget_total": None,
+            "nwc_budget_used": None,
+            "nwc_budget_remaining": None,
+            "nwc_budget_renewal": None,
         }
 
         if self._mode == MODE_EXPERT and self._api_client is not None:
@@ -121,7 +128,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return data
 
     async def _fetch_nwc_data(self, data: dict[str, Any]) -> None:
-        """Fetch Lightning balance and hub info via NWC get_balance / get_info.
+        """Fetch Lightning balance and hub info via NWC get_balance / get_info / get_budget.
 
         Updates *data* in-place.  All failures are silently logged at DEBUG
         level so that other sensors are not affected.
@@ -152,6 +159,28 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         data["lightning_address"] = str(lud16)
         except Exception as err:
             _LOGGER.debug("NWC get_info failed: %s", err)
+
+        # get_budget → NWC spending limits (optional, not supported by all implementations)
+        try:
+            result = await async_nwc_request(self._session, self._nwc_info, "get_budget")
+            if result is not None and result.get("error") is None:
+                budget_result = result.get("result") or {}
+                total_msat = budget_result.get("total_budget")
+                used_msat = budget_result.get("used_budget")
+                renewal = budget_result.get("renewal_period")
+                if isinstance(used_msat, (int, float)):
+                    data["nwc_budget_used"] = int(int(used_msat) // _MSATS_PER_SAT)
+                if isinstance(total_msat, (int, float)):
+                    total_sat = int(int(total_msat) // _MSATS_PER_SAT)
+                    data["nwc_budget_total"] = total_sat
+                    if data["nwc_budget_used"] is not None:
+                        data["nwc_budget_remaining"] = max(
+                            0, total_sat - data["nwc_budget_used"]
+                        )
+                if isinstance(renewal, str) and renewal:
+                    data["nwc_budget_renewal"] = renewal
+        except Exception as err:
+            _LOGGER.debug("NWC get_budget failed: %s", err)
 
 
 def _read_sat_value(value: Any) -> int | None:
