@@ -21,10 +21,13 @@ Diese Integration ist für alle Home-Assistant-Installationsarten gedacht (HA OS
 MVP-Implementierung mit:
 
 - Config-Flow für Cloud- und Expert-Modus
+- NWC-Eingabefeld als geschütztes Passwortfeld
+- Auswahl von Bitcoin-Preis-/Netzwerk-Datenanbietern im Config-Flow
 - NWC-URI- und Scope-Prüfung inklusive „Continue with warning“-Verhalten
 - Expert-Modus: optionaler lokaler API-Health-Check und Relay-Priorisierung (`ws://<host>:3334`)
-- Basis-Entitäten für Verbindung, Balances und Metadaten
+- Basis-Entitäten für Verbindung, Balances, Bitcoin-Preis und Netzwerkdaten
 - Basis-Services für Invoice-Erstellung und Payment (lokale API, Expert-Modus)
+- Automatische Erstellung eines Alby-Hub-Dashboards mit vorgeschlagenen Karten für Empfang/Senden und Markt-/Netzwerkdaten
 
 ## Installation (HACS) – Kurzanleitung
 

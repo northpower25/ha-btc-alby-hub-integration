@@ -14,6 +14,9 @@
         "description": "Paste the NWC connection string from Alby Hub. Warning: beta software can fail or behave unexpectedly and could lead to financial loss. Do not test with large amounts. Learn more: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.en.md",
         "data": {
           "nwc_uri": "NWC connection string",
+          "price_provider": "Bitcoin price data provider",
+          "price_currency": "Price currency (e.g. EUR, USD)",
+          "network_provider": "Bitcoin network data provider",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },
@@ -24,6 +27,9 @@
           "nwc_uri": "NWC connection string",
           "hub_url": "Local hub URL",
           "prefer_local_relay": "Prefer local relay",
+          "price_provider": "Bitcoin price data provider",
+          "price_currency": "Price currency (e.g. EUR, USD)",
+          "network_provider": "Bitcoin network data provider",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       }
@@ -52,6 +58,21 @@
       },
       "version": {
         "name": "Hub version"
+      },
+      "bitcoin_price": {
+        "name": "Bitcoin price"
+      },
+      "bitcoin_block_height": {
+        "name": "Bitcoin block height"
+      },
+      "bitcoin_hashrate": {
+        "name": "Bitcoin hashrate"
+      },
+      "blocks_until_halving": {
+        "name": "Blocks until halving"
+      },
+      "next_halving_eta": {
+        "name": "Next halving estimate"
       }
     },
     "binary_sensor": {
