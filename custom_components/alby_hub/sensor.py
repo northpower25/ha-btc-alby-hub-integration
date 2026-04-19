@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any, Callable
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescription
@@ -92,8 +93,6 @@ SENSOR_DESCRIPTIONS: tuple[AlbyHubSensorDescription, ...] = (
 
 def _compute_halving_eta(data: dict) -> object | None:
     """Compute halving ETA dynamically so it stays fresh between coordinator updates."""
-    from datetime import UTC, datetime, timedelta
-
     blocks = data.get("blocks_until_halving")
     if blocks is None:
         return None

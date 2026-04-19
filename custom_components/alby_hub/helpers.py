@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .text import AlbyHubTextEntity
 
 
-@dataclass(slots=False)  # slots=False needed: class uses dynamic attributes via RestoreText/Entity base classes
+@dataclass(slots=False)  # slots=False: dict field (text_entities) is populated after __init__ via platform setup
 class AlbyHubRuntime:
     """Runtime objects bound to one config entry."""
 
