@@ -5,6 +5,7 @@ from __future__ import annotations
 DOMAIN = "alby_hub"
 
 CONF_ALLOW_CONTINUE_WITH_WARNING = "allow_continue_with_warning"
+CONF_CONNECTION_NAME = "connection_name"
 CONF_HUB_URL = "hub_url"
 CONF_MODE = "mode"
 CONF_NETWORK_API_BASE = "network_api_base"
@@ -19,6 +20,7 @@ CONF_SETUP_WARNINGS = "setup_warnings"
 MODE_CLOUD = "cloud"
 MODE_EXPERT = "expert"
 
+DEFAULT_CONNECTION_NAME = "Alby Hub"
 DEFAULT_HUB_URL = "http://localhost:8080"
 DEFAULT_NETWORK_PROVIDER = "mempool"
 DEFAULT_PRICE_CURRENCY = "EUR"
@@ -43,7 +45,7 @@ REQUIRED_NWC_SCOPES: tuple[str, ...] = (
     "list_transactions",
     "make_invoice",
 )
-OPTIONAL_NWC_SCOPES: tuple[str, ...] = ("pay_invoice",)
+OPTIONAL_NWC_SCOPES: tuple[str, ...] = ("pay_invoice", "get_budget")
 
 SERVICE_CREATE_INVOICE = "create_invoice"
 SERVICE_SEND_PAYMENT = "send_payment"
@@ -62,6 +64,12 @@ NUMBER_KEY_INVOICE_AMOUNT = "invoice_amount"
 SELECT_KEY_INVOICE_AMOUNT_UNIT = "invoice_amount_unit"
 BUTTON_KEY_CREATE_INVOICE = "create_invoice_btn"
 
+# NWC Budget sensor keys
+SENSOR_KEY_NWC_BUDGET_TOTAL = "nwc_budget_total"
+SENSOR_KEY_NWC_BUDGET_USED = "nwc_budget_used"
+SENSOR_KEY_NWC_BUDGET_REMAINING = "nwc_budget_remaining"
+SENSOR_KEY_NWC_BUDGET_RENEWAL = "nwc_budget_renewal"
+
 # Common fiat currencies for the price_currency selector (sorted alphabetically)
 COMMON_FIAT_CURRENCIES: list[str] = [
     "AED", "ARS", "AUD", "BRL", "CAD", "CHF", "CLP", "CNY", "CZK",
@@ -71,4 +79,4 @@ COMMON_FIAT_CURRENCIES: list[str] = [
 ]
 
 # Dashboard version – bump whenever _default_dashboard_config() changes
-DASHBOARD_VERSION = 3
+DASHBOARD_VERSION = 4

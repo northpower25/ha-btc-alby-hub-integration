@@ -14,6 +14,7 @@
         "description": "Füge den NWC-Connection-String aus Alby Hub ein. Warnung: Beta-Software kann fehlschlagen oder unerwartet reagieren und zu finanziellen Verlusten führen. Nicht mit großen Beträgen testen. Mehr erfahren: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.de.md",
         "data": {
           "nwc_uri": "NWC-Connection-String",
+          "connection_name": "Verbindungsname",
           "price_provider": "Datenanbieter für Bitcoin-Preis",
           "price_currency": "Preiswährung (z. B. EUR, USD)",
           "network_provider": "Datenanbieter für Bitcoin-Netzwerk",
@@ -26,6 +27,7 @@
         "description": "Nutze die lokale Hub-URL und priorisiere optional das Relay ws://<host>:3334. Warnung: Beta-Software kann fehlschlagen oder unerwartet reagieren und zu finanziellen Verlusten führen. Nicht mit großen Beträgen testen.",
         "data": {
           "nwc_uri": "NWC-Connection-String",
+          "connection_name": "Verbindungsname",
           "hub_url": "Lokale Hub-URL",
           "prefer_local_relay": "Lokales Relay priorisieren",
           "price_provider": "Datenanbieter für Bitcoin-Preis",
@@ -51,6 +53,7 @@
         "description": "NWC-Connection-String, Preisanbieter, Währung oder Netzwerkanbieter anpassen.",
         "data": {
           "nwc_uri": "NWC-Connection-String",
+          "connection_name": "Verbindungsname",
           "price_provider": "Datenanbieter für Bitcoin-Preis",
           "price_currency": "Preiswährung (z. B. EUR, USD)",
           "network_provider": "Datenanbieter für Bitcoin-Netzwerk",
@@ -63,6 +66,7 @@
         "description": "NWC-Verbindung, lokale Hub-URL, Relay, Preisanbieter, Währung oder Netzwerkanbieter anpassen.",
         "data": {
           "nwc_uri": "NWC-Connection-String",
+          "connection_name": "Verbindungsname",
           "hub_url": "Lokale Hub-URL",
           "prefer_local_relay": "Lokales Relay priorisieren",
           "price_provider": "Datenanbieter für Bitcoin-Preis",
@@ -112,6 +116,18 @@
       },
       "next_halving_eta": {
         "name": "Nächstes Halving (Schätzung)"
+      },
+      "nwc_budget_total": {
+        "name": "NWC Budget gesamt"
+      },
+      "nwc_budget_used": {
+        "name": "NWC Budget genutzt"
+      },
+      "nwc_budget_remaining": {
+        "name": "NWC Budget verfügbar"
+      },
+      "nwc_budget_renewal": {
+        "name": "NWC Budget-Erneuerungszeitraum"
       }
     },
     "binary_sensor": {

@@ -13,6 +13,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import AlbyHubCoordinatorEntity
 from .helpers import get_runtime
+from .const import (
+    SENSOR_KEY_NWC_BUDGET_REMAINING,
+    SENSOR_KEY_NWC_BUDGET_RENEWAL,
+    SENSOR_KEY_NWC_BUDGET_TOTAL,
+    SENSOR_KEY_NWC_BUDGET_USED,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -87,6 +93,34 @@ SENSOR_DESCRIPTIONS: tuple[AlbyHubSensorDescription, ...] = (
         icon="mdi:calendar-clock",
         # ETA is computed dynamically from blocks_until_halving + avg_minutes_per_block
         value_fn=lambda data: _compute_halving_eta(data),
+    ),
+    # ── NWC Budget sensors ────────────────────────────────────────────────────
+    AlbyHubSensorDescription(
+        key=SENSOR_KEY_NWC_BUDGET_TOTAL,
+        translation_key=SENSOR_KEY_NWC_BUDGET_TOTAL,
+        native_unit_of_measurement="sat",
+        icon="mdi:cash-lock",
+        value_fn=lambda data: data.get("nwc_budget_total"),
+    ),
+    AlbyHubSensorDescription(
+        key=SENSOR_KEY_NWC_BUDGET_USED,
+        translation_key=SENSOR_KEY_NWC_BUDGET_USED,
+        native_unit_of_measurement="sat",
+        icon="mdi:cash-minus",
+        value_fn=lambda data: data.get("nwc_budget_used"),
+    ),
+    AlbyHubSensorDescription(
+        key=SENSOR_KEY_NWC_BUDGET_REMAINING,
+        translation_key=SENSOR_KEY_NWC_BUDGET_REMAINING,
+        native_unit_of_measurement="sat",
+        icon="mdi:cash-check",
+        value_fn=lambda data: data.get("nwc_budget_remaining"),
+    ),
+    AlbyHubSensorDescription(
+        key=SENSOR_KEY_NWC_BUDGET_RENEWAL,
+        translation_key=SENSOR_KEY_NWC_BUDGET_RENEWAL,
+        icon="mdi:calendar-refresh",
+        value_fn=lambda data: data.get("nwc_budget_renewal"),
     ),
 )
 

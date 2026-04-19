@@ -21,10 +21,12 @@ class AlbyHubCoordinatorEntity(CoordinatorEntity[AlbyHubDataUpdateCoordinator]):
     @property
     def device_info(self) -> DeviceInfo:
         """Return shared Alby Hub device info."""
+        data = self.coordinator.data
+        name = data.get("entry_name") or "Alby Hub"
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry_id)},
-            name="Alby Hub",
+            name=name,
             manufacturer="Alby",
             model="Hub",
-            sw_version=self.coordinator.data.get("version"),
+            sw_version=data.get("version"),
         )
