@@ -29,6 +29,7 @@ from .nwc import NwcConnectionInfo
 _LOGGER = logging.getLogger(__name__)
 _BALANCE_KEYS: tuple[str, ...] = ("balance", "sat", "sats", "total")
 _HASHES_PER_EXAHASH = 1_000_000_000_000_000_000
+_API_REQUEST_TIMEOUT_SECONDS = 5
 _HALVING_INTERVAL_BLOCKS = 210000
 _MINUTES_PER_BLOCK = 10
 _DEFAULT_MEMPOOL_API = "https://mempool.space"
@@ -206,7 +207,7 @@ async def _fetch_network_stats(
         if isinstance(avg_block_time_seconds, (int, float)) and avg_block_time_seconds > 0:
             minutes_per_block = float(avg_block_time_seconds) / 60
 
-    next_halving_height = ((height_data // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS
+    next_halving_height = _calculate_next_halving_height(height_data)
     blocks_until_halving = max(next_halving_height - height_data, 0)
     next_halving_eta = datetime.now(UTC) + timedelta(
         minutes=blocks_until_halving * minutes_per_block
@@ -231,9 +232,13 @@ def _empty_network_payload() -> dict[str, None]:
 
 async def _safe_get_json(session: ClientSession, url: str) -> Any:
     try:
-        async with session.get(url, timeout=5) as response:
+        async with session.get(url, timeout=_API_REQUEST_TIMEOUT_SECONDS) as response:
             if response.status >= 400:
                 return None
             return await response.json(content_type=None)
     except (TimeoutError, ClientError, ValueError):
         return None
+
+
+def _calculate_next_halving_height(current_height: int) -> int:
+    return ((current_height // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS

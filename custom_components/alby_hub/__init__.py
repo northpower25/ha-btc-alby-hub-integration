@@ -41,6 +41,11 @@ from .nwc import parse_nwc_connection_uri
 from .services import async_setup_services, async_unload_services
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
+_DASHBOARD_URL = "alby-hub"
+_DASHBOARD_ICON = "mdi:lightning-bolt"
+_DASHBOARD_TITLE = "Alby Hub"
+_DASHBOARD_REQUIRE_ADMIN = False
+_DASHBOARD_SHOW_IN_SIDEBAR = True
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -107,24 +112,23 @@ async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
     if LOVELACE_DATA not in hass.data:
         return
 
-    dashboard_url = "alby-hub"
-    if dashboard_url in hass.data[LOVELACE_DATA].dashboards:
+    if _DASHBOARD_URL in hass.data[LOVELACE_DATA].dashboards:
         return
 
     dashboards_collection = DashboardsCollection(hass)
     await dashboards_collection.async_load()
     for item in dashboards_collection.async_items():
-        if item.get(CONF_URL_PATH) == dashboard_url:
+        if item.get(CONF_URL_PATH) == _DASHBOARD_URL:
             return
 
     try:
         item = await dashboards_collection.async_create_item(
             {
-                CONF_ICON: "mdi:lightning-bolt",
-                CONF_TITLE: "Alby Hub",
-                CONF_URL_PATH: dashboard_url,
-                CONF_REQUIRE_ADMIN: False,
-                CONF_SHOW_IN_SIDEBAR: True,
+                CONF_ICON: _DASHBOARD_ICON,
+                CONF_TITLE: _DASHBOARD_TITLE,
+                CONF_URL_PATH: _DASHBOARD_URL,
+                CONF_REQUIRE_ADMIN: _DASHBOARD_REQUIRE_ADMIN,
+                CONF_SHOW_IN_SIDEBAR: _DASHBOARD_SHOW_IN_SIDEBAR,
             }
         )
     except (HomeAssistantError, ValueError):
@@ -132,16 +136,16 @@ async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
 
     lovelace_config = LovelaceStorage(hass, item)
     await lovelace_config.async_save(_default_dashboard_config())
-    hass.data[LOVELACE_DATA].dashboards[dashboard_url] = lovelace_config
+    hass.data[LOVELACE_DATA].dashboards[_DASHBOARD_URL] = lovelace_config
 
     frontend.async_register_built_in_panel(
         hass,
         "lovelace",
-        frontend_url_path=dashboard_url,
-        require_admin=False,
-        show_in_sidebar=True,
-        sidebar_title="Alby Hub",
-        sidebar_icon="mdi:lightning-bolt",
+        frontend_url_path=_DASHBOARD_URL,
+        require_admin=_DASHBOARD_REQUIRE_ADMIN,
+        show_in_sidebar=_DASHBOARD_SHOW_IN_SIDEBAR,
+        sidebar_title=_DASHBOARD_TITLE,
+        sidebar_icon=_DASHBOARD_ICON,
         config={"mode": "storage"},
         update=False,
     )
