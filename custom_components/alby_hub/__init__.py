@@ -159,7 +159,7 @@ def _default_dashboard_config() -> dict:
                 "cards": [
                     {
                         "type": "entities",
-                        "title": "Empfangen",
+                        "title": "Receive",
                         "show_header_toggle": False,
                         "entities": [
                             "sensor.alby_hub_lightning_address",
@@ -168,17 +168,17 @@ def _default_dashboard_config() -> dict:
                     },
                     {
                         "type": "markdown",
-                        "title": "Rechnung / BOLT12 / Lightning-Adresse",
-                        "content": "Nutze deine Lightning-Adresse oder erstelle Rechnungen über den Service `alby_hub.create_invoice`.",
+                        "title": "Invoice / BOLT12 / Lightning Address",
+                        "content": "Use your lightning address or create invoices with service `alby_hub.create_invoice`.",
                     },
                     {
                         "type": "markdown",
-                        "title": "Senden",
-                        "content": "Scanne den QR-Code in der Home Assistant Companion App/Kamera oder füge die Rechnung per Copy & Paste ein und sende dann über `alby_hub.send_payment`.",
+                        "title": "Send",
+                        "content": "Scan invoice QR codes in Home Assistant Companion App/camera or paste the invoice, then send it with `alby_hub.send_payment`.",
                     },
                     {
                         "type": "entities",
-                        "title": "Bitcoin Markt & Netzwerk",
+                        "title": "Bitcoin Market & Network",
                         "show_header_toggle": False,
                         "entities": [
                             "sensor.alby_hub_bitcoin_price",

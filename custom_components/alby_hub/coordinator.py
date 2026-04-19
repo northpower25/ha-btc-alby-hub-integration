@@ -196,15 +196,19 @@ async def _fetch_network_stats(
         return _empty_network_payload()
 
     hashrate = None
+    minutes_per_block = _MINUTES_PER_BLOCK
     if isinstance(hashrate_data, dict):
         current = hashrate_data.get("currentHashrate")
         if isinstance(current, (int, float)):
             hashrate = round(float(current) / 1_000_000_000_000_000_000, 2)
+        avg_block_time_seconds = hashrate_data.get("avgBlockTime")
+        if isinstance(avg_block_time_seconds, (int, float)) and avg_block_time_seconds > 0:
+            minutes_per_block = float(avg_block_time_seconds) / 60
 
     next_halving_height = ((height_data // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS
     blocks_until_halving = max(next_halving_height - height_data, 0)
     next_halving_eta = datetime.now(UTC) + timedelta(
-        minutes=blocks_until_halving * _MINUTES_PER_BLOCK
+        minutes=blocks_until_halving * minutes_per_block
     )
 
     return {
