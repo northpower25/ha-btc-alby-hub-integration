@@ -41,7 +41,7 @@ from .helpers import AlbyHubRuntime
 from .nwc import parse_nwc_connection_uri
 from .services import async_setup_services, async_unload_services
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.TEXT]
 _DASHBOARD_URL = "alby-hub"
 _DASHBOARD_ICON = "mdi:lightning-bolt"
 _DASHBOARD_TITLE = "Alby Hub"
@@ -158,29 +158,90 @@ def _default_dashboard_config() -> dict:
         "title": "Alby Hub",
         "views": [
             {
-                "title": "Lightning",
-                "path": "lightning",
-                "icon": "mdi:lightning-bolt",
+                "title": "Receive",
+                "path": "receive",
+                "icon": "mdi:arrow-bottom-left",
                 "cards": [
                     {
                         "type": "entities",
-                        "title": "Receive",
+                        "title": "Lightning Address",
                         "show_header_toggle": False,
                         "entities": [
                             "sensor.alby_hub_lightning_address",
-                            "sensor.alby_hub_relay",
                         ],
                     },
                     {
                         "type": "markdown",
-                        "title": "Invoice / BOLT12 / Lightning Address",
-                        "content": "Use your lightning address or create invoices with service `alby_hub.create_invoice`.",
+                        "title": "Last Invoice",
+                        "content": (
+                            "{% set inv = states('text.alby_hub_last_invoice') %}\n"
+                            "{% if inv and inv != 'unavailable' and inv != 'unknown' and inv != '' %}\n"
+                            "**BOLT11 Invoice:**  \n"
+                            "```\n{{ inv }}\n```\n\n"
+                            "[Show QR Code](https://api.qrserver.com/v1/create-qr-code/"
+                            "?data=lightning:{{ inv }}&size=300x300)  \n"
+                            "*(Copy and share, or let the recipient scan the QR link above)*\n"
+                            "{% else %}\n"
+                            "No invoice generated yet. Use `alby_hub.create_invoice` to generate one.\n"
+                            "{% endif %}"
+                        ),
+                    },
+                    {
+                        "type": "entities",
+                        "title": "Balance",
+                        "show_header_toggle": False,
+                        "entities": [
+                            "sensor.alby_hub_balance_lightning",
+                            "sensor.alby_hub_balance_onchain",
+                        ],
+                    },
+                ],
+            },
+            {
+                "title": "Send",
+                "path": "send",
+                "icon": "mdi:arrow-top-right",
+                "cards": [
+                    {
+                        "type": "entities",
+                        "title": "Invoice Input",
+                        "show_header_toggle": False,
+                        "entities": [
+                            {
+                                "entity": "text.alby_hub_invoice_input",
+                                "name": "BOLT11 Invoice",
+                            }
+                        ],
                     },
                     {
                         "type": "markdown",
-                        "title": "Send",
-                        "content": "Scan invoice QR codes in Home Assistant Companion App/camera or paste the invoice, then send it with `alby_hub.send_payment`.",
+                        "title": "How to send",
+                        "content": (
+                            "1. **Scan QR code:** Use Home Assistant Companion App "
+                            "(Android/iOS) → tap the QR icon in the entity row above, "
+                            "or scan with your device camera and copy the result here.\n"
+                            "2. **Paste invoice:** Copy a BOLT11 invoice string from any "
+                            "Lightning wallet and paste it into the field above.\n"
+                            "3. **Send:** Call service `alby_hub.send_payment` "
+                            "(no parameters needed – it reads from the input field automatically)."
+                        ),
                     },
+                    {
+                        "type": "button",
+                        "name": "Send payment",
+                        "icon": "mdi:send",
+                        "tap_action": {
+                            "action": "call-service",
+                            "service": "alby_hub.send_payment",
+                        },
+                    },
+                ],
+            },
+            {
+                "title": "Network",
+                "path": "network",
+                "icon": "mdi:bitcoin",
+                "cards": [
                     {
                         "type": "entities",
                         "title": "Bitcoin Market & Network",
@@ -194,6 +255,6 @@ def _default_dashboard_config() -> dict:
                         ],
                     },
                 ],
-            }
+            },
         ],
     }

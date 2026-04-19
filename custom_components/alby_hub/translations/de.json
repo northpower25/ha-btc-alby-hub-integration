@@ -81,6 +81,14 @@
       "node_online": {
         "name": "Node online"
       }
+    },
+    "text": {
+      "invoice_input": {
+        "name": "Rechnungseingabe"
+      },
+      "last_invoice": {
+        "name": "Letzte Rechnung"
+      }
     }
   }
 }

@@ -1,6 +1,9 @@
 create_invoice:
   name: Create Lightning invoice
-  description: Create a Lightning invoice via local Alby Hub API (expert mode).
+  description: >
+    Create a Lightning BOLT11 invoice via local Alby Hub API (expert mode).
+    Provide exactly one of amount_sat, amount_btc, or amount_fiat+fiat_currency.
+    The created invoice is stored in the text.alby_hub_last_invoice entity for display.
   fields:
     config_entry_id:
       required: false
@@ -8,13 +11,34 @@ create_invoice:
       selector:
         text:
     amount_sat:
-      required: true
+      required: false
       description: Invoice amount in satoshis.
       selector:
         number:
           min: 1
           mode: box
           step: 1
+    amount_btc:
+      required: false
+      description: Invoice amount in BTC (converted to satoshis automatically).
+      selector:
+        number:
+          min: 0
+          step: 0.00000001
+          mode: box
+    amount_fiat:
+      required: false
+      description: Invoice amount in fiat currency (requires fiat_currency). Converted using the current Bitcoin price sensor.
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+    fiat_currency:
+      required: false
+      description: Fiat currency code for amount_fiat conversion (e.g. EUR, USD).
+      selector:
+        text:
     memo:
       required: false
       description: Optional description shown on the invoice.
@@ -30,7 +54,10 @@ create_invoice:
           step: 1
 send_payment:
   name: Send Lightning payment
-  description: Send a BOLT11 payment request via local Alby Hub API (expert mode).
+  description: >
+    Send a BOLT11 payment via local Alby Hub API (expert mode).
+    If payment_request is omitted, the value from text.alby_hub_invoice_input is used automatically.
+    After successful payment the invoice_input entity is cleared.
   fields:
     config_entry_id:
       required: false
@@ -38,7 +65,7 @@ send_payment:
       selector:
         text:
     payment_request:
-      required: true
-      description: BOLT11 payment request string.
+      required: false
+      description: BOLT11 payment request string. If omitted, read from invoice_input text entity.
       selector:
         text:

@@ -49,3 +49,10 @@ SERVICE_CREATE_INVOICE = "create_invoice"
 SERVICE_SEND_PAYMENT = "send_payment"
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
+
+# Text entity keys (invoice workflow)
+TEXT_KEY_INVOICE_INPUT = "invoice_input"
+TEXT_KEY_LAST_INVOICE = "last_invoice"
+
+# Satoshis per Bitcoin
+SATS_PER_BTC = 100_000_000
