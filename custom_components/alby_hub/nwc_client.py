@@ -272,8 +272,13 @@ async def _ws_exchange(
         await ws.send_str(json.dumps(["EVENT", event]))
 
         deadline = time.monotonic() + _WS_TIMEOUT
-        async for msg in ws:
-            if time.monotonic() > deadline:
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                msg = await asyncio.wait_for(ws.receive(), timeout=remaining)
+            except asyncio.TimeoutError:
                 break
             if msg.type != WSMsgType.TEXT:
                 if msg.type in (WSMsgType.ERROR, WSMsgType.CLOSE):

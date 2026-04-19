@@ -33,6 +33,7 @@ _HASHES_PER_EXAHASH = 1_000_000_000_000_000_000
 _API_REQUEST_TIMEOUT_SECONDS = 5
 _HALVING_INTERVAL_BLOCKS = 210000
 _MINUTES_PER_BLOCK = 10
+_MSATS_PER_SAT = 1000  # millisatoshis per satoshi
 _DEFAULT_MEMPOOL_API = "https://mempool.space"
 
 
@@ -125,14 +126,14 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Updates *data* in-place.  All failures are silently logged at DEBUG
         level so that other sensors are not affected.
         """
-        # get_balance → balance_lightning (response in millisatoshis)
+        # get_balance → balance_lightning (NWC returns balance in millisatoshis)
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_balance")
             if result is not None and result.get("error") is None:
                 bal_result = result.get("result") or {}
                 bal_msat = bal_result.get("balance")
                 if isinstance(bal_msat, (int, float)):
-                    data["balance_lightning"] = int(bal_msat) // 1000
+                    data["balance_lightning"] = int(bal_msat) // _MSATS_PER_SAT
                     data["connected"] = True
         except Exception as err:
             _LOGGER.debug("NWC get_balance failed: %s", err)
