@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from aiohttp import ClientError, ClientSession
+from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -182,7 +182,7 @@ async def _fetch_bitcoin_price(
 
 async def _fetch_network_stats(
     session: ClientSession, provider: str, api_base: str | None
-) -> dict[str, int | float | datetime | None]:
+) -> dict[str, int | float | None]:
     if provider not in (NETWORK_PROVIDER_MEMPOOL, NETWORK_PROVIDER_CUSTOM_NODE):
         return _empty_network_payload()
 
@@ -228,7 +228,7 @@ def _empty_network_payload() -> dict[str, None | float]:
 
 async def _safe_get_json(session: ClientSession, url: str) -> Any:
     try:
-        async with session.get(url, timeout=_API_REQUEST_TIMEOUT_SECONDS) as response:
+        async with session.get(url, timeout=ClientTimeout(total=_API_REQUEST_TIMEOUT_SECONDS)) as response:
             if response.status >= 400:
                 return None
             return await response.json(content_type=None)

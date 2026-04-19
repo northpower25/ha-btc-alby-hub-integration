@@ -162,7 +162,8 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
         return int(data["amount_sat"])
 
     if "amount_btc" in data:
-        raw_sat = int(float(data["amount_btc"]) * SATS_PER_BTC)
+        from decimal import Decimal, ROUND_DOWN
+        raw_sat = int((Decimal(str(data["amount_btc"])) * Decimal(SATS_PER_BTC)).to_integral_value(ROUND_DOWN))
         if raw_sat < 1:
             raise ServiceValidationError(
                 f"amount_btc too small: {data['amount_btc']} BTC converts to {raw_sat} sat (minimum 1 sat)."
@@ -176,11 +177,14 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
                 "Cannot convert fiat to sats: Bitcoin price not available. "
                 "Check network/price provider configuration."
             )
-        amount_fiat = float(data["amount_fiat"])
-        raw_sat = int((amount_fiat / float(btc_price)) * SATS_PER_BTC)
+        from decimal import Decimal, ROUND_DOWN
+        raw_sat = int(
+            (Decimal(str(data["amount_fiat"])) / Decimal(str(btc_price)) * Decimal(SATS_PER_BTC))
+            .to_integral_value(ROUND_DOWN)
+        )
         if raw_sat < 1:
             raise ServiceValidationError(
-                f"amount_fiat too small: {amount_fiat} converts to {raw_sat} sat (minimum 1 sat). "
+                f"amount_fiat too small: {data['amount_fiat']} converts to {raw_sat} sat (minimum 1 sat). "
                 "Use a larger amount."
             )
         return raw_sat
