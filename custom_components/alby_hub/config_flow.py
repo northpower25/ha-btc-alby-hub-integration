@@ -197,12 +197,12 @@ def _cloud_schema(user_input) -> vol.Schema:
                     options=[
                         selector.SelectOptionDict(value=PRICE_PROVIDER_COINGECKO, label="CoinGecko"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_COINDESK, label="CoinDesk"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITCOIN_DE, label="Bitcoin.de"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_COINBASE, label="Coinbase"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_BINANCE, label="Binance"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_BLOCKCHAIN, label="Blockchain.com"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITQUERY, label="Bitquery"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_MEMPOOL, label="Mempool"),
+                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITCOIN_DE, label="Bitcoin.de (not yet implemented)"),
+                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITQUERY, label="Bitquery (not yet implemented)"),
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
@@ -266,12 +266,12 @@ def _expert_schema(user_input) -> vol.Schema:
                     options=[
                         selector.SelectOptionDict(value=PRICE_PROVIDER_COINGECKO, label="CoinGecko"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_COINDESK, label="CoinDesk"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITCOIN_DE, label="Bitcoin.de"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_COINBASE, label="Coinbase"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_BINANCE, label="Binance"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_BLOCKCHAIN, label="Blockchain.com"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITQUERY, label="Bitquery"),
                         selector.SelectOptionDict(value=PRICE_PROVIDER_MEMPOOL, label="Mempool"),
+                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITCOIN_DE, label="Bitcoin.de (not yet implemented)"),
+                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITQUERY, label="Bitquery (not yet implemented)"),
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )

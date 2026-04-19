@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from decimal import ROUND_DOWN, Decimal
 
 import voluptuous as vol
 
@@ -162,7 +163,6 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
         return int(data["amount_sat"])
 
     if "amount_btc" in data:
-        from decimal import Decimal, ROUND_DOWN
         raw_sat = int((Decimal(str(data["amount_btc"])) * Decimal(SATS_PER_BTC)).to_integral_value(ROUND_DOWN))
         if raw_sat < 1:
             raise ServiceValidationError(
@@ -177,7 +177,6 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
                 "Cannot convert fiat to sats: Bitcoin price not available. "
                 "Check network/price provider configuration."
             )
-        from decimal import Decimal, ROUND_DOWN
         raw_sat = int(
             (Decimal(str(data["amount_fiat"])) / Decimal(str(btc_price)) * Decimal(SATS_PER_BTC))
             .to_integral_value(ROUND_DOWN)
