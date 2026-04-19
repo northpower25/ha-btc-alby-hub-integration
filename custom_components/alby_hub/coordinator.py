@@ -205,7 +205,10 @@ async def _fetch_network_stats(
         if isinstance(avg_block_time_seconds, (int, float)) and avg_block_time_seconds > 0:
             minutes_per_block = float(avg_block_time_seconds) / 60
 
-    next_halving_height = ((height_data // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS
+    if height_data % _HALVING_INTERVAL_BLOCKS == 0:
+        next_halving_height = height_data
+    else:
+        next_halving_height = ((height_data // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS
     blocks_until_halving = max(next_halving_height - height_data, 0)
     next_halving_eta = datetime.now(UTC) + timedelta(
         minutes=blocks_until_halving * minutes_per_block
@@ -230,7 +233,7 @@ def _empty_network_payload() -> dict[str, None]:
 
 async def _safe_get_json(session: ClientSession, url: str) -> Any:
     try:
-        async with session.get(url, timeout=10) as response:
+        async with session.get(url, timeout=5) as response:
             if response.status >= 400:
                 return None
             return await response.json(content_type=None)
