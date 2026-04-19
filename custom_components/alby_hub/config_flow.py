@@ -7,11 +7,13 @@ from urllib.parse import urlparse
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import AlbyHubApiClient
 from .const import (
+    COMMON_FIAT_CURRENCIES,
     CONF_ALLOW_CONTINUE_WITH_WARNING,
     CONF_HUB_URL,
     CONF_MODE,
@@ -45,10 +47,66 @@ from .const import (
 from .nwc import ScopeValidationResult, parse_nwc_connection_uri, validate_scopes
 
 
+def _currency_selector() -> selector.SelectSelector:
+    """Return a searchable dropdown for fiat currencies with custom-value support."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value=c, label=c)
+                for c in COMMON_FIAT_CURRENCIES
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+            custom_value=True,
+        )
+    )
+
+
+def _price_provider_selector() -> selector.SelectSelector:
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value=PRICE_PROVIDER_COINGECKO, label="CoinGecko"),
+                selector.SelectOptionDict(value=PRICE_PROVIDER_COINDESK, label="CoinDesk"),
+                selector.SelectOptionDict(value=PRICE_PROVIDER_COINBASE, label="Coinbase"),
+                selector.SelectOptionDict(value=PRICE_PROVIDER_BINANCE, label="Binance"),
+                selector.SelectOptionDict(value=PRICE_PROVIDER_BLOCKCHAIN, label="Blockchain.com"),
+                selector.SelectOptionDict(value=PRICE_PROVIDER_MEMPOOL, label="Mempool"),
+                selector.SelectOptionDict(
+                    value=PRICE_PROVIDER_BITCOIN_DE, label="Bitcoin.de (not yet implemented)"
+                ),
+                selector.SelectOptionDict(
+                    value=PRICE_PROVIDER_BITQUERY, label="Bitquery (not yet implemented)"
+                ),
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _network_provider_selector() -> selector.SelectSelector:
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value=NETWORK_PROVIDER_MEMPOOL, label="Mempool"),
+                selector.SelectOptionDict(value=NETWORK_PROVIDER_CUSTOM_NODE, label="Custom Node"),
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
 class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Alby Hub."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> "AlbyHubOptionsFlowHandler":
+        """Return the options flow handler (gear icon)."""
+        return AlbyHubOptionsFlowHandler(config_entry)
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -170,6 +228,113 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
+class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for Alby Hub (gear icon reconfiguration)."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self._config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        """Route to the correct options step based on current mode."""
+        mode = self._config_entry.data.get(CONF_MODE, MODE_CLOUD)
+        if mode == MODE_CLOUD:
+            return await self.async_step_cloud(user_input)
+        return await self.async_step_expert(user_input)
+
+    async def async_step_cloud(self, user_input=None):
+        """Cloud mode options: update connection and price/network settings."""
+        errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                nwc_info = parse_nwc_connection_uri(user_input[CONF_NWC_URI])
+            except ValueError as err:
+                errors["base"] = str(err)
+            else:
+                scope_result = validate_scopes(nwc_info)
+                warnings = _warnings_from_scope_result(scope_result)
+                allow_continue = user_input[CONF_ALLOW_CONTINUE_WITH_WARNING]
+
+                if warnings and not allow_continue:
+                    errors["base"] = "warning_ack_required"
+                    placeholders["warnings"] = "\n".join(warnings)
+                else:
+                    return self.async_create_entry(
+                        title="",
+                        data={
+                            CONF_NWC_URI: nwc_info.raw_uri,
+                            CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
+                            CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
+                            CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
+                            CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
+                        },
+                    )
+
+        return self.async_show_form(
+            step_id="cloud",
+            data_schema=_cloud_schema(_merged_entry_data(self._config_entry)),
+            errors=errors,
+            description_placeholders=placeholders,
+        )
+
+    async def async_step_expert(self, user_input=None):
+        """Expert mode options: update all expert settings."""
+        errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
+
+        if user_input is not None:
+            warnings: list[str] = []
+            hub_url = user_input.get(CONF_HUB_URL, "").strip() or DEFAULT_HUB_URL
+
+            try:
+                nwc_info = parse_nwc_connection_uri(user_input[CONF_NWC_URI])
+            except ValueError as err:
+                errors["base"] = str(err)
+            else:
+                scope_result = validate_scopes(nwc_info)
+                warnings.extend(_warnings_from_scope_result(scope_result))
+
+                relay_override = None
+                if user_input[CONF_PREFER_LOCAL_RELAY]:
+                    relay_override = _build_local_relay(hub_url)
+
+                allow_continue = user_input[CONF_ALLOW_CONTINUE_WITH_WARNING]
+                if warnings and not allow_continue:
+                    errors["base"] = "warning_ack_required"
+                    placeholders["warnings"] = "\n".join(warnings)
+                else:
+                    new_data: dict = {
+                        CONF_NWC_URI: nwc_info.raw_uri,
+                        CONF_HUB_URL: hub_url,
+                        CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
+                        CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
+                        CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
+                        CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
+                        CONF_PREFER_LOCAL_RELAY: user_input[CONF_PREFER_LOCAL_RELAY],
+                    }
+                    if relay_override:
+                        new_data[CONF_RELAY_OVERRIDE] = relay_override
+                    return self.async_create_entry(title="", data=new_data)
+
+        return self.async_show_form(
+            step_id="expert",
+            data_schema=_expert_schema(_merged_entry_data(self._config_entry)),
+            errors=errors,
+            description_placeholders=placeholders,
+        )
+
+
+# ── Schema helpers ─────────────────────────────────────────────────────────
+
+
+def _merged_entry_data(entry: config_entries.ConfigEntry) -> dict:
+    """Merge entry.options over entry.data so options-flow defaults are current values."""
+    merged = dict(entry.data)
+    merged.update(entry.options)
+    return merged
+
+
 def _cloud_schema(user_input) -> vol.Schema:
     default_uri = ""
     default_warning = False
@@ -182,9 +347,7 @@ def _cloud_schema(user_input) -> vol.Schema:
         default_warning = user_input.get(CONF_ALLOW_CONTINUE_WITH_WARNING, False)
         default_price_provider = user_input.get(CONF_PRICE_PROVIDER, DEFAULT_PRICE_PROVIDER)
         default_price_currency = user_input.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY)
-        default_network_provider = user_input.get(
-            CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER
-        )
+        default_network_provider = user_input.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER)
         default_network_api_base = user_input.get(CONF_NETWORK_API_BASE, "")
 
     return vol.Schema(
@@ -192,42 +355,11 @@ def _cloud_schema(user_input) -> vol.Schema:
             vol.Required(CONF_NWC_URI, default=default_uri): selector.TextSelector(
                 selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
             ),
-            vol.Optional(CONF_PRICE_PROVIDER, default=default_price_provider): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_COINGECKO, label="CoinGecko"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_COINDESK, label="CoinDesk"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_COINBASE, label="Coinbase"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BINANCE, label="Binance"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BLOCKCHAIN, label="Blockchain.com"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_MEMPOOL, label="Mempool"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITCOIN_DE, label="Bitcoin.de (not yet implemented)"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITQUERY, label="Bitquery (not yet implemented)"),
-                    ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): str,
-            vol.Optional(
-                CONF_NETWORK_PROVIDER, default=default_network_provider
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(
-                            value=NETWORK_PROVIDER_MEMPOOL, label="Mempool"
-                        ),
-                        selector.SelectOptionDict(
-                            value=NETWORK_PROVIDER_CUSTOM_NODE, label="Custom Node"
-                        ),
-                    ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
+            vol.Optional(CONF_PRICE_PROVIDER, default=default_price_provider): _price_provider_selector(),
+            vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): _currency_selector(),
+            vol.Optional(CONF_NETWORK_PROVIDER, default=default_network_provider): _network_provider_selector(),
             vol.Optional(CONF_NETWORK_API_BASE, default=default_network_api_base): str,
-            vol.Optional(
-                CONF_ALLOW_CONTINUE_WITH_WARNING,
-                default=default_warning,
-            ): bool,
+            vol.Optional(CONF_ALLOW_CONTINUE_WITH_WARNING, default=default_warning): bool,
         }
     )
 
@@ -249,9 +381,7 @@ def _expert_schema(user_input) -> vol.Schema:
         default_warning = user_input.get(CONF_ALLOW_CONTINUE_WITH_WARNING, False)
         default_price_provider = user_input.get(CONF_PRICE_PROVIDER, DEFAULT_PRICE_PROVIDER)
         default_price_currency = user_input.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY)
-        default_network_provider = user_input.get(
-            CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER
-        )
+        default_network_provider = user_input.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER)
         default_network_api_base = user_input.get(CONF_NETWORK_API_BASE, "")
 
     return vol.Schema(
@@ -261,44 +391,16 @@ def _expert_schema(user_input) -> vol.Schema:
             ),
             vol.Optional(CONF_HUB_URL, default=default_hub_url): str,
             vol.Optional(CONF_PREFER_LOCAL_RELAY, default=default_prefer_local_relay): bool,
-            vol.Optional(CONF_PRICE_PROVIDER, default=default_price_provider): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_COINGECKO, label="CoinGecko"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_COINDESK, label="CoinDesk"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_COINBASE, label="Coinbase"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BINANCE, label="Binance"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BLOCKCHAIN, label="Blockchain.com"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_MEMPOOL, label="Mempool"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITCOIN_DE, label="Bitcoin.de (not yet implemented)"),
-                        selector.SelectOptionDict(value=PRICE_PROVIDER_BITQUERY, label="Bitquery (not yet implemented)"),
-                    ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): str,
-            vol.Optional(
-                CONF_NETWORK_PROVIDER, default=default_network_provider
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(
-                            value=NETWORK_PROVIDER_MEMPOOL, label="Mempool"
-                        ),
-                        selector.SelectOptionDict(
-                            value=NETWORK_PROVIDER_CUSTOM_NODE, label="Custom Node"
-                        ),
-                    ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
+            vol.Optional(CONF_PRICE_PROVIDER, default=default_price_provider): _price_provider_selector(),
+            vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): _currency_selector(),
+            vol.Optional(CONF_NETWORK_PROVIDER, default=default_network_provider): _network_provider_selector(),
             vol.Optional(CONF_NETWORK_API_BASE, default=default_network_api_base): str,
-            vol.Optional(
-                CONF_ALLOW_CONTINUE_WITH_WARNING,
-                default=default_warning,
-            ): bool,
+            vol.Optional(CONF_ALLOW_CONTINUE_WITH_WARNING, default=default_warning): bool,
         }
     )
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────
 
 
 def _warnings_from_scope_result(scope_result: ScopeValidationResult) -> list[str]:

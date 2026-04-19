@@ -44,6 +44,43 @@
       "warning_ack_required": "Die Pflichtprüfungen ergaben Warnungen. Aktiviere 'Mit Warnung fortfahren', um trotzdem fortzufahren.\n{warnings}"
     }
   },
+  "options": {
+    "step": {
+      "cloud": {
+        "title": "Cloud-Modus-Einstellungen ändern",
+        "description": "NWC-Connection-String, Preisanbieter, Währung oder Netzwerkanbieter anpassen.",
+        "data": {
+          "nwc_uri": "NWC-Connection-String",
+          "price_provider": "Datenanbieter für Bitcoin-Preis",
+          "price_currency": "Preiswährung (z. B. EUR, USD)",
+          "network_provider": "Datenanbieter für Bitcoin-Netzwerk",
+          "network_api_base": "Basis-URL der Netzwerk-API (eigene Node / Mempool-API)",
+          "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
+        }
+      },
+      "expert": {
+        "title": "Expert-Modus-Einstellungen ändern",
+        "description": "NWC-Verbindung, lokale Hub-URL, Relay, Preisanbieter, Währung oder Netzwerkanbieter anpassen.",
+        "data": {
+          "nwc_uri": "NWC-Connection-String",
+          "hub_url": "Lokale Hub-URL",
+          "prefer_local_relay": "Lokales Relay priorisieren",
+          "price_provider": "Datenanbieter für Bitcoin-Preis",
+          "price_currency": "Preiswährung (z. B. EUR, USD)",
+          "network_provider": "Datenanbieter für Bitcoin-Netzwerk",
+          "network_api_base": "Basis-URL der Netzwerk-API (eigene Node / Mempool-API)",
+          "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
+        }
+      }
+    },
+    "error": {
+      "invalid_scheme": "Ungültiges URI-Schema. Erwartet: nostr+walletconnect://",
+      "missing_wallet_pubkey": "Wallet-Pubkey fehlt im NWC-String.",
+      "missing_relay": "Relay-Parameter fehlt im NWC-String.",
+      "missing_secret": "Secret-Parameter fehlt im NWC-String.",
+      "warning_ack_required": "Die Pflichtprüfungen ergaben Warnungen. Aktiviere 'Mit Warnung fortfahren', um trotzdem fortzufahren.\n{warnings}"
+    }
+  },
   "entity": {
     "sensor": {
       "balance_lightning": {
@@ -88,6 +125,21 @@
       },
       "last_invoice": {
         "name": "Letzte Rechnung"
+      }
+    },
+    "number": {
+      "invoice_amount": {
+        "name": "Rechnungsbetrag"
+      }
+    },
+    "select": {
+      "invoice_amount_unit": {
+        "name": "Einheit des Rechnungsbetrags"
+      }
+    },
+    "button": {
+      "create_invoice_btn": {
+        "name": "Rechnung erstellen"
       }
     }
   }

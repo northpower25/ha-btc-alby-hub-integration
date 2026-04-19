@@ -44,6 +44,43 @@
       "warning_ack_required": "Required setup checks raised warnings. Enable 'Continue with warning' if you still want to continue.\n{warnings}"
     }
   },
+  "options": {
+    "step": {
+      "cloud": {
+        "title": "Update Cloud mode settings",
+        "description": "Adjust your NWC connection string, price provider, currency or network provider.",
+        "data": {
+          "nwc_uri": "NWC connection string",
+          "price_provider": "Bitcoin price data provider",
+          "price_currency": "Price currency (e.g. EUR, USD)",
+          "network_provider": "Bitcoin network data provider",
+          "network_api_base": "Network API base URL (for own node / mempool API)",
+          "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
+        }
+      },
+      "expert": {
+        "title": "Update Expert mode settings",
+        "description": "Adjust NWC connection, local hub URL, relay, price provider, currency or network provider.",
+        "data": {
+          "nwc_uri": "NWC connection string",
+          "hub_url": "Local hub URL",
+          "prefer_local_relay": "Prefer local relay",
+          "price_provider": "Bitcoin price data provider",
+          "price_currency": "Price currency (e.g. EUR, USD)",
+          "network_provider": "Bitcoin network data provider",
+          "network_api_base": "Network API base URL (for own node / mempool API)",
+          "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
+        }
+      }
+    },
+    "error": {
+      "invalid_scheme": "Invalid URI scheme. Expected nostr+walletconnect://",
+      "missing_wallet_pubkey": "Missing wallet pubkey in NWC string.",
+      "missing_relay": "Missing relay parameter in NWC string.",
+      "missing_secret": "Missing secret parameter in NWC string.",
+      "warning_ack_required": "Required setup checks raised warnings. Enable 'Continue with warning' if you still want to continue.\n{warnings}"
+    }
+  },
   "entity": {
     "sensor": {
       "balance_lightning": {
@@ -88,6 +125,21 @@
       },
       "last_invoice": {
         "name": "Last invoice"
+      }
+    },
+    "number": {
+      "invoice_amount": {
+        "name": "Invoice amount"
+      }
+    },
+    "select": {
+      "invoice_amount_unit": {
+        "name": "Invoice amount unit"
+      }
+    },
+    "button": {
+      "create_invoice_btn": {
+        "name": "Create invoice"
       }
     }
   }

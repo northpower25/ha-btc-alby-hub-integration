@@ -56,3 +56,19 @@ TEXT_KEY_LAST_INVOICE = "last_invoice"
 
 # Satoshis per Bitcoin
 SATS_PER_BTC = 100_000_000
+
+# Invoice workflow entity keys
+NUMBER_KEY_INVOICE_AMOUNT = "invoice_amount"
+SELECT_KEY_INVOICE_AMOUNT_UNIT = "invoice_amount_unit"
+BUTTON_KEY_CREATE_INVOICE = "create_invoice_btn"
+
+# Common fiat currencies for the price_currency selector (sorted alphabetically)
+COMMON_FIAT_CURRENCIES: list[str] = [
+    "AED", "ARS", "AUD", "BRL", "CAD", "CHF", "CLP", "CNY", "CZK",
+    "DKK", "EUR", "GBP", "HKD", "HUF", "IDR", "ILS", "INR", "JPY",
+    "KRW", "MXN", "MYR", "NOK", "NZD", "PHP", "PLN", "RON", "RUB",
+    "SAR", "SEK", "SGD", "THB", "TRY", "TWD", "UAH", "USD", "VND", "ZAR",
+]
+
+# Dashboard version – bump whenever _default_dashboard_config() changes
+DASHBOARD_VERSION = 3
