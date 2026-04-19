@@ -169,9 +169,9 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 used_msat = budget_result.get("used_budget")
                 renewal = budget_result.get("renewal_period")
                 if isinstance(used_msat, (int, float)):
-                    data["nwc_budget_used"] = int(used_msat) // _MSATS_PER_SAT
+                    data["nwc_budget_used"] = int(int(used_msat) // _MSATS_PER_SAT)
                 if isinstance(total_msat, (int, float)):
-                    total_sat = int(total_msat) // _MSATS_PER_SAT
+                    total_sat = int(int(total_msat) // _MSATS_PER_SAT)
                     data["nwc_budget_total"] = total_sat
                     if data["nwc_budget_used"] is not None:
                         data["nwc_budget_remaining"] = max(
