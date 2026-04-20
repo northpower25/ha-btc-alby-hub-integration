@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import logging
 from dataclasses import replace
 from pathlib import Path
@@ -158,6 +159,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     await async_setup_services(hass)
+
+    # Pre-import platform modules in the executor so that when HA's loader
+    # calls importlib.import_module() inside the event loop (via
+    # async_forward_entry_setups) the modules are already in sys.modules and
+    # no blocking I/O occurs.
+    for platform in PLATFORMS:
+        await hass.async_add_executor_job(
+            importlib.import_module,
+            f"custom_components.{DOMAIN}.{platform}",
+        )
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # Reload the entry whenever options are saved via the gear icon
