@@ -27,7 +27,7 @@ TEXT_DESCRIPTIONS: tuple[AlbyHubTextDescription, ...] = (
         translation_key=TEXT_KEY_INVOICE_INPUT,
         icon="mdi:clipboard-text-outline",
         native_min_length=0,
-        native_max_length=255,
+        native_max_length=2048,
         mode=TextMode.TEXT,
         read_only=False,
     ),
