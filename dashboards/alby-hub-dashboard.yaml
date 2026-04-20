@@ -36,8 +36,8 @@ views:
         content: |
           # ⚡ Alby Hub
 
-          {% set lightning = states('sensor.YOUR_CONNECTION_NAME_balance_lightning') | int(0) %}
-          {% set onchain = states('sensor.YOUR_CONNECTION_NAME_balance_onchain') | int(0) %}
+          {% set lightning = states('sensor.YOUR_CONNECTION_NAME_lightning_balance') | int(0) %}
+          {% set onchain = states('sensor.YOUR_CONNECTION_NAME_on_chain_balance') | int(0) %}
           {% set price = states('sensor.YOUR_CONNECTION_NAME_bitcoin_price') | float(0) %}
           {% set currency = state_attr('sensor.YOUR_CONNECTION_NAME_bitcoin_price', 'unit_of_measurement') | default('') %}
           {% set connected = is_state('binary_sensor.YOUR_CONNECTION_NAME_node_online', 'on') %}
@@ -55,11 +55,11 @@ views:
       - type: horizontal-stack
         cards:
           - type: entity
-            entity: sensor.YOUR_CONNECTION_NAME_balance_lightning
+            entity: sensor.YOUR_CONNECTION_NAME_lightning_balance
             name: Lightning Balance
             icon: mdi:lightning-bolt
           - type: entity
-            entity: sensor.YOUR_CONNECTION_NAME_balance_onchain
+            entity: sensor.YOUR_CONNECTION_NAME_on_chain_balance
             name: On-chain Balance
             icon: mdi:bitcoin
 
@@ -81,8 +81,8 @@ views:
         show_header_toggle: false
         entities:
           - binary_sensor.YOUR_CONNECTION_NAME_node_online
-          - sensor.YOUR_CONNECTION_NAME_relay
-          - sensor.YOUR_CONNECTION_NAME_version
+          - sensor.YOUR_CONNECTION_NAME_nwc_relay
+          - sensor.YOUR_CONNECTION_NAME_hub_version
           - sensor.YOUR_CONNECTION_NAME_lightning_address
 
   # ── Receive ───────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ views:
             name: Amount
           - entity: select.YOUR_CONNECTION_NAME_invoice_amount_unit
             name: Unit (SAT / BTC / Fiat)
-          - entity: button.YOUR_CONNECTION_NAME_create_invoice_btn
+          - entity: button.YOUR_CONNECTION_NAME_create_invoice
             name: Create Invoice
 
       # Invoice display + QR
@@ -142,10 +142,10 @@ views:
       - type: horizontal-stack
         cards:
           - type: entity
-            entity: sensor.YOUR_CONNECTION_NAME_balance_lightning
+            entity: sensor.YOUR_CONNECTION_NAME_lightning_balance
             name: Lightning Balance
           - type: entity
-            entity: sensor.YOUR_CONNECTION_NAME_balance_onchain
+            entity: sensor.YOUR_CONNECTION_NAME_on_chain_balance
             name: On-chain Balance
 
   # ── Send ──────────────────────────────────────────────────────────────────
@@ -185,10 +185,10 @@ views:
       - type: horizontal-stack
         cards:
           - type: entity
-            entity: sensor.YOUR_CONNECTION_NAME_balance_lightning
+            entity: sensor.YOUR_CONNECTION_NAME_lightning_balance
             name: Lightning Balance
           - type: entity
-            entity: sensor.YOUR_CONNECTION_NAME_balance_onchain
+            entity: sensor.YOUR_CONNECTION_NAME_on_chain_balance
             name: On-chain Balance
 
   # ── NWC Budget ────────────────────────────────────────────────────────────
@@ -203,7 +203,7 @@ views:
           {% set total = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_total') | int(0) %}
           {% set used = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_used') | int(0) %}
           {% set remaining = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_remaining') | int(0) %}
-          {% set renewal = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_renewal') %}
+          {% set renewal = states('sensor.YOUR_CONNECTION_NAME_nwc_budget_renewal_period') %}
           {% if total > 0 %}
           {% set pct_used = (used / total * 100) | round(1) %}
           {% set pct_remaining = (remaining / total * 100) | round(1) %}
@@ -223,7 +223,7 @@ views:
           - sensor.YOUR_CONNECTION_NAME_nwc_budget_total
           - sensor.YOUR_CONNECTION_NAME_nwc_budget_used
           - sensor.YOUR_CONNECTION_NAME_nwc_budget_remaining
-          - sensor.YOUR_CONNECTION_NAME_nwc_budget_renewal
+          - sensor.YOUR_CONNECTION_NAME_nwc_budget_renewal_period
 
       # Info
       - type: markdown
@@ -252,7 +252,7 @@ views:
           - sensor.YOUR_CONNECTION_NAME_bitcoin_block_height
           - sensor.YOUR_CONNECTION_NAME_bitcoin_hashrate
           - sensor.YOUR_CONNECTION_NAME_blocks_until_halving
-          - sensor.YOUR_CONNECTION_NAME_next_halving_eta
+          - sensor.YOUR_CONNECTION_NAME_next_halving_estimate
 
       # Bitcoin price history graph (last 7 days)
       - type: history-graph
@@ -268,7 +268,7 @@ views:
         title: Next Halving
         content: |
           {% set blocks = states('sensor.YOUR_CONNECTION_NAME_blocks_until_halving') | int(0) %}
-          {% set eta = states('sensor.YOUR_CONNECTION_NAME_next_halving_eta') %}
+          {% set eta = states('sensor.YOUR_CONNECTION_NAME_next_halving_estimate') %}
           {% if blocks > 0 %}
           ⛏️ **{{ blocks | int }} blocks** remaining until the next halving.
 

@@ -241,8 +241,8 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                         "type": "markdown",
                         "content": (
                             f"# ⚡ {connection_name}\n\n"
-                            f"{{% set lightning = states('sensor.{p}_balance_lightning') | int(0) %}}\n"
-                            f"{{% set onchain = states('sensor.{p}_balance_onchain') | int(0) %}}\n"
+                            f"{{% set lightning = states('sensor.{p}_lightning_balance') | int(0) %}}\n"
+                            f"{{% set onchain = states('sensor.{p}_on_chain_balance') | int(0) %}}\n"
                             f"{{% set price = states('sensor.{p}_bitcoin_price') | float(0) %}}\n"
                             f"{{% set currency = state_attr('sensor.{p}_bitcoin_price', 'unit_of_measurement') | default('') %}}\n"
                             f"{{% set connected = is_state('binary_sensor.{p}_node_online', 'on') %}}\n"
@@ -262,13 +262,13 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                         "cards": [
                             {
                                 "type": "entity",
-                                "entity": f"sensor.{p}_balance_lightning",
+                                "entity": f"sensor.{p}_lightning_balance",
                                 "name": "Lightning Balance",
                                 "icon": "mdi:lightning-bolt",
                             },
                             {
                                 "type": "entity",
-                                "entity": f"sensor.{p}_balance_onchain",
+                                "entity": f"sensor.{p}_on_chain_balance",
                                 "name": "On-chain Balance",
                                 "icon": "mdi:bitcoin",
                             },
@@ -299,8 +299,8 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                         "show_header_toggle": False,
                         "entities": [
                             f"binary_sensor.{p}_node_online",
-                            f"sensor.{p}_relay",
-                            f"sensor.{p}_version",
+                            f"sensor.{p}_nwc_relay",
+                            f"sensor.{p}_hub_version",
                             f"sensor.{p}_lightning_address",
                         ],
                     },
@@ -327,7 +327,7 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                                 "name": "Unit (SAT / BTC / Fiat)",
                             },
                             {
-                                "entity": f"button.{p}_create_invoice_btn",
+                                "entity": f"button.{p}_create_invoice",
                                 "name": "Create Invoice",
                             },
                         ],
@@ -383,12 +383,12 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                         "cards": [
                             {
                                 "type": "entity",
-                                "entity": f"sensor.{p}_balance_lightning",
+                                "entity": f"sensor.{p}_lightning_balance",
                                 "name": "Lightning Balance",
                             },
                             {
                                 "type": "entity",
-                                "entity": f"sensor.{p}_balance_onchain",
+                                "entity": f"sensor.{p}_on_chain_balance",
                                 "name": "On-chain Balance",
                             },
                         ],
@@ -442,12 +442,12 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                         "cards": [
                             {
                                 "type": "entity",
-                                "entity": f"sensor.{p}_balance_lightning",
+                                "entity": f"sensor.{p}_lightning_balance",
                                 "name": "Lightning Balance",
                             },
                             {
                                 "type": "entity",
-                                "entity": f"sensor.{p}_balance_onchain",
+                                "entity": f"sensor.{p}_on_chain_balance",
                                 "name": "On-chain Balance",
                             },
                         ],
@@ -468,7 +468,7 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                             f"{{% set total = states('sensor.{p}_nwc_budget_total') | int(0) %}}\n"
                             f"{{% set used = states('sensor.{p}_nwc_budget_used') | int(0) %}}\n"
                             f"{{% set remaining = states('sensor.{p}_nwc_budget_remaining') | int(0) %}}\n"
-                            f"{{% set renewal = states('sensor.{p}_nwc_budget_renewal') %}}\n"
+                            f"{{% set renewal = states('sensor.{p}_nwc_budget_renewal_period') %}}\n"
                             "{% if total > 0 %}\n"
                             "{% set pct_used = (used / total * 100) | round(1) %}\n"
                             "{% set pct_remaining = (remaining / total * 100) | round(1) %}\n"
@@ -490,7 +490,7 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                             f"sensor.{p}_nwc_budget_total",
                             f"sensor.{p}_nwc_budget_used",
                             f"sensor.{p}_nwc_budget_remaining",
-                            f"sensor.{p}_nwc_budget_renewal",
+                            f"sensor.{p}_nwc_budget_renewal_period",
                         ],
                     },
                     {
@@ -525,7 +525,7 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                             f"sensor.{p}_bitcoin_block_height",
                             f"sensor.{p}_bitcoin_hashrate",
                             f"sensor.{p}_blocks_until_halving",
-                            f"sensor.{p}_next_halving_eta",
+                            f"sensor.{p}_next_halving_estimate",
                         ],
                     },
                     # ── Bitcoin price history graph ───────────────────────────
@@ -547,7 +547,7 @@ def _default_dashboard_config(connection_name: str = DEFAULT_CONNECTION_NAME) ->
                         "title": "Next Halving",
                         "content": (
                             f"{{% set blocks = states('sensor.{p}_blocks_until_halving') | int(0) %}}\n"
-                            f"{{% set eta = states('sensor.{p}_next_halving_eta') %}}\n"
+                            f"{{% set eta = states('sensor.{p}_next_halving_estimate') %}}\n"
                             "{% if blocks > 0 %}\n"
                             "⛏️ **{{ blocks | int }} blocks** remaining until the next halving.\n\n"
                             "📅 Estimated date: **{{ as_timestamp(eta) | timestamp_local }}**\n"
