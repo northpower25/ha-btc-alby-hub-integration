@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import importlib
 import logging
 from dataclasses import replace
@@ -165,13 +164,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # calls importlib.import_module() inside the event loop (via
     # async_forward_entry_setups) the modules are already in sys.modules and
     # no blocking I/O occurs.
-    await asyncio.gather(*(
-        hass.async_add_executor_job(
-            importlib.import_module,
-            f"custom_components.{DOMAIN}.{platform}",
-        )
-        for platform in PLATFORMS
-    ))
+    # Imports are done sequentially in a single executor job to avoid Python
+    # 3.14 per-module import lock contention: all platform modules share a
+    # common import chain (entity → coordinator → nwc_client → cryptography),
+    # so concurrent imports across multiple threads risk lock deadlocks.
+    def _preimport_platforms() -> None:
+        for platform in PLATFORMS:
+            importlib.import_module(f"custom_components.{DOMAIN}.{platform}")
+
+    await hass.async_add_executor_job(_preimport_platforms)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
