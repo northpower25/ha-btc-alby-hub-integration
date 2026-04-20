@@ -5,6 +5,55 @@
 
 ---
 
+## 0. HA Mindestversion & API-Richtlinien ← VOR JEDEM TASK LESEN
+
+> **Diese Integration unterstützt ausschließlich Home Assistant ≥ 2026.1.**
+> `hacs.json` enthält `"homeassistant": "2026.1"` und `manifest.json` enthält
+> `"homeassistant": "2026.1.0"`. Alles, was davor war, ist für diese Integration irrelevant.
+
+### Verbindliche Regel
+
+**Kein Code, kein Kommentar, keine Erklärung darf auf Kompatibilität mit HA < 2026.1 abzielen.**
+Wer Workarounds für ältere Versionen einbaut, erzeugt genau die Debug-Loops, die diese Regel verhindern soll.
+
+### Gültige HA 2026.1 APIs – diese MÜSSEN verwendet werden
+
+| Bereich | Korrekte Verwendung in HA 2026.1 |
+|---|---|
+| `OptionsFlow` | Kein `__init__(config_entry)`. HA setzt `self.config_entry` automatisch vor `async_step_init`. `async_get_options_flow` gibt `AlbyHubOptionsFlowHandler()` (ohne Argument) zurück. |
+| Plattform-Setup | `await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)` – keine manuellen Executor-Tricks. |
+| Platform pre-imports | `from . import binary_sensor, button, config_flow, …` in `__init__.py` – Python's `__import__` ist unsichtbar für den Blocking-Detektor und füllt `sys.modules` vor dem Event-Loop-Zugriff. |
+| Blocking-Detektor | In 2026.1 **wirft** `importlib.import_module(...)` im Event-Loop eine Exception (kein bloßes Log-Warning mehr). Module müssen deshalb per `from . import …` vorab in `sys.modules` sein. |
+| Static paths | `hass.http.async_register_static_paths([StaticPathConfig(...)])` |
+| Panel custom | `from homeassistant.components.panel_custom import async_register_panel` |
+| Translator | Dateien in `translations/<lang>.json`; `strings.json` als Fallback. Kein Setup-Feld für Sprache. |
+
+### Verbotene Muster – diese dürfen NICHT vorkommen
+
+| Muster | Warum verboten |
+|---|---|
+| `OptionsFlow.__init__(self, config_entry)` | Wurde in HA 2025.8 entfernt. Fehler in HA 2026.1. |
+| `self._config_entry` in OptionsFlow | Ersatz durch `self.config_entry` (automatisch von HA gesetzt). |
+| `await hass.async_add_executor_job(importlib.import_module, ...)` | War ein Workaround für ältere HA-Versionen, in HA 2026.1 unnötig und fehleranfällig. |
+| Kommentare wie „ab HA 2024.x", „ab HA 2025.x", „fixed in 2024/2025" | Verwirrend und falsch – Mindestversion ist 2026.1. |
+| Kompatibilitäts-Shims für `async_forward_entry_setup` (Singular) | Die Plural-Form `async_forward_entry_setups` ist seit 2022 Standard; in 2026.1 gibt es kein Legacy mehr. |
+
+### Warum diese Regel existiert (Hintergrund)
+
+Die PRs #15–#23 kreisten alle um dasselbe Problem: Workarounds wurden für HA-Versionen geschrieben, die diese Integration nie unterstützen sollte. Das erzeugte einen Loop aus Einbauen, Rückbauen und erneutem Einbauen. Konkret:
+
+- PR #15: Pre-Import eingebaut (richtig für 2026.1)
+- PR #16: Reverted wegen angeblichem „shift upstream" (falsche Analyse, hätte nie passieren dürfen)
+- PR #17/#18/#19: Executor-Workarounds für Versionen < 2025.x gebaut (für diese Integration irrelevant)
+- PR #20/#21: Richtiger Ansatz wieder entdeckt, `cryptography` lazy-load hinzugefügt
+- PR #22: Pre-Import wieder entfernt (erneuter Rückbau)
+- PR #23: Pre-Import wieder hergestellt
+- PR #24: `config_flow` in Pre-Import ergänzt + OptionsFlow-API auf 2026.1 aktualisiert
+
+**Lösung:** Einziger Maßstab ist HA 2026.1. Keine Diskussion über ältere Versionen.
+
+---
+
 ## 1. Übergeordnete Grundsätze
 
 Grundsatz: **Sicherheit zuerst, Guthaben zweitens, Features drittens.**
@@ -19,6 +68,8 @@ vor und nach Updates sicher arbeiten können.
 
 Vor jeder Code-Änderung:
 
+- [ ] **HA Mindestversion geprüft?** → Abschnitt 0 gelesen. Jede API-Entscheidung basiert auf HA 2026.1.
+      Kein Workaround für HA < 2026.1 einbauen.
 - [ ] Betrifft die Änderung Konfigurationsdaten, NWC-URIs, Secrets oder Verbindungsdaten?
       → Migration dokumentieren, kein stilles Überschreiben vorhandener Daten.
 - [ ] Betrifft die Änderung Services (create_invoice, send_payment)?
