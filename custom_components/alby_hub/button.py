@@ -18,7 +18,6 @@ from .const import (
     NUMBER_KEY_INVOICE_AMOUNT,
     SATS_PER_BTC,
     SELECT_KEY_INVOICE_AMOUNT_UNIT,
-    TEXT_KEY_LAST_INVOICE,
 )
 from .entity import AlbyHubCoordinatorEntity
 from .helpers import get_runtime
@@ -95,9 +94,8 @@ class AlbyHubCreateInvoiceButton(AlbyHubCoordinatorEntity, ButtonEntity):
         if not invoice_str:
             raise HomeAssistantError("Invoice created but no payment_request returned")
 
-        last_inv_entity = runtime.text_entities.get(TEXT_KEY_LAST_INVOICE)
-        if last_inv_entity is not None:
-            await last_inv_entity.async_set_value(invoice_str)
+        if runtime.last_invoice_entity is not None:
+            await runtime.last_invoice_entity.async_set_invoice(invoice_str)
 
         _LOGGER.debug("Invoice stored: %s…", invoice_str[:20])
 

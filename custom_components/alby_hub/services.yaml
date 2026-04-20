@@ -24,7 +24,6 @@ create_invoice:
       selector:
         number:
           min: 0
-          step: 0.00000001
           mode: box
     amount_fiat:
       required: false
