@@ -53,6 +53,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         network_provider: str,
         network_api_base: str | None,
         entry_name: str,
+        manual_lightning_address: str | None = None,
     ) -> None:
         super().__init__(
             hass,
@@ -69,6 +70,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._network_provider = network_provider
         self._network_api_base = network_api_base
         self._entry_name = entry_name
+        self._manual_lightning_address = manual_lightning_address
 
     async def _async_update_data(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -76,7 +78,8 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "entry_name": self._entry_name,
             "wallet_pubkey": self._nwc_info.wallet_pubkey,
             "relay": self._nwc_info.relay,
-            "lightning_address": self._nwc_info.lud16,
+            # Prefer NWC-URI lud16; fall back to the manually configured address
+            "lightning_address": self._nwc_info.lud16 or self._manual_lightning_address,
             "connected": self._mode != MODE_EXPERT,
             "balance_lightning": None,
             "balance_onchain": None,
@@ -157,6 +160,8 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     lud16 = info_result.get("lud16") or info_result.get("lightning_address")
                     if lud16:
                         data["lightning_address"] = str(lud16)
+                    elif self._manual_lightning_address:
+                        data["lightning_address"] = self._manual_lightning_address
         except Exception as err:
             _LOGGER.debug("NWC get_info failed: %s", err)
 
@@ -206,38 +211,43 @@ async def _fetch_bitcoin_price(
                 session,
                 f"https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies={currency.lower()}",
             )
-            value = data.get("bitcoin", {}).get(currency.lower())
+            value = data.get("bitcoin", {}).get(currency.lower()) if isinstance(data, dict) else None
             return float(value) if value is not None else None
 
         if provider == PRICE_PROVIDER_COINBASE:
             data = await _safe_get_json(
-                session, f"https://api.coinbase.com/v2/prices/spot?currency={currency}"
+                session, f"https://api.coinbase.com/v2/prices/BTC-{currency}/spot"
             )
-            amount = data.get("data", {}).get("amount")
+            amount = data.get("data", {}).get("amount") if isinstance(data, dict) else None
             return float(amount) if amount is not None else None
 
         if provider == PRICE_PROVIDER_BINANCE:
             data = await _safe_get_json(
                 session, f"https://api.binance.com/api/v3/ticker/price?symbol=BTC{currency}"
             )
-            amount = data.get("price")
+            amount = data.get("price") if isinstance(data, dict) else None
             return float(amount) if amount is not None else None
 
         if provider == PRICE_PROVIDER_BLOCKCHAIN:
             data = await _safe_get_json(session, "https://blockchain.info/ticker")
-            amount = data.get(currency, {}).get("last")
+            amount = data.get(currency, {}).get("last") if isinstance(data, dict) else None
             return float(amount) if amount is not None else None
 
         if provider == PRICE_PROVIDER_COINDESK:
-            data = await _safe_get_json(
-                session, f"https://api.coindesk.com/v1/bpi/currentprice/{currency}.json"
-            )
-            amount = data.get("bpi", {}).get(currency, {}).get("rate_float")
-            return float(amount) if amount is not None else None
+            # The CoinDesk v1 API was shut down in January 2024 – always returns None
+            _LOGGER.debug("CoinDesk v1 API is no longer available; choose a different price provider")
+            return None
 
         if provider == PRICE_PROVIDER_MEMPOOL:
             data = await _safe_get_json(session, f"{_DEFAULT_MEMPOOL_API}/api/v1/prices")
-            amount = data.get(currency)
+            amount = data.get(currency) if isinstance(data, dict) else None
+            if amount is None:
+                _LOGGER.debug(
+                    "Mempool price API did not return data for currency %s; "
+                    "available keys: %s",
+                    currency,
+                    list(data.keys()) if isinstance(data, dict) else data,
+                )
             return float(amount) if amount is not None else None
 
         if provider in (PRICE_PROVIDER_BITCOIN_DE, PRICE_PROVIDER_BITQUERY):
@@ -262,6 +272,11 @@ async def _fetch_network_stats(
     hashrate_data = await _safe_get_json(session, f"{base_url}/api/v1/mining/hashrate/3d")
 
     if not isinstance(height_data, int):
+        _LOGGER.debug(
+            "Network stats: block height endpoint returned unexpected data: %r (base_url=%s)",
+            height_data,
+            base_url,
+        )
         return _empty_network_payload()
 
     hashrate = None
@@ -298,9 +313,14 @@ async def _safe_get_json(session: ClientSession, url: str) -> Any:
     try:
         async with session.get(url, timeout=ClientTimeout(total=_API_REQUEST_TIMEOUT_SECONDS)) as response:
             if response.status >= 400:
+                _LOGGER.debug("HTTP %s fetching %s", response.status, url)
                 return None
             return await response.json(content_type=None)
-    except (TimeoutError, ClientError, ValueError):
+    except TimeoutError:
+        _LOGGER.debug("Timeout fetching %s", url)
+        return None
+    except (ClientError, ValueError) as err:
+        _LOGGER.debug("Error fetching %s: %s", url, err)
         return None
 
 

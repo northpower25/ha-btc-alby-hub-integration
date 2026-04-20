@@ -7,6 +7,7 @@ DOMAIN = "alby_hub"
 CONF_ALLOW_CONTINUE_WITH_WARNING = "allow_continue_with_warning"
 CONF_CONNECTION_NAME = "connection_name"
 CONF_HUB_URL = "hub_url"
+CONF_LIGHTNING_ADDRESS = "lightning_address"
 CONF_MODE = "mode"
 CONF_NETWORK_API_BASE = "network_api_base"
 CONF_NETWORK_PROVIDER = "network_provider"
@@ -55,6 +56,9 @@ ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 # Text entity keys (invoice workflow)
 TEXT_KEY_INVOICE_INPUT = "invoice_input"
 TEXT_KEY_LAST_INVOICE = "last_invoice"
+
+# Sensor key for last created invoice (stored as attribute to avoid 255-char state limit)
+SENSOR_KEY_LAST_INVOICE = "last_invoice"
 
 # Satoshis per Bitcoin
 SATS_PER_BTC = 100_000_000

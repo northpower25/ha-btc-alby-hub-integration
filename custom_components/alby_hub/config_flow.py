@@ -17,6 +17,7 @@ from .const import (
     CONF_ALLOW_CONTINUE_WITH_WARNING,
     CONF_CONNECTION_NAME,
     CONF_HUB_URL,
+    CONF_LIGHTNING_ADDRESS,
     CONF_MODE,
     CONF_NETWORK_API_BASE,
     CONF_NETWORK_PROVIDER,
@@ -164,6 +165,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             CONF_MODE: MODE_CLOUD,
                             CONF_NWC_URI: nwc_info.raw_uri,
                             CONF_CONNECTION_NAME: connection_name,
+                            CONF_LIGHTNING_ADDRESS: user_input.get(CONF_LIGHTNING_ADDRESS, "").strip() or None,
                             CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                             CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -221,6 +223,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_NWC_URI: nwc_info.raw_uri,
                         CONF_CONNECTION_NAME: connection_name,
                         CONF_HUB_URL: hub_url,
+                        CONF_LIGHTNING_ADDRESS: user_input.get(CONF_LIGHTNING_ADDRESS, "").strip() or None,
                         CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                         CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                         CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -280,6 +283,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                                 user_input.get(CONF_CONNECTION_NAME, "").strip()
                                 or DEFAULT_CONNECTION_NAME
                             ),
+                            CONF_LIGHTNING_ADDRESS: user_input.get(CONF_LIGHTNING_ADDRESS, "").strip() or None,
                             CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                             CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -327,6 +331,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                             or DEFAULT_CONNECTION_NAME
                         ),
                         CONF_HUB_URL: hub_url,
+                        CONF_LIGHTNING_ADDRESS: user_input.get(CONF_LIGHTNING_ADDRESS, "").strip() or None,
                         CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                         CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                         CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -363,6 +368,7 @@ def _cloud_schema(user_input) -> vol.Schema:
     default_price_currency = DEFAULT_PRICE_CURRENCY
     default_network_provider = DEFAULT_NETWORK_PROVIDER
     default_network_api_base = ""
+    default_lightning_address = ""
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
         default_connection_name = user_input.get(CONF_CONNECTION_NAME, DEFAULT_CONNECTION_NAME)
@@ -371,6 +377,7 @@ def _cloud_schema(user_input) -> vol.Schema:
         default_price_currency = user_input.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY)
         default_network_provider = user_input.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER)
         default_network_api_base = user_input.get(CONF_NETWORK_API_BASE, "")
+        default_lightning_address = user_input.get(CONF_LIGHTNING_ADDRESS, "") or ""
 
     return vol.Schema(
         {
@@ -378,6 +385,7 @@ def _cloud_schema(user_input) -> vol.Schema:
                 selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
             ),
             vol.Optional(CONF_CONNECTION_NAME, default=default_connection_name): str,
+            vol.Optional(CONF_LIGHTNING_ADDRESS, default=default_lightning_address): str,
             vol.Optional(CONF_PRICE_PROVIDER, default=default_price_provider): _price_provider_selector(),
             vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): _currency_selector(),
             vol.Optional(CONF_NETWORK_PROVIDER, default=default_network_provider): _network_provider_selector(),
@@ -397,6 +405,7 @@ def _expert_schema(user_input) -> vol.Schema:
     default_price_currency = DEFAULT_PRICE_CURRENCY
     default_network_provider = DEFAULT_NETWORK_PROVIDER
     default_network_api_base = ""
+    default_lightning_address = ""
 
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
@@ -408,6 +417,7 @@ def _expert_schema(user_input) -> vol.Schema:
         default_price_currency = user_input.get(CONF_PRICE_CURRENCY, DEFAULT_PRICE_CURRENCY)
         default_network_provider = user_input.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER)
         default_network_api_base = user_input.get(CONF_NETWORK_API_BASE, "")
+        default_lightning_address = user_input.get(CONF_LIGHTNING_ADDRESS, "") or ""
 
     return vol.Schema(
         {
@@ -417,6 +427,7 @@ def _expert_schema(user_input) -> vol.Schema:
             vol.Optional(CONF_CONNECTION_NAME, default=default_connection_name): str,
             vol.Optional(CONF_HUB_URL, default=default_hub_url): str,
             vol.Optional(CONF_PREFER_LOCAL_RELAY, default=default_prefer_local_relay): bool,
+            vol.Optional(CONF_LIGHTNING_ADDRESS, default=default_lightning_address): str,
             vol.Optional(CONF_PRICE_PROVIDER, default=default_price_provider): _price_provider_selector(),
             vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): _currency_selector(),
             vol.Optional(CONF_NETWORK_PROVIDER, default=default_network_provider): _network_provider_selector(),

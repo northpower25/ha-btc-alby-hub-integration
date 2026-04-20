@@ -16,6 +16,7 @@ from .api import AlbyHubApiClient
 from .const import (
     CONF_CONNECTION_NAME,
     CONF_HUB_URL,
+    CONF_LIGHTNING_ADDRESS,
     CONF_MODE,
     CONF_NETWORK_API_BASE,
     CONF_NETWORK_PROVIDER,
@@ -145,6 +146,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         network_provider=merged.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER),
         network_api_base=merged.get(CONF_NETWORK_API_BASE),
         entry_name=connection_name,
+        manual_lightning_address=merged.get(CONF_LIGHTNING_ADDRESS) or None,
     )
     await coordinator.async_config_entry_first_refresh()
 

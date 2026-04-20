@@ -20,7 +20,6 @@ from .const import (
     SERVICE_CREATE_INVOICE,
     SERVICE_SEND_PAYMENT,
     TEXT_KEY_INVOICE_INPUT,
-    TEXT_KEY_LAST_INVOICE,
 )
 from .helpers import AlbyHubRuntime
 from .nwc_client import async_nwc_request
@@ -44,6 +43,10 @@ SERVICE_SEND_PAYMENT_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
         vol.Optional("payment_request"): cv.string,
+        vol.Optional("amount_sat"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional("amount_btc"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        vol.Optional("amount_fiat"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        vol.Optional("fiat_currency"): cv.string,
     }
 )
 
@@ -91,9 +94,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             _LOGGER.debug("NWC invoice created: %s…", invoice_str[:20] if invoice_str else "")
 
         if invoice_str:
-            last_invoice_entity = runtime.text_entities.get(TEXT_KEY_LAST_INVOICE)
-            if last_invoice_entity is not None:
-                await last_invoice_entity.async_set_value(invoice_str)
+            if runtime.last_invoice_entity is not None:
+                await runtime.last_invoice_entity.async_set_invoice(invoice_str)
 
         return {
             "payment_request": invoice_str,

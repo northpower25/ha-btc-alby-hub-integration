@@ -1,4 +1,4 @@
-"""Text platform for Alby Hub – invoice input and last-invoice display."""
+"""Text platform for Alby Hub – invoice input."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TEXT_KEY_INVOICE_INPUT, TEXT_KEY_LAST_INVOICE
+from .const import TEXT_KEY_INVOICE_INPUT
 from .entity import AlbyHubCoordinatorEntity
 from .helpers import get_runtime
 
@@ -26,19 +26,10 @@ TEXT_DESCRIPTIONS: tuple[AlbyHubTextDescription, ...] = (
         key=TEXT_KEY_INVOICE_INPUT,
         translation_key=TEXT_KEY_INVOICE_INPUT,
         icon="mdi:clipboard-text-outline",
-        native_min=0,
-        native_max=2048,
+        native_min_length=0,
+        native_max_length=255,
         mode=TextMode.TEXT,
         read_only=False,
-    ),
-    AlbyHubTextDescription(
-        key=TEXT_KEY_LAST_INVOICE,
-        translation_key=TEXT_KEY_LAST_INVOICE,
-        icon="mdi:qrcode",
-        native_min=0,
-        native_max=2048,
-        mode=TextMode.TEXT,
-        read_only=True,
     ),
 )
 

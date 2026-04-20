@@ -10,10 +10,13 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescr
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .entity import AlbyHubCoordinatorEntity
 from .helpers import get_runtime
 from .const import (
+    DOMAIN,
+    SENSOR_KEY_LAST_INVOICE,
     SENSOR_KEY_NWC_BUDGET_REMAINING,
     SENSOR_KEY_NWC_BUDGET_RENEWAL,
     SENSOR_KEY_NWC_BUDGET_TOTAL,
@@ -141,10 +144,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up Alby Hub sensors from a config entry."""
     runtime = get_runtime(hass, entry.entry_id)
-    async_add_entities(
+    entities = [
         AlbyHubSensor(runtime.coordinator, entry.entry_id, description)
         for description in SENSOR_DESCRIPTIONS
-    )
+    ]
+    last_invoice = AlbyHubLastInvoiceSensor(runtime.coordinator, entry.entry_id)
+    entities.append(last_invoice)
+    async_add_entities(entities)
+    runtime.last_invoice_entity = last_invoice
 
 
 class AlbyHubSensor(AlbyHubCoordinatorEntity):
@@ -173,3 +180,44 @@ class AlbyHubSensor(AlbyHubCoordinatorEntity):
         if self.entity_description.key == "bitcoin_price":
             return self.coordinator.data.get("price_currency")
         return self.entity_description.native_unit_of_measurement
+
+
+class AlbyHubLastInvoiceSensor(AlbyHubCoordinatorEntity, RestoreEntity):
+    """Sensor that stores the last created BOLT11 invoice in an attribute.
+
+    HA's state machine limits state strings to 255 characters, which is too
+    short for BOLT11 invoices (300-1000+ chars). This sensor stores the full
+    invoice in ``extra_state_attributes["bolt11"]`` and uses a short status
+    string ("set" / "") as the entity state.
+    """
+
+    _attr_icon = "mdi:qrcode"
+    _attr_has_entity_name = True
+    _attr_translation_key = SENSOR_KEY_LAST_INVOICE
+
+    def __init__(self, coordinator, entry_id: str) -> None:
+        super().__init__(coordinator, entry_id)
+        self._attr_unique_id = f"{entry_id}_{SENSOR_KEY_LAST_INVOICE}"
+        self._bolt11: str = ""
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the last invoice from storage after a restart."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is not None:
+            self._bolt11 = last_state.attributes.get("bolt11", "") or ""
+
+    @property
+    def state(self) -> str:
+        """Return 'set' when an invoice is stored, empty string otherwise."""
+        return "set" if self._bolt11 else ""
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Expose the full BOLT11 invoice as an attribute."""
+        return {"bolt11": self._bolt11}
+
+    async def async_set_invoice(self, invoice: str) -> None:
+        """Store a new BOLT11 invoice and push the state update."""
+        self._bolt11 = invoice
+        self.async_write_ha_state()
