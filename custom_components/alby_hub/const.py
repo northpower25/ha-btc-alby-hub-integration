@@ -77,6 +77,3 @@ COMMON_FIAT_CURRENCIES: list[str] = [
     "KRW", "MXN", "MYR", "NOK", "NZD", "PHP", "PLN", "RON", "RUB",
     "SAR", "SEK", "SGD", "THB", "TRY", "TWD", "UAH", "USD", "VND", "ZAR",
 ]
-
-# Dashboard version – bump whenever _default_dashboard_config() changes
-DASHBOARD_VERSION = 5
