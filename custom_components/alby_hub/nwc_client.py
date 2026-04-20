@@ -24,14 +24,6 @@ import time
 from typing import Any
 
 from aiohttp import ClientSession, ClientTimeout, WSMsgType
-from cryptography.hazmat.primitives.asymmetric.ec import (
-    ECDH,
-    SECP256K1,
-    EllipticCurvePublicKey,
-    derive_private_key,
-)
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from .nwc import NwcConnectionInfo
 
@@ -132,6 +124,12 @@ def _schnorr_sign_sync(privkey_hex: str, msg_hex: str) -> str:
 
 def _ecdh_shared_x(privkey_hex: str, pubkey_hex: str) -> bytes:
     """Derive 32-byte NIP-04 shared key via ECDH x-coordinate."""
+    from cryptography.hazmat.primitives.asymmetric.ec import (  # noqa: PLC0415
+        ECDH,
+        SECP256K1,
+        EllipticCurvePublicKey,
+        derive_private_key,
+    )
     privkey_int = int(privkey_hex, 16)
     private_key = derive_private_key(privkey_int, SECP256K1())
     # Nostr pubkeys are x-only (32 bytes); assume even parity (0x02 prefix)
@@ -141,6 +139,7 @@ def _ecdh_shared_x(privkey_hex: str, pubkey_hex: str) -> bytes:
 
 
 def _nip04_encrypt(plaintext: str, shared_key: bytes) -> str:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes  # noqa: PLC0415
     data = plaintext.encode()
     pad = 16 - len(data) % 16
     data += bytes([pad] * pad)
@@ -152,6 +151,7 @@ def _nip04_encrypt(plaintext: str, shared_key: bytes) -> str:
 
 
 def _nip04_decrypt(encrypted: str, shared_key: bytes) -> str:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes  # noqa: PLC0415
     ct_b64, iv_b64 = encrypted.split("?iv=", 1)
     ct = base64.b64decode(ct_b64)
     iv = base64.b64decode(iv_b64)
@@ -165,6 +165,11 @@ def _nip04_decrypt(encrypted: str, shared_key: bytes) -> str:
 
 def _derive_pubkey_x_hex(privkey_hex: str) -> str:
     """Derive 32-byte x-only public key hex from private key hex."""
+    from cryptography.hazmat.primitives.asymmetric.ec import (  # noqa: PLC0415
+        SECP256K1,
+        derive_private_key,
+    )
+    from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat  # noqa: PLC0415
     privkey_int = int(privkey_hex, 16)
     private_key = derive_private_key(privkey_int, SECP256K1())
     raw = private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
