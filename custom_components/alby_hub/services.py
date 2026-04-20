@@ -43,6 +43,10 @@ SERVICE_SEND_PAYMENT_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
         vol.Optional("payment_request"): cv.string,
+        vol.Optional("amount_sat"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional("amount_btc"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        vol.Optional("amount_fiat"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        vol.Optional("fiat_currency"): cv.string,
     }
 )
 

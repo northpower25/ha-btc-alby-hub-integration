@@ -16,8 +16,150 @@
  * @license MIT
  */
 
-const ALBY_HUB_VERSION = '1.0.0';
+const ALBY_HUB_VERSION = '1.0.1';
 const PANEL_ELEMENT_NAME = 'alby-hub-panel';
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Translations (DE / EN)
+// ──────────────────────────────────────────────────────────────────────────────
+const TRANSLATIONS = {
+  de: {
+    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk' },
+    noInstance: 'Keine Alby-Hub-Instanz gefunden',
+    noInstanceHint: 'Konfiguriere die Alby-Hub-Integration unter <strong>Einstellungen → Geräte & Dienste</strong>.',
+    overview: {
+      title: 'Übersicht',
+      connected: '✅ Verbunden', offline: '🔴 Offline',
+      balance: 'Guthaben', connection: 'Verbindung',
+      lightning: 'Lightning', onchain: 'On-Chain',
+      btcPrice: 'Bitcoin-Preis', blockHeight: 'Blockhöhe',
+      nodeOnline: 'Node online', nwcRelay: 'NWC-Relay',
+      hubVersion: 'Hub-Version', lightningAddress: 'Lightning-Adresse',
+    },
+    receive: {
+      createInvoice: 'Rechnung erstellen',
+      amount: 'Betrag', unit: 'Einheit (SAT / BTC / Fiat)',
+      btn: 'Rechnung erstellen ⚡',
+      invoiceTitle: 'BOLT11-Rechnung & QR-Code',
+      noInvoice: 'Noch keine Rechnung. Betrag und Einheit oben eingeben, dann <b>Rechnung erstellen</b> drücken.',
+      scanHint: 'Rechnung scannen oder kopieren',
+      lnAddressTitle: 'Lightning-Adresse',
+      lnAddressQrTitle: 'Lightning-Adresse QR (ohne festen Betrag empfangen)',
+      lnAddressUnavail: 'Lightning-Adresse nicht verfügbar.',
+      balanceTitle: 'Guthaben',
+    },
+    send: {
+      paymentTitle: 'Zahlung',
+      invoice: 'BOLT11-Rechnung / Lightning-Adresse',
+      invoicePlaceholder: 'lnbc… oder user@domain.com',
+      amountTitle: 'Betrag (optional – bei Lightning-Adresse erforderlich)',
+      amount: 'Betrag',
+      unit: 'Einheit (SAT / BTC / Fiat)',
+      howTitle: 'Zahlung durchführen',
+      how1: '<b>Option 1 – Einfügen:</b><br>BOLT11-Rechnung oder Lightning-Adresse in das Feld oben einfügen.',
+      how2: '<b>Option 2 – Kamera (HA Companion App):</b><br>QR-Code-Scan wird direkt im Lovelace-Dashboard unterstützt, nicht im benutzerdefinierten Panel.',
+      how3: 'Dann <b>Zahlung senden</b> drücken.',
+      sendBtn: '➤ Zahlung senden',
+      balanceTitle: 'Guthaben',
+    },
+    budget: {
+      usageTitle: 'Budget-Nutzung',
+      used: 'genutzt',
+      remaining: 'Verfügbar',
+      renewal: 'Erneuerung',
+      noBudget: 'Kein Budgetlimit konfiguriert oder Hub unterstützt get_budget nicht.',
+      limitsTitle: 'NWC-Ausgabelimits',
+      totalBudget: 'Gesamtbudget', usedBudget: 'Genutztes Budget',
+      remainingBudget: 'Verfügbares Budget', renewalPeriod: 'Erneuerungszeitraum',
+      aboutTitle: 'Über NWC-Budget',
+      about: 'Diese Sensoren zeigen die Ausgabelimits dieser NWC-Verbindung.',
+      aboutTotal: '<b>Gesamtbudget</b> – maximaler Betrag pro Erneuerungszeitraum',
+      aboutUsed: '<b>Genutztes Budget</b> – bereits ausgegebener Betrag',
+      aboutRemaining: '<b>Verfügbares Budget</b> – noch verfügbarer Betrag',
+      aboutRenewal: '<b>Erneuerungszeitraum</b> – wie oft das Budget zurückgesetzt wird',
+      aboutUnavail: "Sensoren zeigen 'nicht verfügbar', wenn kein Budgetlimit gesetzt ist.",
+    },
+    network: {
+      marketTitle: 'Bitcoin-Markt & Netzwerk',
+      btcPrice: 'Bitcoin-Preis', blockHeight: 'Blockhöhe',
+      hashrate: 'Hashrate', blocksUntilHalving: 'Blöcke bis Halving',
+      nextHalving: 'Nächste Halving-Schätzung',
+      halvingTitle: 'Nächstes Halving',
+      halvingBlocks: 'Blöcke bis zum nächsten Halving.',
+      halvingDate: 'Geschätztes Datum',
+      halvingUnavail: 'Halving-Daten nicht verfügbar.',
+    },
+    unavailable: 'nicht verfügbar',
+  },
+  en: {
+    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network' },
+    noInstance: 'No Alby Hub instance found',
+    noInstanceHint: 'Configure the Alby Hub integration under <strong>Settings → Devices &amp; Services</strong>.',
+    overview: {
+      title: 'Overview',
+      connected: '✅ Connected', offline: '🔴 Offline',
+      balance: 'Balance', connection: 'Connection',
+      lightning: 'Lightning', onchain: 'On-chain',
+      btcPrice: 'Bitcoin Price', blockHeight: 'Block Height',
+      nodeOnline: 'Node Online', nwcRelay: 'NWC Relay',
+      hubVersion: 'Hub Version', lightningAddress: 'Lightning Address',
+    },
+    receive: {
+      createInvoice: 'Create Invoice',
+      amount: 'Amount', unit: 'Unit (SAT / BTC / Fiat)',
+      btn: 'Create Invoice ⚡',
+      invoiceTitle: 'BOLT11 Invoice & QR Code',
+      noInvoice: 'No invoice yet. Set the amount and unit above, then press <b>Create Invoice</b>.',
+      scanHint: 'Scan or copy the invoice above',
+      lnAddressTitle: 'Lightning Address',
+      lnAddressQrTitle: 'Lightning Address QR (receive without fixed amount)',
+      lnAddressUnavail: 'Lightning address not available.',
+      balanceTitle: 'Balance',
+    },
+    send: {
+      paymentTitle: 'Payment',
+      invoice: 'BOLT11 Invoice / Lightning Address',
+      invoicePlaceholder: 'lnbc… or user@domain.com',
+      amountTitle: 'Amount (optional – required when paying a Lightning address)',
+      amount: 'Amount',
+      unit: 'Unit (SAT / BTC / Fiat)',
+      howTitle: 'How to pay',
+      how1: '<b>Option 1 – Paste:</b><br>Copy a BOLT11 invoice (or Lightning address) and paste it into the field above.',
+      how2: '<b>Option 2 – Camera (HA Companion App):</b><br>QR-code scanning is supported in the native Lovelace dashboard, not in this custom panel.',
+      how3: 'Then press <b>Send Payment</b> below.',
+      sendBtn: '➤ Send Payment',
+      balanceTitle: 'Balance',
+    },
+    budget: {
+      usageTitle: 'Budget Usage',
+      used: 'used',
+      remaining: 'Remaining',
+      renewal: 'Renewal',
+      noBudget: 'No budget limit configured, or hub does not support get_budget.',
+      limitsTitle: 'NWC Spending Limits',
+      totalBudget: 'Total Budget', usedBudget: 'Used Budget',
+      remainingBudget: 'Remaining Budget', renewalPeriod: 'Renewal Period',
+      aboutTitle: 'About NWC Budget',
+      about: 'These sensors show the spending limits configured for this NWC connection.',
+      aboutTotal: '<b>Total budget</b> – maximum amount this connection may spend per renewal period',
+      aboutUsed: '<b>Used budget</b> – amount already spent in the current period',
+      aboutRemaining: '<b>Remaining budget</b> – amount still available to spend',
+      aboutRenewal: '<b>Renewal period</b> – how often the budget resets (daily / weekly / monthly / …)',
+      aboutUnavail: "Sensors show 'unavailable' if no budget limit is set or if your hub does not support get_budget.",
+    },
+    network: {
+      marketTitle: 'Bitcoin Market & Network',
+      btcPrice: 'Bitcoin Price', blockHeight: 'Block Height',
+      hashrate: 'Hashrate', blocksUntilHalving: 'Blocks Until Halving',
+      nextHalving: 'Next Halving Estimate',
+      halvingTitle: 'Next Halving',
+      halvingBlocks: 'blocks remaining until the next halving.',
+      halvingDate: 'Estimated date',
+      halvingUnavail: 'Halving data not available.',
+    },
+    unavailable: 'unavailable',
+  },
+};
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Entity ID builders
@@ -47,18 +189,10 @@ const E = {
   invoiceAmount:       (p) => `number.${p}_invoice_amount`,
   invoiceAmountUnit:   (p) => `select.${p}_invoice_amount_unit`,
   createInvoice:       (p) => `button.${p}_create_invoice`,
-  lastInvoice:         (p) => `text.${p}_last_invoice`,
+  // last_invoice is now a sensor; the BOLT11 string is in the "bolt11" attribute
+  lastInvoice:         (p) => `sensor.${p}_last_invoice`,
   invoiceInput:        (p) => `text.${p}_invoice_input`,
 };
-
-// Navigation tabs
-const TABS = [
-  { id: 'overview', label: '⚡ Overview' },
-  { id: 'receive',  label: '↙ Receive'  },
-  { id: 'send',     label: '↗ Send'     },
-  { id: 'budget',   label: '💰 Budget'  },
-  { id: 'network',  label: '₿ Network'  },
-];
 
 // Minimum ms between content-only updates (throttle)
 const UPDATE_THROTTLE_MS = 2000;
@@ -78,6 +212,12 @@ class AlbyHubPanel extends HTMLElement {
     this._lastInstanceKey = '';
     this._lastUpdate = 0;
     this._visibilityHandler = null;
+    // Preserved input values (survive re-renders)
+    this._pendingInvAmount = '';   // receive: amount typed by user
+    this._pendingInvUnit   = '';   // receive: unit selected by user
+    this._pendingPayInput  = '';   // send: payment string typed by user
+    this._pendingPayAmount = '';   // send: amount typed by user
+    this._pendingPayUnit   = '';   // send: unit selected by user
   }
 
   connectedCallback() {
@@ -98,6 +238,27 @@ class AlbyHubPanel extends HTMLElement {
   }
 
   // ── HA panel API ────────────────────────────────────────────────────────────
+
+  /** Translation helper: returns the string for the current HA language. */
+  _t(path) {
+    const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
+    const dict = TRANSLATIONS[lang] || TRANSLATIONS['en'];
+    return path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : null), dict)
+      ?? path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : null), TRANSLATIONS['en'])
+      ?? path;
+  }
+
+  /** Dynamically built tabs using current language. */
+  _tabs() {
+    const t = this._t.bind(this);
+    return [
+      { id: 'overview', label: t('tabs.overview') },
+      { id: 'receive',  label: t('tabs.receive')  },
+      { id: 'send',     label: t('tabs.send')     },
+      { id: 'budget',   label: t('tabs.budget')   },
+      { id: 'network',  label: t('tabs.network')  },
+    ];
+  }
 
   set hass(hass) {
     this._hass = hass;
@@ -194,9 +355,8 @@ class AlbyHubPanel extends HTMLElement {
           </div>
           <div class="empty-state">
             <div class="empty-icon">⚡</div>
-            <h2>No Alby Hub instance found</h2>
-            <p>Configure the Alby Hub integration under
-              <strong>Settings → Devices &amp; Services</strong>.</p>
+            <h2>${this._t('noInstance')}</h2>
+            <p>${this._t('noInstanceHint')}</p>
           </div>
         </div>`;
       this._applyMenuBtn();
@@ -216,7 +376,7 @@ class AlbyHubPanel extends HTMLElement {
           .join('')}</div>`
       : '';
 
-    const tabBar = `<div class="tab-bar">${TABS.map(
+    const tabBar = `<div class="tab-bar">${this._tabs().map(
       (t) =>
         `<button class="tab-btn${t.id === this._activeTab ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`
     ).join('')}</div>`;
@@ -242,6 +402,11 @@ class AlbyHubPanel extends HTMLElement {
   // ── Content-only update ──────────────────────────────────────────────────────
 
   _updateContent() {
+    // Skip update if user is currently interacting with an input/select
+    const focused = this.shadowRoot.querySelector(':focus');
+    if (focused && (focused.tagName === 'INPUT' || focused.tagName === 'SELECT' || focused.tagName === 'TEXTAREA')) {
+      return;
+    }
     const content = this.shadowRoot.querySelector('#content');
     if (!content || !this._activePrefix) return;
     content.innerHTML = this._renderTab(this._activeTab, this._activePrefix);
@@ -265,7 +430,8 @@ class AlbyHubPanel extends HTMLElement {
   // ── Tab: Overview ────────────────────────────────────────────────────────────
 
   _tabOverview(p) {
-    const isOnline   = this._val(E.nodeOnline(p)) === 'on';
+    const t        = (k) => this._t(`overview.${k}`);
+    const isOnline = this._val(E.nodeOnline(p)) === 'on';
     const lightning  = this._num(E.lightningBalance(p));
     const onchain    = this._num(E.onChainBalance(p));
     const price      = this._num(E.bitcoinPrice(p));
@@ -284,9 +450,9 @@ class AlbyHubPanel extends HTMLElement {
     return `<div class="cards-grid">
       <div class="card">
         <div class="card-title">⚡ ${this._esc(dispName)}</div>
-        <div class="badge ${isOnline ? 'badge-on' : 'badge-off'}">${isOnline ? '✅ Connected' : '🔴 Offline'}</div>
+        <div class="badge ${isOnline ? 'badge-on' : 'badge-off'}">${isOnline ? t('connected') : t('offline')}</div>
         <table class="bal-table">
-          <thead><tr><th></th><th>⚡ Lightning</th><th>₿ On-chain</th></tr></thead>
+          <thead><tr><th></th><th>⚡ ${t('lightning')}</th><th>₿ ${t('onchain')}</th></tr></thead>
           <tbody>
             <tr><td>sat</td><td class="num">${lightning.toLocaleString()}</td><td class="num">${onchain.toLocaleString()}</td></tr>
             <tr><td>BTC</td><td class="num">${lnBtc}</td><td class="num">${ocBtc}</td></tr>
@@ -296,21 +462,21 @@ class AlbyHubPanel extends HTMLElement {
       </div>
 
       <div class="card">
-        <div class="card-title">Balance</div>
-        ${this._row('⚡', 'Lightning', `${lightning.toLocaleString()} sat`)}
-        ${this._row('₿', 'On-chain',  `${onchain.toLocaleString()} sat`)}
+        <div class="card-title">${t('balance')}</div>
+        ${this._row('⚡', t('lightning'), `${lightning.toLocaleString()} sat`)}
+        ${this._row('₿', t('onchain'),  `${onchain.toLocaleString()} sat`)}
         ${price > 0
-          ? this._row('💵', `Bitcoin Price (${this._esc(currency)})`, price.toLocaleString())
-          : this._row('💵', 'Bitcoin Price', '<span class="muted">unavailable</span>', true)}
-        ${this._row('🧱', 'Block Height', this._esc(blockH))}
+          ? this._row('💵', `${t('btcPrice')} (${this._esc(currency)})`, price.toLocaleString())
+          : this._row('💵', t('btcPrice'), `<span class="muted">${this._t('unavailable')}</span>`, true)}
+        ${this._row('🧱', t('blockHeight'), this._esc(blockH))}
       </div>
 
       <div class="card">
-        <div class="card-title">Connection</div>
-        ${this._row(isOnline ? '🟢' : '🔴', 'Node Online', isOnline ? 'On' : 'Off')}
-        ${this._row('🔗', 'NWC Relay',        this._esc(relay),   false, true)}
-        ${this._row('ℹ️', 'Hub Version',      this._esc(version))}
-        ${this._row('📧', 'Lightning Address', this._esc(address), false, true)}
+        <div class="card-title">${t('connection')}</div>
+        ${this._row(isOnline ? '🟢' : '🔴', t('nodeOnline'), isOnline ? 'On' : 'Off')}
+        ${this._row('🔗', t('nwcRelay'),        this._esc(relay),   false, true)}
+        ${this._row('ℹ️', t('hubVersion'),      this._esc(version))}
+        ${this._row('📧', t('lightningAddress'), this._esc(address), false, true)}
       </div>
     </div>`;
   }
@@ -318,10 +484,13 @@ class AlbyHubPanel extends HTMLElement {
   // ── Tab: Receive ─────────────────────────────────────────────────────────────
 
   _tabReceive(p) {
-    const amount    = this._val(E.invoiceAmount(p),    '0');
-    const unit      = this._val(E.invoiceAmountUnit(p), 'SAT');
-    const options   = this._attr(E.invoiceAmountUnit(p), 'options', ['SAT', 'BTC']);
-    const invoice   = this._val(E.lastInvoice(p),    '');
+    const t       = (k) => this._t(`receive.${k}`);
+    // Use pending (user-typed) values when available, fall back to entity state
+    const amount  = this._pendingInvAmount || this._val(E.invoiceAmount(p),    '0');
+    const unit    = this._pendingInvUnit   || this._val(E.invoiceAmountUnit(p), 'SAT');
+    const options = this._attr(E.invoiceAmountUnit(p), 'options', ['SAT', 'BTC']);
+    // last_invoice is now a sensor; full BOLT11 is stored in the "bolt11" attribute
+    const invoice   = this._attr(E.lastInvoice(p), 'bolt11', '');
     const address   = this._val(E.lightningAddress(p), '');
     const lightning = this._num(E.lightningBalance(p));
     const onchain   = this._num(E.onChainBalance(p));
@@ -338,50 +507,50 @@ class AlbyHubPanel extends HTMLElement {
          <div class="qr-wrap">
            <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=lightning:${encodeURIComponent(invoice)}&size=280x280&margin=8" alt="Invoice QR">
          </div>
-         <div class="muted small">Scan or copy the invoice above</div>`
-      : `<div class="muted">No invoice yet. Set the amount and unit above, then press <b>Create Invoice</b>.</div>`;
+         <div class="muted small">${t('scanHint')}</div>`
+      : `<div class="muted">${t('noInvoice')}</div>`;
 
     const addrBlock = !this._isUnavail(address)
       ? `<div class="ln-addr">${this._esc(address)}</div>
          <div class="qr-wrap">
            <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=lightning:${encodeURIComponent(address)}&size=240x240&margin=8" alt="Address QR">
          </div>`
-      : `<div class="muted">Lightning address not available.</div>`;
+      : `<div class="muted">${t('lnAddressUnavail')}</div>`;
 
     return `<div class="cards-grid">
       <div class="card">
-        <div class="card-title">Create Invoice</div>
+        <div class="card-title">${t('createInvoice')}</div>
         <div class="field">
-          <label>Amount</label>
+          <label>${t('amount')}</label>
           <input type="number" class="inp" id="inv-amount" min="0" value="${this._esc(amount)}"
             data-entity="${this._esc(E.invoiceAmount(p))}">
         </div>
         <div class="field">
-          <label>Unit</label>
+          <label>${t('unit')}</label>
           <select class="inp" id="inv-unit" data-entity="${this._esc(E.invoiceAmountUnit(p))}">${opts}</select>
         </div>
-        <button class="btn" id="create-inv-btn" data-prefix="${this._esc(p)}">Create Invoice ⚡</button>
+        <button class="btn" id="create-inv-btn" data-prefix="${this._esc(p)}">${t('btn')}</button>
       </div>
 
       <div class="card">
-        <div class="card-title">BOLT11 Invoice &amp; QR Code</div>
+        <div class="card-title">${t('invoiceTitle')}</div>
         ${invoiceBlock}
       </div>
 
       <div class="card">
-        <div class="card-title">Lightning Address</div>
-        ${this._row('📧', 'Address', this._esc(address), false, true)}
+        <div class="card-title">${t('lnAddressTitle')}</div>
+        ${this._row('📧', t('lnAddressTitle'), this._esc(address), false, true)}
       </div>
 
       <div class="card">
-        <div class="card-title">Lightning Address QR (receive without fixed amount)</div>
+        <div class="card-title">${t('lnAddressQrTitle')}</div>
         ${addrBlock}
       </div>
 
       <div class="card">
-        <div class="card-title">Balance</div>
-        ${this._row('⚡', 'Lightning', `${lightning.toLocaleString()} sat`)}
-        ${this._row('₿', 'On-chain',  `${onchain.toLocaleString()} sat`)}
+        <div class="card-title">${t('balanceTitle')}</div>
+        ${this._row('⚡', this._t('overview.lightning'), `${lightning.toLocaleString()} sat`)}
+        ${this._row('₿', this._t('overview.onchain'),  `${onchain.toLocaleString()} sat`)}
       </div>
     </div>`;
   }
@@ -389,39 +558,58 @@ class AlbyHubPanel extends HTMLElement {
   // ── Tab: Send ────────────────────────────────────────────────────────────────
 
   _tabSend(p) {
-    const rawInput  = this._val(E.invoiceInput(p), '');
-    const safeInput = this._isUnavail(rawInput) ? '' : rawInput;
-    const lightning = this._num(E.lightningBalance(p));
-    const onchain   = this._num(E.onChainBalance(p));
+    const t        = (k) => this._t(`send.${k}`);
+    // Prefer pending (user-typed) value; fall back to entity state
+    const safeInput  = this._pendingPayInput  || ((() => {
+      const raw = this._val(E.invoiceInput(p), '');
+      return this._isUnavail(raw) ? '' : raw;
+    })());
+    const lightning  = this._num(E.lightningBalance(p));
+    const onchain    = this._num(E.onChainBalance(p));
+    const payAmount  = this._pendingPayAmount || this._val(E.invoiceAmount(p), '0');
+    const payUnit    = this._pendingPayUnit   || this._val(E.invoiceAmountUnit(p), 'SAT');
+    const options    = this._attr(E.invoiceAmountUnit(p), 'options', ['SAT', 'BTC']);
+    const opts = Array.isArray(options)
+      ? options
+          .map((o) => `<option value="${this._esc(o)}"${o === payUnit ? ' selected' : ''}>${this._esc(o)}</option>`)
+          .join('')
+      : `<option value="SAT"${payUnit === 'SAT' ? ' selected' : ''}>SAT</option>
+         <option value="BTC"${payUnit === 'BTC' ? ' selected' : ''}>BTC</option>`;
 
     return `<div class="cards-grid">
       <div class="card">
-        <div class="card-title">Payment</div>
+        <div class="card-title">${t('paymentTitle')}</div>
         <div class="field">
-          <label>BOLT11 Invoice / Lightning Address</label>
-          <input type="text" class="inp mono" id="inv-input" placeholder="lnbc…"
+          <label>${t('invoice')}</label>
+          <input type="text" class="inp mono" id="inv-input" placeholder="${t('invoicePlaceholder')}"
             value="${this._esc(safeInput)}"
-            data-entity="${this._esc(E.invoiceInput(p))}">
+            data-prefix="${this._esc(p)}">
+        </div>
+        <div class="field">
+          <label>${t('amountTitle')}</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" class="inp" id="pay-amount" min="0" value="${this._esc(payAmount)}"
+              data-entity="${this._esc(E.invoiceAmount(p))}" style="flex:1">
+            <select class="inp" id="pay-unit" data-entity="${this._esc(E.invoiceAmountUnit(p))}" style="flex:0 0 90px">${opts}</select>
+          </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">How to pay</div>
-        <p><b>Option 1 – Paste:</b><br>
-          Copy a BOLT11 invoice (or Lightning address) and paste it into the field above.</p>
-        <p><b>Option 2 – QR scan (HA Companion App):</b><br>
-          Tap the QR-code icon next to the input field to scan a Lightning invoice with your phone camera.</p>
-        <p>Then press <b>Send Payment</b> below.</p>
+        <div class="card-title">${t('howTitle')}</div>
+        <p>${t('how1')}</p>
+        <p>${t('how2')}</p>
+        <p>${t('how3')}</p>
       </div>
 
       <div class="card send-card">
-        <button class="btn send-btn" id="send-btn" data-prefix="${this._esc(p)}">➤ Send Payment</button>
+        <button class="btn send-btn" id="send-btn" data-prefix="${this._esc(p)}">${t('sendBtn')}</button>
       </div>
 
       <div class="card">
-        <div class="card-title">Balance</div>
-        ${this._row('⚡', 'Lightning', `${lightning.toLocaleString()} sat`)}
-        ${this._row('₿', 'On-chain',  `${onchain.toLocaleString()} sat`)}
+        <div class="card-title">${t('balanceTitle')}</div>
+        ${this._row('⚡', this._t('overview.lightning'), `${lightning.toLocaleString()} sat`)}
+        ${this._row('₿', this._t('overview.onchain'),  `${onchain.toLocaleString()} sat`)}
       </div>
     </div>`;
   }
@@ -429,6 +617,7 @@ class AlbyHubPanel extends HTMLElement {
   // ── Tab: Budget ──────────────────────────────────────────────────────────────
 
   _tabBudget(p) {
+    const t         = (k) => this._t(`budget.${k}`);
     const total     = this._num(E.nwcBudgetTotal(p));
     const used      = this._num(E.nwcBudgetUsed(p));
     const remaining = this._num(E.nwcBudgetRemaining(p));
@@ -442,35 +631,35 @@ class AlbyHubPanel extends HTMLElement {
                     : parseFloat(pctUsed) >= 70 ? '🟠'
                     : parseFloat(pctUsed) >= 50 ? '🟡' : '🟢';
       usageBlock = `
-        <div class="budget-row">${dot} <b>${pctUsed}% used</b> (${used.toLocaleString()} / ${total.toLocaleString()} sat)</div>
+        <div class="budget-row">${dot} <b>${pctUsed}% ${t('used')}</b> (${used.toLocaleString()} / ${total.toLocaleString()} sat)</div>
         <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100, parseFloat(pctUsed))}%"></div></div>
-        <div class="muted">Remaining: <b>${remaining.toLocaleString()} sat</b> (${pctRem}%)</div>
-        <div class="muted">Renewal: <b>${this._esc(renewal)}</b></div>`;
+        <div class="muted">${t('remaining')}: <b>${remaining.toLocaleString()} sat</b> (${pctRem}%)</div>
+        <div class="muted">${t('renewal')}: <b>${this._esc(renewal)}</b></div>`;
     } else {
-      usageBlock = `<div class="muted"><em>No budget limit configured, or hub does not support get_budget.</em></div>`;
+      usageBlock = `<div class="muted"><em>${t('noBudget')}</em></div>`;
     }
 
     return `<div class="cards-grid">
       <div class="card">
-        <div class="card-title">Budget Usage</div>
+        <div class="card-title">${t('usageTitle')}</div>
         ${usageBlock}
-        <div class="card-title" style="margin-top:14px">NWC Spending Limits</div>
-        ${this._row('💰', 'Total Budget',     `${total.toLocaleString()} sat`)}
-        ${this._row('💸', 'Used Budget',      `${used.toLocaleString()} sat`)}
-        ${this._row('💵', 'Remaining Budget', `${remaining.toLocaleString()} sat`)}
-        ${this._row('🔄', 'Renewal Period',    this._esc(renewal))}
+        <div class="card-title" style="margin-top:14px">${t('limitsTitle')}</div>
+        ${this._row('💰', t('totalBudget'),     `${total.toLocaleString()} sat`)}
+        ${this._row('💸', t('usedBudget'),      `${used.toLocaleString()} sat`)}
+        ${this._row('💵', t('remainingBudget'), `${remaining.toLocaleString()} sat`)}
+        ${this._row('🔄', t('renewalPeriod'),    this._esc(renewal))}
       </div>
 
       <div class="card">
-        <div class="card-title">About NWC Budget</div>
-        <p>These sensors show the spending limits configured for this NWC connection.</p>
+        <div class="card-title">${t('aboutTitle')}</div>
+        <p>${t('about')}</p>
         <ul>
-          <li><b>Total budget</b> – maximum amount this connection may spend per renewal period</li>
-          <li><b>Used budget</b> – amount already spent in the current period</li>
-          <li><b>Remaining budget</b> – amount still available to spend</li>
-          <li><b>Renewal period</b> – how often the budget resets (daily / weekly / monthly / …)</li>
+          <li>${t('aboutTotal')}</li>
+          <li>${t('aboutUsed')}</li>
+          <li>${t('aboutRemaining')}</li>
+          <li>${t('aboutRenewal')}</li>
         </ul>
-        <p class="muted"><em>Sensors show 'unavailable' if no budget limit is set or if your hub does not support the get_budget method.</em></p>
+        <p class="muted"><em>${t('aboutUnavail')}</em></p>
       </div>
     </div>`;
   }
@@ -478,6 +667,7 @@ class AlbyHubPanel extends HTMLElement {
   // ── Tab: Network ─────────────────────────────────────────────────────────────
 
   _tabNetwork(p) {
+    const t        = (k) => this._t(`network.${k}`);
     const price    = this._val(E.bitcoinPrice(p));
     const currency = this._attr(E.bitcoinPrice(p), 'unit_of_measurement', '');
     const blockH   = this._val(E.bitcoinBlockHeight(p));
@@ -490,24 +680,24 @@ class AlbyHubPanel extends HTMLElement {
       let etaStr = halvEta;
       try { etaStr = new Date(halvEta).toLocaleString(); } catch (_) { /* keep raw */ }
       halvingBlock = `
-        <p>⛏️ <b>${blocks.toLocaleString()} blocks</b> remaining until the next halving.</p>
-        <p>📅 Estimated date: <b>${this._esc(etaStr)}</b></p>`;
+        <p>⛏️ <b>${blocks.toLocaleString()} ${t('halvingBlocks')}</b></p>
+        <p>📅 ${t('halvingDate')}: <b>${this._esc(etaStr)}</b></p>`;
     } else {
-      halvingBlock = `<p class="muted"><em>Halving data not available.</em></p>`;
+      halvingBlock = `<p class="muted"><em>${t('halvingUnavail')}</em></p>`;
     }
 
     return `<div class="cards-grid">
       <div class="card">
-        <div class="card-title">Bitcoin Market &amp; Network</div>
-        ${this._row('💵', `Bitcoin Price (${this._esc(currency)})`, this._esc(price))}
-        ${this._row('🧱', 'Block Height',        this._esc(blockH))}
-        ${this._row('⚡', 'Hashrate',             this._esc(hashrate))}
-        ${this._row('⛏️', 'Blocks Until Halving', blocks > 0 ? blocks.toLocaleString() : this._esc(String(blocks)))}
-        ${this._row('📅', 'Next Halving Estimate', this._esc(halvEta))}
+        <div class="card-title">${t('marketTitle')}</div>
+        ${this._row('💵', `${t('btcPrice')} (${this._esc(currency)})`, this._esc(price))}
+        ${this._row('🧱', t('blockHeight'),        this._esc(blockH))}
+        ${this._row('⚡', t('hashrate'),             this._esc(hashrate))}
+        ${this._row('⛏️', t('blocksUntilHalving'), blocks > 0 ? blocks.toLocaleString() : this._esc(String(blocks)))}
+        ${this._row('📅', t('nextHalving'), this._esc(halvEta))}
       </div>
 
       <div class="card">
-        <div class="card-title">Next Halving</div>
+        <div class="card-title">${t('halvingTitle')}</div>
         ${halvingBlock}
       </div>
     </div>`;
@@ -561,9 +751,11 @@ class AlbyHubPanel extends HTMLElement {
   _attachContentListeners() {
     const root = this.shadowRoot;
 
-    // Invoice amount number input
+    // Invoice amount number input (receive tab) – store locally AND sync to entity
     root.querySelectorAll('#inv-amount').forEach((el) => {
+      el.addEventListener('input', () => { this._pendingInvAmount = el.value; });
       el.addEventListener('change', () => {
+        this._pendingInvAmount = el.value;
         if (el.dataset.entity) {
           this._hass.callService('number', 'set_value', {
             entity_id: el.dataset.entity,
@@ -573,9 +765,10 @@ class AlbyHubPanel extends HTMLElement {
       });
     });
 
-    // Invoice amount unit select
+    // Invoice amount unit select (receive tab) – store locally AND sync to entity
     root.querySelectorAll('#inv-unit').forEach((el) => {
       el.addEventListener('change', () => {
+        this._pendingInvUnit = el.value;
         if (el.dataset.entity) {
           this._hass.callService('select', 'select_option', {
             entity_id: el.dataset.entity,
@@ -585,23 +778,35 @@ class AlbyHubPanel extends HTMLElement {
       });
     });
 
-    // Create invoice button – presses the HA button entity which reads
-    // amount + unit from sibling entities automatically (see button.py)
+    // Create invoice button
     root.querySelectorAll('#create-inv-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.dataset.prefix) {
           this._hass.callService('button', 'press', {
             entity_id: E.createInvoice(btn.dataset.prefix),
           });
+          // Clear pending receive inputs after create (entity will be updated)
+          this._pendingInvAmount = '';
+          this._pendingInvUnit   = '';
         }
       });
     });
 
-    // Invoice input text field (send tab)
+    // Invoice input text field (send tab) – store locally only; do NOT sync to HA
+    // entity to avoid the 255-char state limit. The value is passed directly when
+    // the send button is pressed.
     root.querySelectorAll('#inv-input').forEach((el) => {
+      el.addEventListener('input',  () => { this._pendingPayInput = el.value; });
+      el.addEventListener('change', () => { this._pendingPayInput = el.value; });
+    });
+
+    // Send amount (send tab) – store locally AND sync to entity
+    root.querySelectorAll('#pay-amount').forEach((el) => {
+      el.addEventListener('input', () => { this._pendingPayAmount = el.value; });
       el.addEventListener('change', () => {
+        this._pendingPayAmount = el.value;
         if (el.dataset.entity) {
-          this._hass.callService('text', 'set_value', {
+          this._hass.callService('number', 'set_value', {
             entity_id: el.dataset.entity,
             value: el.value,
           });
@@ -609,12 +814,48 @@ class AlbyHubPanel extends HTMLElement {
       });
     });
 
-    // Send payment button – reads invoice_input entity automatically (see services.py)
-    // The alby_hub.send_payment service uses text.{prefix}_invoice_input when no
-    // explicit payment_request is provided.
+    // Send unit (send tab) – store locally AND sync to entity
+    root.querySelectorAll('#pay-unit').forEach((el) => {
+      el.addEventListener('change', () => {
+        this._pendingPayUnit = el.value;
+        if (el.dataset.entity) {
+          this._hass.callService('select', 'select_option', {
+            entity_id: el.dataset.entity,
+            option: el.value,
+          });
+        }
+      });
+    });
+
+    // Send payment button – pass payment_request and amount directly to avoid
+    // the 255-char text entity state limit
     root.querySelectorAll('#send-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        this._hass.callService('alby_hub', 'send_payment', {});
+        const payInput  = this._pendingPayInput.trim();
+        const payAmount = this._pendingPayAmount;
+        const payUnit   = this._pendingPayUnit || 'SAT';
+        const serviceData = {};
+        if (payInput) serviceData.payment_request = payInput;
+        // Pass amount params if provided and a Lightning address is being used
+        if (payAmount && parseFloat(payAmount) > 0) {
+          if (payUnit === 'SAT') {
+            serviceData.amount_sat = parseInt(payAmount, 10);
+          } else if (payUnit === 'BTC') {
+            serviceData.amount_btc = parseFloat(payAmount);
+          } else {
+            serviceData.amount_fiat = parseFloat(payAmount);
+            serviceData.fiat_currency = payUnit;
+          }
+        }
+        this._hass.callService('alby_hub', 'send_payment', serviceData).then(() => {
+          // Clear pending values after successful send
+          this._pendingPayInput  = '';
+          this._pendingPayAmount = '';
+          this._pendingPayUnit   = '';
+          // Force re-render
+          this._lastUpdate = 0;
+          this._updateContent();
+        }).catch(() => {});
       });
     });
   }

@@ -3,7 +3,7 @@ create_invoice:
   description: >
     Create a Lightning BOLT11 invoice via local Alby Hub API (expert mode).
     Provide exactly one of amount_sat, amount_btc, or amount_fiat+fiat_currency.
-    The created invoice is stored in the text.alby_hub_last_invoice entity for display.
+    The created invoice is stored in the sensor.alby_hub_last_invoice entity (bolt11 attribute) for display.
   fields:
     config_entry_id:
       required: false
@@ -57,6 +57,7 @@ send_payment:
     Send a BOLT11 payment via local Alby Hub API (expert mode).
     If payment_request is omitted, the value from text.alby_hub_invoice_input is used automatically.
     After successful payment the invoice_input entity is cleared.
+    For Lightning address payments (user@domain.com), provide amount_sat, amount_btc, or amount_fiat.
   fields:
     config_entry_id:
       required: false
@@ -65,6 +66,34 @@ send_payment:
         text:
     payment_request:
       required: false
-      description: BOLT11 payment request string. If omitted, read from invoice_input text entity.
+      description: BOLT11 payment request string or Lightning address. If omitted, read from invoice_input text entity.
+      selector:
+        text:
+    amount_sat:
+      required: false
+      description: Amount in satoshis (for Lightning address payments).
+      selector:
+        number:
+          min: 1
+          mode: box
+          step: 1
+    amount_btc:
+      required: false
+      description: Amount in BTC (for Lightning address payments).
+      selector:
+        number:
+          min: 0
+          mode: box
+    amount_fiat:
+      required: false
+      description: Amount in fiat currency (for Lightning address payments). Requires fiat_currency.
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+    fiat_currency:
+      required: false
+      description: Fiat currency code for amount_fiat (e.g. EUR, USD).
       selector:
         text:
