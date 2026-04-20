@@ -610,6 +610,8 @@ class AlbyHubPanel extends HTMLElement {
     });
 
     // Send payment button – reads invoice_input entity automatically (see services.py)
+    // The alby_hub.send_payment service uses text.{prefix}_invoice_input when no
+    // explicit payment_request is provided.
     root.querySelectorAll('#send-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         this._hass.callService('alby_hub', 'send_payment', {});

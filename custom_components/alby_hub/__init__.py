@@ -85,8 +85,8 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
                 cache_headers=False,
             )
         ])
-    except Exception:  # noqa: BLE001
-        pass  # Path already registered – safe to continue
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Static path already registered or failed: %s", err)
 
     try:
         from homeassistant.components.panel_custom import async_register_panel  # noqa: PLC0415
@@ -103,8 +103,8 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
             require_admin=False,
         )
         _LOGGER.info("Alby Hub panel registered at /%s (module: %s)", _PANEL_URL_PATH, card_url)
-    except Exception:  # noqa: BLE001
-        pass  # Panel already registered – safe to continue
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Panel registration skipped (already registered or failed): %s", err)
 
     hass.data[f"{DOMAIN}_frontend_registered"] = True
 
