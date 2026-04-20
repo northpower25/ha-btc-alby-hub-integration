@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import logging
 from dataclasses import replace
@@ -164,11 +165,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # calls importlib.import_module() inside the event loop (via
     # async_forward_entry_setups) the modules are already in sys.modules and
     # no blocking I/O occurs.
-    for platform in PLATFORMS:
-        await hass.async_add_executor_job(
+    await asyncio.gather(*(
+        hass.async_add_executor_job(
             importlib.import_module,
             f"custom_components.{DOMAIN}.{platform}",
         )
+        for platform in PLATFORMS
+    ))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
