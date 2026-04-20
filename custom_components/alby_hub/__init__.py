@@ -12,7 +12,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import binary_sensor, button, number, select, sensor, text  # noqa: F401
+from . import binary_sensor, button, config_flow, number, select, sensor, text  # noqa: F401
 from .api import AlbyHubApiClient
 from .const import (
     CONF_CONNECTION_NAME,

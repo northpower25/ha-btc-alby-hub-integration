@@ -109,7 +109,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> "AlbyHubOptionsFlowHandler":
         """Return the options flow handler (gear icon)."""
-        return AlbyHubOptionsFlowHandler(config_entry)
+        return AlbyHubOptionsFlowHandler()
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -246,12 +246,9 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Alby Hub (gear icon reconfiguration)."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self._config_entry = config_entry
-
     async def async_step_init(self, user_input=None):
         """Route to the correct options step based on current mode."""
-        mode = self._config_entry.data.get(CONF_MODE, MODE_CLOUD)
+        mode = self.config_entry.data.get(CONF_MODE, MODE_CLOUD)
         if mode == MODE_CLOUD:
             return await self.async_step_cloud(user_input)
         return await self.async_step_expert(user_input)
@@ -293,7 +290,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="cloud",
-            data_schema=_cloud_schema(_merged_entry_data(self._config_entry)),
+            data_schema=_cloud_schema(_merged_entry_data(self.config_entry)),
             errors=errors,
             description_placeholders=placeholders,
         )
@@ -344,7 +341,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="expert",
-            data_schema=_expert_schema(_merged_entry_data(self._config_entry)),
+            data_schema=_expert_schema(_merged_entry_data(self.config_entry)),
             errors=errors,
             description_placeholders=placeholders,
         )
