@@ -85,7 +85,7 @@ const TRANSLATIONS = {
       hashrate: 'Hashrate', blocksUntilHalving: 'Blöcke bis Halving',
       nextHalving: 'Nächste Halving-Schätzung',
       halvingTitle: 'Nächstes Halving',
-      halvingBlocks: 'Blöcke bis zum nächsten Halving.',
+      halvingBlocks: 'bis zum nächsten Halving.',
       halvingDate: 'Geschätztes Datum',
       halvingUnavail: 'Halving-Daten nicht verfügbar.',
     },
@@ -153,7 +153,7 @@ const TRANSLATIONS = {
       hashrate: 'Hashrate', blocksUntilHalving: 'Blocks Until Halving',
       nextHalving: 'Next Halving Estimate',
       halvingTitle: 'Next Halving',
-      halvingBlocks: 'blocks remaining until the next halving.',
+      halvingBlocks: 'remaining until the next halving.',
       halvingDate: 'Estimated date',
       halvingUnavail: 'Halving data not available.',
     },
@@ -539,7 +539,7 @@ class AlbyHubPanel extends HTMLElement {
 
       <div class="card">
         <div class="card-title">${t('lnAddressTitle')}</div>
-        ${this._row('📧', t('lnAddressTitle'), this._esc(address), false, true)}
+        ${this._row('📧', this._t('overview.lightningAddress'), this._esc(address), false, true)}
       </div>
 
       <div class="card">
