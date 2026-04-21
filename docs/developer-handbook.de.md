@@ -22,8 +22,8 @@ Wer Workarounds für ältere Versionen einbaut, erzeugt genau die Debug-Loops, d
 |---|---|
 | `OptionsFlow` | Kein `__init__(config_entry)`. HA setzt `self.config_entry` automatisch vor `async_step_init`. `async_get_options_flow` gibt `AlbyHubOptionsFlowHandler()` (ohne Argument) zurück. |
 | Plattform-Setup | `await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)` – keine manuellen Executor-Tricks. |
-| Platform pre-imports | `from . import binary_sensor, button, …` in `__init__.py` (ohne `config_flow`!) – füllt `sys.modules` für die Plattform-Module vor. `config_flow` **darf nicht** per Pre-Import geladen werden, da HA es eigenständig über `_platforms_to_preload` im Executor lädt. |
-| Blocking-Detektor | In 2026.1 **loggt** `importlib.import_module(...)` im Event-Loop nur eine Warnung (`strict=False` für Custom Integrations). HA lädt `config_flow` korrekt im Executor wenn es nicht in `sys.modules` ist – kein manueller Pre-Import nötig oder erwünscht. |
+| Platform pre-imports | `from . import binary_sensor, button, …` in `__init__.py` (ohne `config_flow`!), **nach** den übrigen Imports am Ende des Import-Blocks – füllt `sys.modules` für alle Plattform-Module vor, während der Package-Load noch im Executor läuft. `config_flow` **darf nicht** per Pre-Import geladen werden, da HA es eigenständig über `_platforms_to_preload` im Executor lädt. |
+| Blocking-Detektor | In HA 2026.1 / Python 3.14 kann `importlib.import_module(...)` im Event-Loop **eine Exception auslösen** (nicht nur eine Warnung), wenn der erste Import eines noch nicht geladenen Moduls (z. B. `homeassistant.components.text`) als Sub-Import innerhalb der Event-Loop-gebundenen Plattform-Ladekette ausgelöst wird. Der Preload in `__init__.py` verhindert genau das: Alle Plattformmodule **und** ihre HA-Kern-Abhängigkeiten landen beim Package-Load im Executor in `sys.modules` – danach ist jeder `importlib.import_module`-Aufruf für diese Module ein no-op. |
 | Static paths | `hass.http.async_register_static_paths([StaticPathConfig(...)])` |
 | Panel custom | `from homeassistant.components.panel_custom import async_register_panel` |
 | Translator | Dateien in `translations/<lang>.json`; `strings.json` als Fallback. Kein Setup-Feld für Sprache. |
@@ -50,6 +50,7 @@ Die PRs #15–#23 kreisten alle um dasselbe Problem: Workarounds wurden für HA-
 - PR #23: Pre-Import wieder hergestellt
 - PR #24: `config_flow` fälschlicherweise in Pre-Import ergänzt + OptionsFlow-API auf 2026.1 aktualisiert
 - PR #25: `config_flow` aus Pre-Import entfernt (Bugfix: HA lädt es korrekt selbst im Executor); Blocking-Detektor-Dokumentation korrigiert
+- PR #29: Pre-Import in `__init__.py` hinter alle übrigen Imports verschoben (sauberere Placement); Blocking-Detektor-Dokumentation korrigiert: Detektor **wirft Exception** (nicht nur Warning) wenn ein noch nicht geladenes HA-Kern-Modul als Sub-Import im Event-Loop ausgelöst wird
 
 **Lösung:** Einziger Maßstab ist HA 2026.1. Keine Diskussion über ältere Versionen.
 

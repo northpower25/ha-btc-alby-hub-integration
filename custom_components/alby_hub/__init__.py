@@ -35,6 +35,14 @@ from .coordinator import AlbyHubDataUpdateCoordinator
 from .helpers import AlbyHubRuntime
 from .nwc import parse_nwc_connection_uri
 from .services import async_setup_services, async_unload_services
+# Preload all platform modules into sys.modules while still in the executor
+# (package load time).  This guarantees that when HA's _load_platform calls
+# importlib.import_module from within the event loop, the modules are already
+# cached and the call returns immediately -- avoiding both the blocking-import
+# warning AND the RuntimeError that HA raises when the import of a not-yet-
+# cached HA core module (e.g. homeassistant.components.text) is triggered
+# from the event loop as a side-effect.
+from . import binary_sensor, button, number, select, sensor, text  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 
