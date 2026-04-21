@@ -323,7 +323,7 @@ class AlbyHubPanel extends HTMLElement {
       recipient: '', amount: '', label: '', memo: '',
       frequency: 'monthly', hour: '8', minute: '0',
       day_of_week: '0', day_of_month: '1',
-      start_date: '', end_date: '',
+      start_date: this._todayIso(), end_date: '',
     };
   }
 
@@ -464,6 +464,9 @@ class AlbyHubPanel extends HTMLElement {
       if (Number.isFinite(n)) return String(Math.floor(n));
     }
     return str;
+  }
+  _todayIso() {
+    return new Date().toISOString().slice(0, 10);
   }
   _eid(kind, prefix) {
     const cfg = ENTITY_IDS[kind];
@@ -932,6 +935,9 @@ class AlbyHubPanel extends HTMLElement {
   _tabScheduled(p) {
     const t  = (k) => this._t(`scheduled.${k}`);
     const f  = this._schedForm;
+    if (!f.start_date) {
+      f.start_date = this._todayIso();
+    }
     const DAYS = [t('dow0'), t('dow1'), t('dow2'), t('dow3'), t('dow4'), t('dow5'), t('dow6')];
 
     // Load schedules on first render
@@ -1071,7 +1077,7 @@ class AlbyHubPanel extends HTMLElement {
     const serviceData = {};
     const entry = this._resolveEntryId(p);
     if (entry) serviceData.config_entry_id = entry;
-    this._hass.callService('alby_hub', 'list_transactions', serviceData, undefined, true)
+    this._hass.callService('alby_hub', 'list_transactions', serviceData, { return_response: true })
       .then((resp) => {
         this._transactions = (resp && resp.transactions) ? resp.transactions : [];
         this._txLoading = false;
@@ -1090,7 +1096,7 @@ class AlbyHubPanel extends HTMLElement {
     const serviceData = {};
     const entry = this._resolveEntryId(p);
     if (entry) serviceData.config_entry_id = entry;
-    this._hass.callService('alby_hub', 'list_scheduled_payments', serviceData, undefined, true)
+    this._hass.callService('alby_hub', 'list_scheduled_payments', serviceData, { return_response: true })
       .then((resp) => {
         this._schedules = (resp && resp.schedules) ? resp.schedules : [];
         this._schedLoading = false;
@@ -1216,7 +1222,7 @@ class AlbyHubPanel extends HTMLElement {
           }
           if (memo) serviceData.memo = memo;
 
-          this._hass.callService('alby_hub', 'create_invoice', serviceData, undefined, true).then((resp) => {
+          this._hass.callService('alby_hub', 'create_invoice', serviceData, { return_response: true }).then((resp) => {
             if (resp?.payment_request) {
               this._lastInvoiceByPrefix[btn.dataset.prefix] = {
                 bolt11: resp.payment_request,
@@ -1348,10 +1354,13 @@ class AlbyHubPanel extends HTMLElement {
     });
 
     // Live-update the form state when fields change (to show/hide day-of-week/month)
-    const bindSchedField = (id, key) => {
+    const bindSchedField = (id, key, rerenderOnChange = false) => {
       const el = root.querySelector(`#${id}`);
       if (el) {
-        el.addEventListener('change', () => { this._schedForm[key] = el.value; this._updateContent(); });
+        el.addEventListener('change', () => {
+          this._schedForm[key] = el.value;
+          if (rerenderOnChange) this._updateContent();
+        });
         el.addEventListener('input',  () => { this._schedForm[key] = el.value; });
       }
     };
@@ -1359,7 +1368,7 @@ class AlbyHubPanel extends HTMLElement {
     bindSchedField('sched-recipient', 'recipient');
     bindSchedField('sched-amount',    'amount');
     bindSchedField('sched-memo',      'memo');
-    bindSchedField('sched-freq',      'frequency');
+    bindSchedField('sched-freq',      'frequency', true);
     bindSchedField('sched-hour',      'hour');
     bindSchedField('sched-minute',    'minute');
     bindSchedField('sched-dow',       'day_of_week');
@@ -1398,7 +1407,7 @@ class AlbyHubPanel extends HTMLElement {
               recipient: '', amount: '', label: '', memo: '',
               frequency: 'monthly', hour: '8', minute: '0',
               day_of_week: '0', day_of_month: '1',
-              start_date: '', end_date: '',
+              start_date: this._todayIso(), end_date: '',
             };
             this._schedules = null;
             this._schedLoading = false;

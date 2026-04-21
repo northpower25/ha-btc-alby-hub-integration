@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlparse
 from .const import OPTIONAL_NWC_SCOPES, REQUIRED_NWC_SCOPES
 
 _SCOPE_KEYS = ("permissions", "scopes", "commands")
+_LIGHTNING_ADDRESS_KEYS = ("lud16", "lightning_address", "lnaddress", "ln_addr")
 
 
 @dataclass(slots=True, frozen=True)
@@ -43,6 +44,11 @@ def parse_nwc_connection_uri(uri: str) -> NwcConnectionInfo:
         raise ValueError("missing_wallet_pubkey")
 
     params = parse_qs(parsed.query, keep_blank_values=False)
+    if parsed.fragment and "=" in parsed.fragment:
+        fragment_params = parse_qs(parsed.fragment, keep_blank_values=False)
+        for key, values in fragment_params.items():
+            params.setdefault(key, []).extend(values)
+
     relay = _first_param(params, "relay")
     if not relay:
         raise ValueError("missing_relay")
@@ -51,11 +57,12 @@ def parse_nwc_connection_uri(uri: str) -> NwcConnectionInfo:
     if not secret:
         raise ValueError("missing_secret")
 
-    lud16 = _first_param(params, "lud16")
+    lud16 = _first_param(params, *_LIGHTNING_ADDRESS_KEYS)
 
     scopes: set[str] = set()
+    lowered_params = {str(k).lower(): v for k, v in params.items()}
     for key in _SCOPE_KEYS:
-        for raw_value in params.get(key, []):
+        for raw_value in lowered_params.get(key, []):
             scopes.update(_split_scope_values(raw_value))
 
     return NwcConnectionInfo(
@@ -86,12 +93,16 @@ def validate_scopes(info: NwcConnectionInfo) -> ScopeValidationResult:
     )
 
 
-def _first_param(params: dict[str, list[str]], key: str) -> str | None:
-    values = params.get(key)
-    if not values:
-        return None
-    value = values[0].strip()
-    return value or None
+def _first_param(params: dict[str, list[str]], *keys: str) -> str | None:
+    lowered_params = {str(k).lower(): v for k, v in params.items()}
+    for key in keys:
+        values = lowered_params.get(key.lower())
+        if not values:
+            continue
+        value = values[0].strip()
+        if value:
+            return value
+    return None
 
 
 def _split_scope_values(raw_value: str) -> set[str]:
