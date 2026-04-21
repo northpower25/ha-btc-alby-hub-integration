@@ -13,6 +13,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import AlbyHubApiClient
+# Preload platform modules so HA does not need a first-time module import
+# during async_forward_entry_setups, which can trigger blocking-import warnings.
+from . import binary_sensor, button, number, select, sensor, text  # noqa: F401
 from .const import (
     CONF_CONNECTION_NAME,
     CONF_HUB_URL,
