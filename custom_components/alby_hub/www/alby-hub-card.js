@@ -895,7 +895,7 @@ class AlbyHubPanel extends HTMLElement {
     // Load schedules on first render
     if (this._schedules === null && !this._schedLoading) {
       this._loadSchedules(p);
-      return `<div class="cards-grid"><div class="card"><p class="muted">${t('loading') || 'Lade…'}</p></div></div>`;
+      return `<div class="cards-grid"><div class="card"><p class="muted">${this._t('activity.loading')}</p></div></div>`;
     }
 
     // ── Create form ──────────────────────────────────────────────────────────
@@ -934,9 +934,9 @@ class AlbyHubPanel extends HTMLElement {
         <div style="flex:1">
           <label>${t('time')}</label>
           <div style="display:flex;gap:4px">
-            <input type="number" class="inp" id="sched-hour"   min="0" max="23" value="${this._esc(f.hour)}"   style="width:60px" title="Stunde">
+            <input type="number" class="inp" id="sched-hour"   min="0" max="23" value="${this._esc(f.hour)}"   style="width:60px">
             <span style="align-self:center">:</span>
-            <input type="number" class="inp" id="sched-minute" min="0" max="59" value="${this._esc(f.minute)}" style="width:60px" title="Minute">
+            <input type="number" class="inp" id="sched-minute" min="0" max="59" value="${this._esc(f.minute)}" style="width:60px">
           </div>
         </div>
         ${showDayOfWeek ? `<div style="flex:1">
@@ -996,7 +996,7 @@ class AlbyHubPanel extends HTMLElement {
               <th style="text-align:right">${t('colAmount')}</th>
               <th>${t('colFreq')}</th>
               <th>${t('colLastRun')}</th>
-              <th></th>
+              <th aria-label="${this._t('scheduled.deleteBtn')}"></th>
             </tr>
           </thead>
           <tbody>${schedRows}</tbody>

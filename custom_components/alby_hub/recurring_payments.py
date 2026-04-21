@@ -208,9 +208,15 @@ class RecurringPaymentScheduler:
             await self._send_payment(schedule)
             schedule["last_run"] = dt_util.now().isoformat()
             await self._save()
-        except Exception as err:  # noqa: BLE001
+        except (RuntimeError, OSError, ConnectionError, TimeoutError) as err:
             _LOGGER.warning(
                 "Recurring payment '%s' failed: %s",
+                schedule.get("label") or schedule_id,
+                err,
+            )
+        except Exception as err:  # noqa: BLE001 – catch-all to ensure rearm always happens
+            _LOGGER.error(
+                "Unexpected error in recurring payment '%s': %s",
                 schedule.get("label") or schedule_id,
                 err,
             )
@@ -362,14 +368,20 @@ def _advance(
 def _next_month_day(base: date, target_day: int, months_step: int) -> date:
     """Return the first date >= *base* that is the *target_day* of a month
     occurring on or after *base*, stepping by *months_step* months."""
+    import calendar  # noqa: PLC0415 – stdlib, cheap
     year, month = base.year, base.month
-    candidate = date(year, month, target_day)
+    # Clamp target_day to the number of days in the candidate month
+    max_day = calendar.monthrange(year, month)[1]
+    day = min(target_day, max_day)
+    candidate = date(year, month, day)
     if candidate < base:
         # Advance by months_step months
         month += months_step
         year += (month - 1) // 12
         month = ((month - 1) % 12) + 1
-        candidate = date(year, month, target_day)
+        max_day = calendar.monthrange(year, month)[1]
+        day = min(target_day, max_day)
+        candidate = date(year, month, day)
     return candidate
 
 
