@@ -218,6 +218,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # list_transactions → recent payment history
         try:
+            # Include unpaid invoices so newly created receive requests also appear in Activity.
             result = await async_nwc_request(
                 self._session, self._nwc_info, "list_transactions",
                 {"limit": 50, "unpaid": True},

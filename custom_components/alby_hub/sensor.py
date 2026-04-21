@@ -236,5 +236,6 @@ class AlbyHubLastInvoiceSensor(AlbyHubCoordinatorEntity, RestoreEntity):
         """Store a new BOLT11 invoice and push the state update."""
         self._bolt11 = invoice
         self._amount_sat = amount_sat
-        self._memo = memo.strip() if isinstance(memo, str) and memo.strip() else None
+        memo_stripped = memo.strip() if isinstance(memo, str) else ""
+        self._memo = memo_stripped or None
         self.async_write_ha_state()
