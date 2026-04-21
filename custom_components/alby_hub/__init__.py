@@ -56,7 +56,7 @@ PLATFORMS: list[Platform] = [
 ]
 
 # Frontend panel configuration
-_CARD_VERSION = "1"
+_CARD_VERSION = "2"
 _PANEL_FILENAME = "alby-hub-card.js"
 _PANEL_URL_PATH = "alby-hub-panel"
 _PANEL_ELEMENT_NAME = "alby-hub-panel"
