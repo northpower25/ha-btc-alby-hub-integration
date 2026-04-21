@@ -48,19 +48,19 @@ def parse_nwc_connection_uri(uri: str) -> NwcConnectionInfo:
         fragment_params = parse_qs(parsed.fragment, keep_blank_values=False)
         for key, values in fragment_params.items():
             params.setdefault(key, []).extend(values)
+    lowered_params = {str(k).lower(): v for k, v in params.items()}
 
-    relay = _first_param(params, "relay")
+    relay = _first_param(lowered_params, "relay")
     if not relay:
         raise ValueError("missing_relay")
 
-    secret = _first_param(params, "secret")
+    secret = _first_param(lowered_params, "secret")
     if not secret:
         raise ValueError("missing_secret")
 
-    lud16 = _first_param(params, *_LIGHTNING_ADDRESS_KEYS)
+    lud16 = _first_param(lowered_params, *_LIGHTNING_ADDRESS_KEYS)
 
     scopes: set[str] = set()
-    lowered_params = {str(k).lower(): v for k, v in params.items()}
     for key in _SCOPE_KEYS:
         for raw_value in lowered_params.get(key, []):
             scopes.update(_split_scope_values(raw_value))
@@ -94,9 +94,8 @@ def validate_scopes(info: NwcConnectionInfo) -> ScopeValidationResult:
 
 
 def _first_param(params: dict[str, list[str]], *keys: str) -> str | None:
-    lowered_params = {str(k).lower(): v for k, v in params.items()}
     for key in keys:
-        values = lowered_params.get(key.lower())
+        values = params.get(key.lower())
         if not values:
             continue
         value = values[0].strip()
