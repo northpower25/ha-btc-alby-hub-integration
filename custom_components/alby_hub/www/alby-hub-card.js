@@ -1035,8 +1035,18 @@ class AlbyHubPanel extends HTMLElement {
 
     // ── Schedule list ────────────────────────────────────────────────────────
     const schedules = this._schedules || [];
+    const scheduleHeaders = [
+      t('colLabel'),
+      t('colRecipient'),
+      t('colAmount'),
+      t('colFreq'),
+      t('colNext'),
+      t('colLastRun'),
+    ];
+    // One extra column is reserved for row action buttons (edit/run/delete).
+    const scheduleColumnCount = scheduleHeaders.length + 1;
     const schedRows = schedules.length === 0
-      ? `<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">${t('noSchedules')}</td></tr>`
+      ? `<tr><td colspan="${scheduleColumnCount}" class="muted" style="text-align:center;padding:16px">${t('noSchedules')}</td></tr>`
       : schedules.map((s) => {
           const lastRun = s.last_run
             ? new Date(s.last_run).toLocaleString()
@@ -1069,12 +1079,7 @@ class AlbyHubPanel extends HTMLElement {
         <table class="tx-table">
           <thead>
             <tr>
-              <th>${t('colLabel')}</th>
-              <th>${t('colRecipient')}</th>
-              <th style="text-align:right">${t('colAmount')}</th>
-              <th>${t('colFreq')}</th>
-              <th>${t('colNext')}</th>
-              <th>${t('colLastRun')}</th>
+              ${scheduleHeaders.map((label, idx) => `<th${idx === 2 ? ' style="text-align:right"' : ''}>${label}</th>`).join('')}
               <th aria-label="${this._t('scheduled.deleteBtn')}"></th>
             </tr>
           </thead>

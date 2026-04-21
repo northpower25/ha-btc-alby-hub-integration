@@ -266,11 +266,16 @@ class RecurringPaymentScheduler:
 
     async def _send_payment(self, schedule: dict[str, Any]) -> None:
         """Dispatch the actual payment using the active runtime for entry_id."""
+        recipient = schedule.get("recipient")
+        amount_sat = schedule.get("amount_sat")
+        if not isinstance(recipient, str) or not recipient.strip():
+            raise RuntimeError("Scheduled payment is missing a valid recipient")
+        if not isinstance(amount_sat, int) or amount_sat < 1:
+            raise RuntimeError("Scheduled payment is missing a valid amount_sat")
         service_data: dict[str, Any] = {
-            "payment_request": schedule["recipient"],
+            "payment_request": recipient,
+            "amount_sat": amount_sat,
         }
-        if _is_lightning_address(schedule["recipient"]):
-            service_data["amount_sat"] = int(schedule["amount_sat"])
         if schedule.get("memo"):
             service_data["memo"] = schedule["memo"]
         if schedule.get("entry_id"):
@@ -434,13 +439,6 @@ def _validate_schedule(schedule: dict[str, Any]) -> None:
         raise ValueError("hour must be 0–23")
     if not (0 <= schedule["minute"] <= 59):
         raise ValueError("minute must be 0–59")
-
-
-def _is_lightning_address(recipient: str) -> bool:
-    value = str(recipient or "").strip().lower()
-    return "@" in value and " " not in value and not value.startswith(
-        ("lnbc", "lntb", "lnbcrt", "lnurl")
-    )
 
 
 # ── global accessor ────────────────────────────────────────────────────────────

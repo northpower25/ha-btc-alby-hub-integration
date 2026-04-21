@@ -38,3 +38,11 @@ class AlbyHubRuntime:
 def get_runtime(hass: HomeAssistant, entry_id: str) -> AlbyHubRuntime:
     """Return runtime for config entry."""
     return hass.data[DOMAIN][entry_id]
+
+
+def is_lightning_address(value: str) -> bool:
+    """Return True when the value looks like a Lightning address user@domain."""
+    normalized = str(value or "").strip().lower()
+    return "@" in normalized and " " not in normalized and not normalized.startswith(
+        ("lnbc", "lntb", "lnbcrt", "lnurl")
+    )

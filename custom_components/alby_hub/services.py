@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from decimal import Decimal
 from urllib.parse import quote
 
@@ -29,7 +30,7 @@ from .const import (
     SERVICE_UPDATE_SCHEDULED_PAYMENT,
     TEXT_KEY_INVOICE_INPUT,
 )
-from .helpers import AlbyHubRuntime
+from .helpers import AlbyHubRuntime, is_lightning_address
 from .nwc_client import async_nwc_request
 from .recurring_payments import VALID_FREQUENCIES, get_scheduler
 
@@ -198,15 +199,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if {"amount_sat", "amount_btc", "amount_fiat"} & set(call.data):
             amount_sat = _resolve_amount_sat(call.data, runtime)
         memo = call.data.get("memo")
-        is_lightning_address = _is_lightning_address(payment_request)
-        if is_lightning_address and amount_sat is None:
+        is_ln_address = is_lightning_address(payment_request)
+        if is_ln_address and amount_sat is None:
             raise ServiceValidationError(
                 "Lightning address payments require amount_sat, amount_btc, or amount_fiat."
             )
         resolved_payment_request = await _resolve_payment_request(
             runtime, payment_request, amount_sat, memo
         )
-        send_amount = None if is_lightning_address else amount_sat
+        send_amount = None if is_ln_address else amount_sat
 
         if mode == MODE_EXPERT and runtime.api_client is not None:
             try:
@@ -463,14 +464,6 @@ def _default_entry_id(hass: HomeAssistant) -> str | None:
     return next(iter(runtimes), None)
 
 
-def _is_lightning_address(payment_request: str) -> bool:
-    value = payment_request.strip()
-    if "@" not in value or " " in value:
-        return False
-    lowered = value.lower()
-    return not lowered.startswith(("lnbc", "lntb", "lnbcrt", "lnurl"))
-
-
 async def _resolve_payment_request(
     runtime: AlbyHubRuntime,
     payment_request: str,
@@ -479,13 +472,13 @@ async def _resolve_payment_request(
 ) -> str:
     """Resolve Lightning addresses to BOLT11 invoices."""
     target = payment_request.strip()
-    if not _is_lightning_address(target):
+    if not is_lightning_address(target):
         return target
     if amount_sat is None:
         raise ServiceValidationError(
             "Lightning address payments require amount_sat, amount_btc, or amount_fiat."
         )
-    return await _fetch_lnurl_invoice(runtime, target, amount_sat, memo)
+    return await _fetch_lnurl_invoice(runtime, target, int(amount_sat), memo)
 
 
 async def _fetch_lnurl_invoice(
@@ -500,6 +493,9 @@ async def _fetch_lnurl_invoice(
         raise ServiceValidationError("Invalid Lightning address format") from err
     if not localpart or not domain:
         raise ServiceValidationError("Invalid Lightning address format")
+    domain = domain.strip().lower()
+    if not _is_valid_lightning_domain(domain):
+        raise ServiceValidationError("Invalid Lightning address domain")
 
     msat_amount = amount_sat * _MSATS_PER_SAT
     lnurlp_url = f"https://{domain}/.well-known/lnurlp/{quote(localpart, safe='')}"
@@ -533,7 +529,14 @@ async def _fetch_lnurl_invoice(
     params: dict[str, int | str] = {"amount": msat_amount}
     comment_allowed = metadata.get("commentAllowed")
     if memo and isinstance(comment_allowed, (int, float)) and int(comment_allowed) > 0:
-        params["comment"] = memo[: int(comment_allowed)]
+        max_comment = int(comment_allowed)
+        if len(memo) > max_comment:
+            _LOGGER.warning(
+                "Lightning address memo truncated from %d to %d characters",
+                len(memo),
+                max_comment,
+            )
+        params["comment"] = memo[:max_comment]
 
     async with runtime.session.get(callback_url, params=params, timeout=timeout) as response:
         if response.status >= 400:
@@ -552,3 +555,12 @@ async def _fetch_lnurl_invoice(
     if not isinstance(invoice, str) or not invoice.strip():
         raise HomeAssistantError("Lightning address callback did not return a BOLT11 invoice")
     return invoice.strip()
+
+
+def _is_valid_lightning_domain(domain: str) -> bool:
+    return bool(
+        re.fullmatch(
+            r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*",
+            domain,
+        )
+    )

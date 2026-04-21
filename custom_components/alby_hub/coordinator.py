@@ -423,7 +423,7 @@ async def _fetch_network_stats_from_blockchain(
     raw_hashrate = data.get("hash_rate")
     hashrate = None
     if isinstance(raw_hashrate, (int, float)):
-        # blockchain.info reports TH/s -> convert to EH/s
+        # Blockchain.info reports TH/s; 1 EH/s = 1,000,000 TH/s.
         hashrate = round(float(raw_hashrate) / 1_000_000, 2)
 
     minutes_per_block = data.get("minutes_between_blocks")
