@@ -170,28 +170,28 @@ const TRANSLATIONS = {
 //      entity name "Lightning balance" → name_slug "lightning_balance"
 //      → sensor.alby_hub_lightning_balance
 // ──────────────────────────────────────────────────────────────────────────────
-const E = {
-  nodeOnline:          (p) => `binary_sensor.${p}_node_online`,
-  lightningBalance:    (p) => `sensor.${p}_lightning_balance`,
-  onChainBalance:      (p) => `sensor.${p}_on_chain_balance`,
-  lightningAddress:    (p) => `sensor.${p}_lightning_address`,
-  nwcRelay:            (p) => `sensor.${p}_nwc_relay`,
-  hubVersion:          (p) => `sensor.${p}_hub_version`,
-  bitcoinPrice:        (p) => `sensor.${p}_bitcoin_price`,
-  bitcoinBlockHeight:  (p) => `sensor.${p}_bitcoin_block_height`,
-  bitcoinHashrate:     (p) => `sensor.${p}_bitcoin_hashrate`,
-  blocksUntilHalving:  (p) => `sensor.${p}_blocks_until_halving`,
-  nextHalvingEstimate: (p) => `sensor.${p}_next_halving_estimate`,
-  nwcBudgetTotal:      (p) => `sensor.${p}_nwc_budget_total`,
-  nwcBudgetUsed:       (p) => `sensor.${p}_nwc_budget_used`,
-  nwcBudgetRemaining:  (p) => `sensor.${p}_nwc_budget_remaining`,
-  nwcBudgetRenewal:    (p) => `sensor.${p}_nwc_budget_renewal_period`,
-  invoiceAmount:       (p) => `number.${p}_invoice_amount`,
-  invoiceAmountUnit:   (p) => `select.${p}_invoice_amount_unit`,
-  createInvoice:       (p) => `button.${p}_create_invoice`,
-  // last_invoice is now a sensor; the BOLT11 string is in the "bolt11" attribute
-  lastInvoice:         (p) => `sensor.${p}_last_invoice`,
-  invoiceInput:        (p) => `text.${p}_invoice_input`,
+const ENTITY_IDS = {
+  nodeOnline:          { domain: 'binary_sensor', suffixes: ['node_online'] },
+  lightningBalance:    { domain: 'sensor',        suffixes: ['lightning_balance', 'balance_lightning'] },
+  onChainBalance:      { domain: 'sensor',        suffixes: ['on_chain_balance', 'balance_onchain'] },
+  lightningAddress:    { domain: 'sensor',        suffixes: ['lightning_address', 'lightning_adresse'] },
+  nwcRelay:            { domain: 'sensor',        suffixes: ['nwc_relay', 'relay'] },
+  hubVersion:          { domain: 'sensor',        suffixes: ['hub_version', 'version'] },
+  bitcoinPrice:        { domain: 'sensor',        suffixes: ['bitcoin_price', 'bitcoin_preis'] },
+  bitcoinBlockHeight:  { domain: 'sensor',        suffixes: ['bitcoin_block_height', 'bitcoin_blockhoehe'] },
+  bitcoinHashrate:     { domain: 'sensor',        suffixes: ['bitcoin_hashrate'] },
+  blocksUntilHalving:  { domain: 'sensor',        suffixes: ['blocks_until_halving', 'bloecke_bis_halving'] },
+  nextHalvingEstimate: { domain: 'sensor',        suffixes: ['next_halving_estimate', 'next_halving_eta', 'naechstes_halving_schaetzung'] },
+  nwcBudgetTotal:      { domain: 'sensor',        suffixes: ['nwc_budget_total', 'nwc_budget_gesamt'] },
+  nwcBudgetUsed:       { domain: 'sensor',        suffixes: ['nwc_budget_used', 'nwc_budget_genutzt'] },
+  nwcBudgetRemaining:  { domain: 'sensor',        suffixes: ['nwc_budget_remaining', 'nwc_budget_verfuegbar'] },
+  nwcBudgetRenewal:    { domain: 'sensor',        suffixes: ['nwc_budget_renewal_period', 'nwc_budget_renewal', 'nwc_budget_erneuerungszeitraum'] },
+  invoiceAmount:       { domain: 'number',        suffixes: ['invoice_amount', 'rechnungsbetrag'] },
+  invoiceAmountUnit:   { domain: 'select',        suffixes: ['invoice_amount_unit', 'einheit_des_rechnungsbetrags'] },
+  createInvoice:       { domain: 'button',        suffixes: ['create_invoice', 'rechnung_erstellen', 'create_invoice_btn'] },
+  // last_invoice is a sensor; full BOLT11 lives in the "bolt11" attribute
+  lastInvoice:         { domain: 'sensor',        suffixes: ['last_invoice', 'letzte_rechnung'] },
+  invoiceInput:        { domain: 'text',          suffixes: ['invoice_input', 'rechnungseingabe'] },
 };
 
 // Minimum ms between content-only updates (throttle)
@@ -296,15 +296,21 @@ class AlbyHubPanel extends HTMLElement {
   _discoverInstances(hass) {
     const seen = new Set();
     const instances = [];
+    const lightningBalanceSuffixes = ENTITY_IDS.lightningBalance.suffixes.map((s) => `_${s}`);
 
     for (const entityId of Object.keys(hass.states)) {
-      if (!entityId.startsWith('sensor.') || !entityId.endsWith('_lightning_balance')) continue;
+      if (!entityId.startsWith('sensor.')) continue;
+      const matchedSuffix = lightningBalanceSuffixes.find((suffix) => entityId.endsWith(suffix));
+      if (!matchedSuffix) continue;
 
-      const prefix = entityId.slice('sensor.'.length, -'_lightning_balance'.length);
+      const prefix = entityId.slice('sensor.'.length, -matchedSuffix.length);
       if (seen.has(prefix)) continue;
 
       // Require the node_online binary sensor to confirm this is an Alby Hub
-      if (!hass.states[`binary_sensor.${prefix}_node_online`]) continue;
+      const hasNodeOnline = ENTITY_IDS.nodeOnline.suffixes.some(
+        (suffix) => Boolean(hass.states[`binary_sensor.${prefix}_${suffix}`])
+      );
+      if (!hasNodeOnline) continue;
       seen.add(prefix);
 
       // Derive display name: strip " Lightning balance" from friendly_name, or title-case prefix
@@ -312,7 +318,7 @@ class AlbyHubPanel extends HTMLElement {
       let displayName = prefix.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
       const fn = state?.attributes?.friendly_name;
       if (fn) {
-        const stripped = fn.replace(/\s+Lightning\s+balance\s*$/i, '').trim();
+        const stripped = fn.replace(/\s+Lightning[-\s]+balance\s*$/i, '').trim();
         if (stripped) displayName = stripped;
       }
 
@@ -338,6 +344,15 @@ class AlbyHubPanel extends HTMLElement {
   _attr(id, attr, def = '')      { return this._state(id)?.attributes?.[attr] ?? def; }
   _num(id, def = 0)              { return parseFloat(this._val(id, String(def))) || def; }
   _isUnavail(v)                  { return !v || v === 'unavailable' || v === 'unknown' || v === 'none' || v === ''; }
+  _eid(kind, prefix) {
+    const cfg = ENTITY_IDS[kind];
+    if (!cfg || !prefix) return '';
+    for (const suffix of cfg.suffixes) {
+      const entityId = `${cfg.domain}.${prefix}_${suffix}`;
+      if (this._hass?.states?.[entityId]) return entityId;
+    }
+    return `${cfg.domain}.${prefix}_${cfg.suffixes[0]}`;
+  }
 
   // ── Full structural render ───────────────────────────────────────────────────
 
@@ -431,15 +446,15 @@ class AlbyHubPanel extends HTMLElement {
 
   _tabOverview(p) {
     const t        = (k) => this._t(`overview.${k}`);
-    const isOnline = this._val(E.nodeOnline(p)) === 'on';
-    const lightning  = this._num(E.lightningBalance(p));
-    const onchain    = this._num(E.onChainBalance(p));
-    const price      = this._num(E.bitcoinPrice(p));
-    const currency   = this._attr(E.bitcoinPrice(p), 'unit_of_measurement', '');
-    const relay      = this._val(E.nwcRelay(p));
-    const version    = this._val(E.hubVersion(p));
-    const address    = this._val(E.lightningAddress(p));
-    const blockH     = this._val(E.bitcoinBlockHeight(p));
+    const isOnline = this._val(this._eid('nodeOnline', p)) === 'on';
+    const lightning  = this._num(this._eid('lightningBalance', p));
+    const onchain    = this._num(this._eid('onChainBalance', p));
+    const price      = this._num(this._eid('bitcoinPrice', p));
+    const currency   = this._attr(this._eid('bitcoinPrice', p), 'unit_of_measurement', '');
+    const relay      = this._val(this._eid('nwcRelay', p));
+    const version    = this._val(this._eid('hubVersion', p));
+    const address    = this._val(this._eid('lightningAddress', p));
+    const blockH     = this._val(this._eid('bitcoinBlockHeight', p));
     const dispName   = this._instances.find((i) => i.prefix === p)?.displayName ?? p;
 
     const lnBtc   = (lightning / 1e8).toFixed(8);
@@ -486,14 +501,14 @@ class AlbyHubPanel extends HTMLElement {
   _tabReceive(p) {
     const t       = (k) => this._t(`receive.${k}`);
     // Use pending (user-typed) values when available, fall back to entity state
-    const amount  = this._pendingInvAmount || this._val(E.invoiceAmount(p),    '0');
-    const unit    = this._pendingInvUnit   || this._val(E.invoiceAmountUnit(p), 'SAT');
-    const options = this._attr(E.invoiceAmountUnit(p), 'options', ['SAT', 'BTC']);
+    const amount  = this._pendingInvAmount || this._val(this._eid('invoiceAmount', p), '0');
+    const unit    = this._pendingInvUnit   || this._val(this._eid('invoiceAmountUnit', p), 'SAT');
+    const options = this._attr(this._eid('invoiceAmountUnit', p), 'options', ['SAT', 'BTC']);
     // last_invoice is now a sensor; full BOLT11 is stored in the "bolt11" attribute
-    const invoice   = this._attr(E.lastInvoice(p), 'bolt11', '');
-    const address   = this._val(E.lightningAddress(p), '');
-    const lightning = this._num(E.lightningBalance(p));
-    const onchain   = this._num(E.onChainBalance(p));
+    const invoice   = this._attr(this._eid('lastInvoice', p), 'bolt11', '');
+    const address   = this._val(this._eid('lightningAddress', p), '');
+    const lightning = this._num(this._eid('lightningBalance', p));
+    const onchain   = this._num(this._eid('onChainBalance', p));
 
     const opts = Array.isArray(options)
       ? options
@@ -523,11 +538,11 @@ class AlbyHubPanel extends HTMLElement {
         <div class="field">
           <label>${t('amount')}</label>
           <input type="number" class="inp" id="inv-amount" min="0" value="${this._esc(amount)}"
-            data-entity="${this._esc(E.invoiceAmount(p))}">
+            data-entity="${this._esc(this._eid('invoiceAmount', p))}">
         </div>
         <div class="field">
           <label>${t('unit')}</label>
-          <select class="inp" id="inv-unit" data-entity="${this._esc(E.invoiceAmountUnit(p))}">${opts}</select>
+          <select class="inp" id="inv-unit" data-entity="${this._esc(this._eid('invoiceAmountUnit', p))}">${opts}</select>
         </div>
         <button class="btn" id="create-inv-btn" data-prefix="${this._esc(p)}">${t('btn')}</button>
       </div>
@@ -561,14 +576,14 @@ class AlbyHubPanel extends HTMLElement {
     const t        = (k) => this._t(`send.${k}`);
     // Prefer pending (user-typed) value; fall back to entity state
     const safeInput  = this._pendingPayInput  || ((() => {
-      const raw = this._val(E.invoiceInput(p), '');
+      const raw = this._val(this._eid('invoiceInput', p), '');
       return this._isUnavail(raw) ? '' : raw;
     })());
-    const lightning  = this._num(E.lightningBalance(p));
-    const onchain    = this._num(E.onChainBalance(p));
-    const payAmount  = this._pendingPayAmount || this._val(E.invoiceAmount(p), '0');
-    const payUnit    = this._pendingPayUnit   || this._val(E.invoiceAmountUnit(p), 'SAT');
-    const options    = this._attr(E.invoiceAmountUnit(p), 'options', ['SAT', 'BTC']);
+    const lightning  = this._num(this._eid('lightningBalance', p));
+    const onchain    = this._num(this._eid('onChainBalance', p));
+    const payAmount  = this._pendingPayAmount || this._val(this._eid('invoiceAmount', p), '0');
+    const payUnit    = this._pendingPayUnit   || this._val(this._eid('invoiceAmountUnit', p), 'SAT');
+    const options    = this._attr(this._eid('invoiceAmountUnit', p), 'options', ['SAT', 'BTC']);
     const opts = Array.isArray(options)
       ? options
           .map((o) => `<option value="${this._esc(o)}"${o === payUnit ? ' selected' : ''}>${this._esc(o)}</option>`)
@@ -589,8 +604,8 @@ class AlbyHubPanel extends HTMLElement {
           <label>${t('amountTitle')}</label>
           <div style="display:flex;gap:6px">
             <input type="number" class="inp" id="pay-amount" min="0" value="${this._esc(payAmount)}"
-              data-entity="${this._esc(E.invoiceAmount(p))}" style="flex:1">
-            <select class="inp" id="pay-unit" data-entity="${this._esc(E.invoiceAmountUnit(p))}" style="flex:0 0 90px">${opts}</select>
+              data-entity="${this._esc(this._eid('invoiceAmount', p))}" style="flex:1">
+            <select class="inp" id="pay-unit" data-entity="${this._esc(this._eid('invoiceAmountUnit', p))}" style="flex:0 0 90px">${opts}</select>
           </div>
         </div>
       </div>
@@ -618,10 +633,10 @@ class AlbyHubPanel extends HTMLElement {
 
   _tabBudget(p) {
     const t         = (k) => this._t(`budget.${k}`);
-    const total     = this._num(E.nwcBudgetTotal(p));
-    const used      = this._num(E.nwcBudgetUsed(p));
-    const remaining = this._num(E.nwcBudgetRemaining(p));
-    const renewal   = this._val(E.nwcBudgetRenewal(p));
+    const total     = this._num(this._eid('nwcBudgetTotal', p));
+    const used      = this._num(this._eid('nwcBudgetUsed', p));
+    const remaining = this._num(this._eid('nwcBudgetRemaining', p));
+    const renewal   = this._val(this._eid('nwcBudgetRenewal', p));
 
     let usageBlock;
     if (total > 0) {
@@ -668,12 +683,12 @@ class AlbyHubPanel extends HTMLElement {
 
   _tabNetwork(p) {
     const t        = (k) => this._t(`network.${k}`);
-    const price    = this._val(E.bitcoinPrice(p));
-    const currency = this._attr(E.bitcoinPrice(p), 'unit_of_measurement', '');
-    const blockH   = this._val(E.bitcoinBlockHeight(p));
-    const hashrate = this._val(E.bitcoinHashrate(p));
-    const blocks   = this._num(E.blocksUntilHalving(p));
-    const halvEta  = this._val(E.nextHalvingEstimate(p));
+    const price    = this._val(this._eid('bitcoinPrice', p));
+    const currency = this._attr(this._eid('bitcoinPrice', p), 'unit_of_measurement', '');
+    const blockH   = this._val(this._eid('bitcoinBlockHeight', p));
+    const hashrate = this._val(this._eid('bitcoinHashrate', p));
+    const blocks   = this._num(this._eid('blocksUntilHalving', p));
+    const halvEta  = this._val(this._eid('nextHalvingEstimate', p));
 
     let halvingBlock;
     if (blocks > 0) {
@@ -783,7 +798,7 @@ class AlbyHubPanel extends HTMLElement {
       btn.addEventListener('click', () => {
         if (btn.dataset.prefix) {
           this._hass.callService('button', 'press', {
-            entity_id: E.createInvoice(btn.dataset.prefix),
+            entity_id: this._eid('createInvoice', btn.dataset.prefix),
           });
           // Clear pending receive inputs after create (entity will be updated)
           this._pendingInvAmount = '';
