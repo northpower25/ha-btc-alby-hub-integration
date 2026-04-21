@@ -318,7 +318,10 @@ class AlbyHubPanel extends HTMLElement {
       let displayName = prefix.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
       const fn = state?.attributes?.friendly_name;
       if (fn) {
-        const stripped = fn.replace(/\s+Lightning[-\s]+balance\s*$/i, '').trim();
+        const stripped = fn.replace(
+          /\s+(Lightning[-\s]+balance|Lightning[-\s]+guthaben|Balance[-\s]+Lightning)\s*$/i,
+          ''
+        ).trim();
         if (stripped) displayName = stripped;
       }
 
