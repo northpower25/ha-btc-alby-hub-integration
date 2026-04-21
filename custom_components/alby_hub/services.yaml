@@ -97,3 +97,139 @@ send_payment:
       description: Fiat currency code for amount_fiat (e.g. EUR, USD).
       selector:
         text:
+list_transactions:
+  name: List transactions
+  description: >
+    Retrieve recent Lightning payment history (incoming and outgoing).
+    Returns a list of normalized transaction objects.
+  fields:
+    config_entry_id:
+      required: false
+      description: Optional config entry ID if multiple Alby Hub entries exist.
+      selector:
+        text:
+    limit:
+      required: false
+      description: Maximum number of transactions to return (default 50, max 500).
+      selector:
+        number:
+          min: 1
+          max: 500
+          mode: box
+          step: 1
+schedule_payment:
+  name: Schedule recurring payment
+  description: >
+    Create a recurring Lightning payment that fires automatically on the configured schedule.
+    The recipient must be a BOLT11 invoice (static) or Lightning address.
+    Supports daily, weekly, monthly, and quarterly intervals with configurable
+    start and end dates.
+  fields:
+    config_entry_id:
+      required: false
+      description: Optional config entry ID if multiple Alby Hub entries exist.
+      selector:
+        text:
+    recipient:
+      required: true
+      description: >
+        BOLT11 invoice string or Lightning address (user@domain.com) to pay.
+      selector:
+        text:
+    amount_sat:
+      required: true
+      description: Amount in satoshis to send on each occurrence.
+      selector:
+        number:
+          min: 1
+          mode: box
+          step: 1
+    label:
+      required: false
+      description: Human-readable name for this schedule (e.g. "Taschengeld Lisa").
+      selector:
+        text:
+    memo:
+      required: false
+      description: Optional payment description attached to each payment.
+      selector:
+        text:
+    frequency:
+      required: true
+      description: "How often to repeat: daily, weekly, monthly, or quarterly."
+      selector:
+        select:
+          options:
+            - daily
+            - weekly
+            - monthly
+            - quarterly
+    hour:
+      required: false
+      description: Hour of day to execute (0–23, default 8).
+      selector:
+        number:
+          min: 0
+          max: 23
+          mode: box
+          step: 1
+    minute:
+      required: false
+      description: Minute of hour to execute (0–59, default 0).
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+          step: 1
+    day_of_week:
+      required: false
+      description: Day of week for weekly frequency (0=Monday … 6=Sunday, default 0).
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+          step: 1
+    day_of_month:
+      required: false
+      description: Day of month for monthly/quarterly frequency (1–28, default 1).
+      selector:
+        number:
+          min: 1
+          max: 28
+          mode: box
+          step: 1
+    start_date:
+      required: false
+      description: >
+        First allowed fire date in ISO format YYYY-MM-DD (default: today).
+      selector:
+        text:
+    end_date:
+      required: false
+      description: >
+        Last allowed fire date in ISO format YYYY-MM-DD (optional, leave blank for no end).
+      selector:
+        text:
+list_scheduled_payments:
+  name: List scheduled payments
+  description: >
+    Return all recurring payment schedules configured for this Alby Hub instance.
+  fields:
+    config_entry_id:
+      required: false
+      description: Optional config entry ID if multiple Alby Hub entries exist.
+      selector:
+        text:
+delete_scheduled_payment:
+  name: Delete scheduled payment
+  description: >
+    Cancel and permanently remove a recurring payment schedule by its unique ID.
+    Use list_scheduled_payments to find the schedule ID.
+  fields:
+    schedule_id:
+      required: true
+      description: Unique ID of the schedule to delete (UUID string).
+      selector:
+        text:

@@ -50,8 +50,16 @@ OPTIONAL_NWC_SCOPES: tuple[str, ...] = ("pay_invoice", "get_budget")
 
 SERVICE_CREATE_INVOICE = "create_invoice"
 SERVICE_SEND_PAYMENT = "send_payment"
+SERVICE_LIST_TRANSACTIONS = "list_transactions"
+SERVICE_SCHEDULE_PAYMENT = "schedule_payment"
+SERVICE_LIST_SCHEDULED_PAYMENTS = "list_scheduled_payments"
+SERVICE_DELETE_SCHEDULED_PAYMENT = "delete_scheduled_payment"
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
+
+# Persistent storage key for recurring/scheduled payments
+STORAGE_KEY_SCHEDULED_PAYMENTS = f"alby_hub_scheduled_payments"
+STORAGE_VERSION_SCHEDULED_PAYMENTS = 1
 
 # Text entity keys (invoice workflow)
 TEXT_KEY_INVOICE_INPUT = "invoice_input"

@@ -34,6 +34,7 @@ from .const import (
 from .coordinator import AlbyHubDataUpdateCoordinator
 from .helpers import AlbyHubRuntime
 from .nwc import parse_nwc_connection_uri
+from .recurring_payments import async_setup_scheduler, async_unload_scheduler
 from .services import async_setup_services, async_unload_services
 # Preload all platform modules into sys.modules while still in the executor
 # (package load time).  This guarantees that when HA's _load_platform calls
@@ -43,6 +44,7 @@ from .services import async_setup_services, async_unload_services
 # cached HA core module (e.g. homeassistant.components.text) is triggered
 # from the event loop as a side-effect.
 from . import binary_sensor, button, number, select, sensor, text  # noqa: F401
+from . import recurring_payments  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,7 +58,7 @@ PLATFORMS: list[Platform] = [
 ]
 
 # Frontend panel configuration
-_CARD_VERSION = "2"
+_CARD_VERSION = "3"
 _PANEL_FILENAME = "alby-hub-card.js"
 _PANEL_URL_PATH = "alby-hub-panel"
 _PANEL_ELEMENT_NAME = "alby-hub-panel"
@@ -166,6 +168,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     await async_setup_services(hass)
+    await async_setup_scheduler(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -188,5 +191,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if not hass.data[DOMAIN]:
         await async_unload_services(hass)
+        await async_unload_scheduler(hass)
 
     return unload_ok

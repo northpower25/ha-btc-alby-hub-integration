@@ -16,7 +16,7 @@
  * @license MIT
  */
 
-const ALBY_HUB_VERSION = '1.0.1';
+const ALBY_HUB_VERSION = '1.1.0';
 const PANEL_ELEMENT_NAME = 'alby-hub-panel';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ const PANEL_ELEMENT_NAME = 'alby-hub-panel';
 // ──────────────────────────────────────────────────────────────────────────────
 const TRANSLATIONS = {
   de: {
-    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk' },
+    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk', activity: '📋 Aktivität', scheduled: '🔁 Geplant' },
     noInstance: 'Keine Alby-Hub-Instanz gefunden',
     noInstanceHint: 'Konfiguriere die Alby-Hub-Integration unter <strong>Einstellungen → Geräte & Dienste</strong>.',
     overview: {
@@ -89,10 +89,51 @@ const TRANSLATIONS = {
       halvingDate: 'Geschätztes Datum',
       halvingUnavail: 'Halving-Daten nicht verfügbar.',
     },
+    activity: {
+      title: 'Aktivität',
+      refresh: '↺ Aktualisieren',
+      loading: 'Lade Transaktionen…',
+      noTx: 'Keine Transaktionen gefunden.',
+      filterAll: 'Alle', filterIn: '↙ Eingang', filterOut: '↗ Ausgang',
+      typeIn: '↙ Eingang', typeOut: '↗ Ausgang',
+      amount: 'Betrag', fee: 'Gebühr', desc: 'Beschreibung',
+      date: 'Datum', pending: '⏳ Ausstehend',
+      colType: 'Typ', colAmount: 'Betrag (sat)', colFee: 'Gebühr', colDesc: 'Beschreibung', colDate: 'Datum',
+    },
+    scheduled: {
+      title: 'Geplante Zahlungen',
+      newTitle: 'Neue wiederkehrende Zahlung',
+      listTitle: 'Aktive Aufträge',
+      noSchedules: 'Keine geplanten Zahlungen vorhanden.',
+      recipient: 'Empfänger (Lightning-Adresse oder BOLT11)',
+      recipientPlaceholder: 'user@domain.com oder lnbc…',
+      amount: 'Betrag (Satoshi)',
+      label: 'Bezeichnung (optional)',
+      labelPlaceholder: 'z. B. Taschengeld Lisa',
+      memo: 'Zahlungsnotiz (optional)',
+      frequency: 'Wiederholung',
+      freqDaily: 'Täglich', freqWeekly: 'Wöchentlich', freqMonthly: 'Monatlich', freqQuarterly: 'Quartalsweise',
+      time: 'Uhrzeit',
+      dayOfWeek: 'Wochentag',
+      dow0: 'Montag', dow1: 'Dienstag', dow2: 'Mittwoch', dow3: 'Donnerstag',
+      dow4: 'Freitag', dow5: 'Samstag', dow6: 'Sonntag',
+      dayOfMonth: 'Tag des Monats (1–28)',
+      startDate: 'Startdatum',
+      endDate: 'Enddatum (leer = kein Ende)',
+      createBtn: '+ Auftrag erstellen',
+      deleteBtn: '🗑 Löschen',
+      colLabel: 'Bezeichnung', colRecipient: 'Empfänger', colAmount: 'Betrag', colFreq: 'Intervall', colNext: 'Nächste Ausführung', colLastRun: 'Letzte Ausführung',
+      never: 'Noch nicht ausgeführt',
+      refresh: '↺ Aktualisieren',
+      creating: 'Wird erstellt…',
+      deleting: 'Wird gelöscht…',
+      errAmountMin: 'Betrag muss mindestens 1 sat sein.',
+      errRecipient: 'Bitte Empfänger angeben.',
+    },
     unavailable: 'nicht verfügbar',
   },
   en: {
-    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network' },
+    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network', activity: '📋 Activity', scheduled: '🔁 Scheduled' },
     noInstance: 'No Alby Hub instance found',
     noInstanceHint: 'Configure the Alby Hub integration under <strong>Settings → Devices &amp; Services</strong>.',
     overview: {
@@ -157,6 +198,47 @@ const TRANSLATIONS = {
       halvingDate: 'Estimated date',
       halvingUnavail: 'Halving data not available.',
     },
+    activity: {
+      title: 'Activity',
+      refresh: '↺ Refresh',
+      loading: 'Loading transactions…',
+      noTx: 'No transactions found.',
+      filterAll: 'All', filterIn: '↙ Incoming', filterOut: '↗ Outgoing',
+      typeIn: '↙ Incoming', typeOut: '↗ Outgoing',
+      amount: 'Amount', fee: 'Fee', desc: 'Description',
+      date: 'Date', pending: '⏳ Pending',
+      colType: 'Type', colAmount: 'Amount (sat)', colFee: 'Fee', colDesc: 'Description', colDate: 'Date',
+    },
+    scheduled: {
+      title: 'Scheduled Payments',
+      newTitle: 'New Recurring Payment',
+      listTitle: 'Active Schedules',
+      noSchedules: 'No scheduled payments configured.',
+      recipient: 'Recipient (Lightning address or BOLT11)',
+      recipientPlaceholder: 'user@domain.com or lnbc…',
+      amount: 'Amount (satoshi)',
+      label: 'Label (optional)',
+      labelPlaceholder: 'e.g. Pocket money Lisa',
+      memo: 'Payment memo (optional)',
+      frequency: 'Repeat',
+      freqDaily: 'Daily', freqWeekly: 'Weekly', freqMonthly: 'Monthly', freqQuarterly: 'Quarterly',
+      time: 'Time',
+      dayOfWeek: 'Day of week',
+      dow0: 'Monday', dow1: 'Tuesday', dow2: 'Wednesday', dow3: 'Thursday',
+      dow4: 'Friday', dow5: 'Saturday', dow6: 'Sunday',
+      dayOfMonth: 'Day of month (1–28)',
+      startDate: 'Start date',
+      endDate: 'End date (empty = no end)',
+      createBtn: '+ Create schedule',
+      deleteBtn: '🗑 Delete',
+      colLabel: 'Label', colRecipient: 'Recipient', colAmount: 'Amount', colFreq: 'Frequency', colNext: 'Next run', colLastRun: 'Last run',
+      never: 'Never run',
+      refresh: '↺ Refresh',
+      creating: 'Creating…',
+      deleting: 'Deleting…',
+      errAmountMin: 'Amount must be at least 1 sat.',
+      errRecipient: 'Please specify a recipient.',
+    },
     unavailable: 'unavailable',
   },
 };
@@ -218,6 +300,20 @@ class AlbyHubPanel extends HTMLElement {
     this._pendingPayInput  = '';   // send: payment string typed by user
     this._pendingPayAmount = '';   // send: amount typed by user
     this._pendingPayUnit   = '';   // send: unit selected by user
+    // Activity tab state
+    this._txFilter = 'all';        // 'all' | 'incoming' | 'outgoing'
+    this._transactions = null;     // null = not loaded, [] = loaded
+    this._txLoading = false;
+    // Scheduled payments tab state
+    this._schedules = null;        // null = not loaded
+    this._schedLoading = false;
+    // Scheduled form state
+    this._schedForm = {
+      recipient: '', amount: '', label: '', memo: '',
+      frequency: 'monthly', hour: '8', minute: '0',
+      day_of_week: '0', day_of_month: '1',
+      start_date: '', end_date: '',
+    };
   }
 
   connectedCallback() {
@@ -252,11 +348,13 @@ class AlbyHubPanel extends HTMLElement {
   _tabs() {
     const t = this._t.bind(this);
     return [
-      { id: 'overview', label: t('tabs.overview') },
-      { id: 'receive',  label: t('tabs.receive')  },
-      { id: 'send',     label: t('tabs.send')     },
-      { id: 'budget',   label: t('tabs.budget')   },
-      { id: 'network',  label: t('tabs.network')  },
+      { id: 'overview',   label: t('tabs.overview')   },
+      { id: 'receive',    label: t('tabs.receive')    },
+      { id: 'send',       label: t('tabs.send')       },
+      { id: 'budget',     label: t('tabs.budget')     },
+      { id: 'network',    label: t('tabs.network')    },
+      { id: 'activity',   label: t('tabs.activity')   },
+      { id: 'scheduled',  label: t('tabs.scheduled')  },
     ];
   }
 
@@ -436,12 +534,14 @@ class AlbyHubPanel extends HTMLElement {
 
   _renderTab(id, p) {
     switch (id) {
-      case 'overview': return this._tabOverview(p);
-      case 'receive':  return this._tabReceive(p);
-      case 'send':     return this._tabSend(p);
-      case 'budget':   return this._tabBudget(p);
-      case 'network':  return this._tabNetwork(p);
-      default:         return '';
+      case 'overview':   return this._tabOverview(p);
+      case 'receive':    return this._tabReceive(p);
+      case 'send':       return this._tabSend(p);
+      case 'budget':     return this._tabBudget(p);
+      case 'network':    return this._tabNetwork(p);
+      case 'activity':   return this._tabActivity(p);
+      case 'scheduled':  return this._tabScheduled(p);
+      default:           return '';
     }
   }
 
@@ -721,6 +821,195 @@ class AlbyHubPanel extends HTMLElement {
     </div>`;
   }
 
+  // ── Tab: Activity ─────────────────────────────────────────────────────────────
+
+  _tabActivity(p) {
+    const t = (k) => this._t(`activity.${k}`);
+
+    // Load transactions on first render of this tab
+    if (this._transactions === null && !this._txLoading) {
+      this._loadTransactions(p);
+      return `<div class="cards-grid"><div class="card"><p class="muted">${t('loading')}</p></div></div>`;
+    }
+
+    const txs = (this._transactions || []).filter((tx) => {
+      if (this._txFilter === 'incoming') return tx.type === 'incoming';
+      if (this._txFilter === 'outgoing') return tx.type === 'outgoing';
+      return true;
+    });
+
+    const filterBar = `<div class="filter-bar">
+      <button class="filter-btn${this._txFilter === 'all'      ? ' active' : ''}" data-filter="all">${t('filterAll')}</button>
+      <button class="filter-btn${this._txFilter === 'incoming' ? ' active' : ''}" data-filter="incoming">${t('filterIn')}</button>
+      <button class="filter-btn${this._txFilter === 'outgoing' ? ' active' : ''}" data-filter="outgoing">${t('filterOut')}</button>
+      <button class="filter-btn refresh-btn" data-action="refresh-tx" style="margin-left:auto">${t('refresh')}</button>
+    </div>`;
+
+    const rows = txs.length === 0
+      ? `<tr><td colspan="5" class="muted" style="text-align:center;padding:16px">${t('noTx')}</td></tr>`
+      : txs.map((tx) => {
+          const sign   = tx.type === 'incoming' ? '+' : '−';
+          const color  = tx.type === 'incoming' ? '#4caf50' : '#f44336';
+          const typeLabel = tx.type === 'incoming' ? t('typeIn') : t('typeOut');
+          const dateStr = tx.settled_at
+            ? new Date(tx.settled_at * 1000).toLocaleString()
+            : (tx.settled ? '' : t('pending'));
+          return `<tr>
+            <td>${typeLabel}</td>
+            <td style="text-align:right;color:${color};font-weight:600">${sign}${tx.amount_sat.toLocaleString()}</td>
+            <td style="text-align:right;color:var(--secondary-text-color,#aaa)">${tx.fees_sat > 0 ? tx.fees_sat.toLocaleString() : '—'}</td>
+            <td class="small">${this._esc(tx.description || '—')}</td>
+            <td class="small muted">${this._esc(dateStr)}</td>
+          </tr>`;
+        }).join('');
+
+    return `<div class="cards-grid" style="grid-template-columns:1fr">
+      <div class="card">
+        <div class="card-title">${t('title')}</div>
+        ${filterBar}
+        <div class="tx-scroll">
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th>${t('colType')}</th>
+                <th style="text-align:right">${t('colAmount')}</th>
+                <th style="text-align:right">${t('colFee')}</th>
+                <th>${t('colDesc')}</th>
+                <th>${t('colDate')}</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Tab: Scheduled Payments ────────────────────────────────────────────────
+
+  _tabScheduled(p) {
+    const t  = (k) => this._t(`scheduled.${k}`);
+    const f  = this._schedForm;
+    const DAYS = [t('dow0'), t('dow1'), t('dow2'), t('dow3'), t('dow4'), t('dow5'), t('dow6')];
+
+    // Load schedules on first render
+    if (this._schedules === null && !this._schedLoading) {
+      this._loadSchedules(p);
+      return `<div class="cards-grid"><div class="card"><p class="muted">${this._t('activity.loading')}</p></div></div>`;
+    }
+
+    // ── Create form ──────────────────────────────────────────────────────────
+    const showDayOfWeek  = f.frequency === 'weekly';
+    const showDayOfMonth = f.frequency === 'monthly' || f.frequency === 'quarterly';
+
+    const createForm = `<div class="card">
+      <div class="card-title">${t('newTitle')}</div>
+
+      <div class="field">
+        <label>${t('label')}</label>
+        <input type="text" class="inp" id="sched-label" placeholder="${t('labelPlaceholder')}" value="${this._esc(f.label)}">
+      </div>
+      <div class="field">
+        <label>${t('recipient')}</label>
+        <input type="text" class="inp" id="sched-recipient" placeholder="${t('recipientPlaceholder')}" value="${this._esc(f.recipient)}">
+      </div>
+      <div class="field">
+        <label>${t('amount')}</label>
+        <input type="number" class="inp" id="sched-amount" min="1" step="1" value="${this._esc(f.amount)}">
+      </div>
+      <div class="field">
+        <label>${t('memo')}</label>
+        <input type="text" class="inp" id="sched-memo" value="${this._esc(f.memo)}">
+      </div>
+      <div class="field">
+        <label>${t('frequency')}</label>
+        <select class="inp" id="sched-freq">
+          <option value="daily"     ${f.frequency === 'daily'     ? 'selected' : ''}>${t('freqDaily')}</option>
+          <option value="weekly"    ${f.frequency === 'weekly'    ? 'selected' : ''}>${t('freqWeekly')}</option>
+          <option value="monthly"   ${f.frequency === 'monthly'   ? 'selected' : ''}>${t('freqMonthly')}</option>
+          <option value="quarterly" ${f.frequency === 'quarterly' ? 'selected' : ''}>${t('freqQuarterly')}</option>
+        </select>
+      </div>
+      <div class="field" style="display:flex;gap:8px">
+        <div style="flex:1">
+          <label>${t('time')}</label>
+          <div style="display:flex;gap:4px">
+            <input type="number" class="inp" id="sched-hour"   min="0" max="23" value="${this._esc(f.hour)}"   style="width:60px">
+            <span style="align-self:center">:</span>
+            <input type="number" class="inp" id="sched-minute" min="0" max="59" value="${this._esc(f.minute)}" style="width:60px">
+          </div>
+        </div>
+        ${showDayOfWeek ? `<div style="flex:1">
+          <label>${t('dayOfWeek')}</label>
+          <select class="inp" id="sched-dow">
+            ${DAYS.map((d, i) => `<option value="${i}" ${f.day_of_week === String(i) ? 'selected' : ''}>${d}</option>`).join('')}
+          </select>
+        </div>` : ''}
+        ${showDayOfMonth ? `<div style="flex:1">
+          <label>${t('dayOfMonth')}</label>
+          <input type="number" class="inp" id="sched-dom" min="1" max="28" value="${this._esc(f.day_of_month)}">
+        </div>` : ''}
+      </div>
+      <div class="field" style="display:flex;gap:8px">
+        <div style="flex:1">
+          <label>${t('startDate')}</label>
+          <input type="date" class="inp" id="sched-start" value="${this._esc(f.start_date)}">
+        </div>
+        <div style="flex:1">
+          <label>${t('endDate')}</label>
+          <input type="date" class="inp" id="sched-end" value="${this._esc(f.end_date)}">
+        </div>
+      </div>
+      <button class="btn" id="sched-create-btn" data-prefix="${this._esc(p)}">${t('createBtn')}</button>
+    </div>`;
+
+    // ── Schedule list ────────────────────────────────────────────────────────
+    const schedules = this._schedules || [];
+    const schedRows = schedules.length === 0
+      ? `<tr><td colspan="6" class="muted" style="text-align:center;padding:16px">${t('noSchedules')}</td></tr>`
+      : schedules.map((s) => {
+          const lastRun = s.last_run
+            ? new Date(s.last_run).toLocaleString()
+            : t('never');
+          const freqLabel = ({daily: t('freqDaily'), weekly: t('freqWeekly'), monthly: t('freqMonthly'), quarterly: t('freqQuarterly')})[s.frequency] || s.frequency;
+          return `<tr>
+            <td>${this._esc(s.label || '—')}</td>
+            <td class="small">${this._esc(s.recipient.length > 30 ? s.recipient.slice(0, 28) + '…' : s.recipient)}</td>
+            <td style="text-align:right">${s.amount_sat.toLocaleString()}</td>
+            <td>${freqLabel}</td>
+            <td class="small muted">${this._esc(lastRun)}</td>
+            <td><button class="sched-del-btn small-btn" data-id="${this._esc(s.id)}">${t('deleteBtn')}</button></td>
+          </tr>`;
+        }).join('');
+
+    const listCard = `<div class="card">
+      <div class="card-title" style="display:flex;align-items:center;gap:8px">
+        ${t('listTitle')}
+        <button class="filter-btn" style="margin-left:auto" data-action="refresh-sched">${t('refresh')}</button>
+      </div>
+      <div class="tx-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>${t('colLabel')}</th>
+              <th>${t('colRecipient')}</th>
+              <th style="text-align:right">${t('colAmount')}</th>
+              <th>${t('colFreq')}</th>
+              <th>${t('colLastRun')}</th>
+              <th aria-label="${this._t('scheduled.deleteBtn')}"></th>
+            </tr>
+          </thead>
+          <tbody>${schedRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+    return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(400px,1fr))">
+      ${createForm}
+      ${listCard}
+    </div>`;
+  }
+
   // ── Row helper ───────────────────────────────────────────────────────────────
 
   _row(icon, name, value, rawHtml = false, small = false) {
@@ -730,6 +1019,53 @@ class AlbyHubPanel extends HTMLElement {
       <span class="row-name">${this._esc(name)}</span>
       <span class="row-val${small ? ' small' : ''}">${valHtml}</span>
     </div>`;
+  }
+
+  // ── Data loaders for async tabs ──────────────────────────────────────────────
+
+  _loadTransactions(p) {
+    if (this._txLoading) return;
+    this._txLoading = true;
+    const serviceData = {};
+    const entry = this._resolveEntryId(p);
+    if (entry) serviceData.config_entry_id = entry;
+    this._hass.callService('alby_hub', 'list_transactions', serviceData)
+      .then((resp) => {
+        this._transactions = (resp && resp.transactions) ? resp.transactions : [];
+        this._txLoading = false;
+        this._updateContent();
+      })
+      .catch(() => {
+        this._transactions = [];
+        this._txLoading = false;
+        this._updateContent();
+      });
+  }
+
+  _loadSchedules(p) {
+    if (this._schedLoading) return;
+    this._schedLoading = true;
+    const serviceData = {};
+    const entry = this._resolveEntryId(p);
+    if (entry) serviceData.config_entry_id = entry;
+    this._hass.callService('alby_hub', 'list_scheduled_payments', serviceData)
+      .then((resp) => {
+        this._schedules = (resp && resp.schedules) ? resp.schedules : [];
+        this._schedLoading = false;
+        this._updateContent();
+      })
+      .catch(() => {
+        this._schedules = [];
+        this._schedLoading = false;
+        this._updateContent();
+      });
+  }
+
+  /** Resolve a config entry ID from a known entity prefix (best-effort). */
+  _resolveEntryId(_prefix) {
+    // The panel doesn't have direct access to config entry IDs from hass.states;
+    // pass undefined and let the backend pick the first available runtime.
+    return undefined;
   }
 
   // ── Menu button ──────────────────────────────────────────────────────────────
@@ -758,7 +1094,17 @@ class AlbyHubPanel extends HTMLElement {
     // Navigation tab clicks
     root.querySelectorAll('.tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
+        const prevTab = this._activeTab;
         this._activeTab = btn.dataset.tab;
+        // Reset loaded data when navigating to async tabs so fresh data is loaded
+        if (this._activeTab === 'activity' && prevTab !== 'activity') {
+          this._transactions = null;
+          this._txLoading = false;
+        }
+        if (this._activeTab === 'scheduled' && prevTab !== 'scheduled') {
+          this._schedules = null;
+          this._schedLoading = false;
+        }
         this._render();
       });
     });
@@ -800,12 +1146,43 @@ class AlbyHubPanel extends HTMLElement {
     root.querySelectorAll('#create-inv-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.dataset.prefix) {
-          this._hass.callService('button', 'press', {
-            entity_id: this._eid('createInvoice', btn.dataset.prefix),
+          const amountEl = root.querySelector('#inv-amount');
+          const unitEl = root.querySelector('#inv-unit');
+          const amountRaw = (this._pendingInvAmount || amountEl?.value || '').trim();
+          const unit = (this._pendingInvUnit || unitEl?.value || 'SAT').toUpperCase();
+          const amountNum = parseFloat(amountRaw);
+          if (!Number.isFinite(amountNum) || amountNum <= 0) {
+            console.warn('Alby Hub panel: invalid invoice amount', amountRaw);
+            return;
+          }
+
+          const serviceData = {};
+          if (unit === 'SAT') {
+            serviceData.amount_sat = Math.max(1, Math.floor(amountNum));
+          } else if (unit === 'BTC') {
+            serviceData.amount_btc = amountNum;
+          } else {
+            serviceData.amount_fiat = amountNum;
+            serviceData.fiat_currency = unit;
+          }
+
+          this._hass.callService('alby_hub', 'create_invoice', serviceData).then(() => {
+            // Clear pending receive inputs after create (entity will be updated)
+            this._pendingInvAmount = '';
+            this._pendingInvUnit = '';
+            this._hass.callService('homeassistant', 'update_entity', {
+              entity_id: [
+                this._eid('lastInvoice', btn.dataset.prefix),
+                this._eid('lightningBalance', btn.dataset.prefix),
+              ],
+            }).catch((err) => {
+              console.warn('Alby Hub panel: failed to refresh entities after invoice creation', err);
+            });
+            this._lastUpdate = 0;
+            this._updateContent();
+          }).catch((err) => {
+            console.warn('Alby Hub panel: invoice creation failed', err);
           });
-          // Clear pending receive inputs after create (entity will be updated)
-          this._pendingInvAmount = '';
-          this._pendingInvUnit   = '';
         }
       });
     });
@@ -876,6 +1253,117 @@ class AlbyHubPanel extends HTMLElement {
         }).catch(() => {});
       });
     });
+
+    // ── Activity tab listeners ────────────────────────────────────────────────
+
+    root.querySelectorAll('.filter-btn[data-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._txFilter = btn.dataset.filter;
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('[data-action="refresh-tx"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._transactions = null;
+        this._txLoading = false;
+        this._updateContent();
+      });
+    });
+
+    // ── Scheduled payments tab listeners ─────────────────────────────────────
+
+    root.querySelectorAll('[data-action="refresh-sched"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._schedules = null;
+        this._schedLoading = false;
+        this._updateContent();
+      });
+    });
+
+    // Live-update the form state when fields change (to show/hide day-of-week/month)
+    const bindSchedField = (id, key) => {
+      const el = root.querySelector(`#${id}`);
+      if (el) {
+        el.addEventListener('change', () => { this._schedForm[key] = el.value; this._updateContent(); });
+        el.addEventListener('input',  () => { this._schedForm[key] = el.value; });
+      }
+    };
+    bindSchedField('sched-label',     'label');
+    bindSchedField('sched-recipient', 'recipient');
+    bindSchedField('sched-amount',    'amount');
+    bindSchedField('sched-memo',      'memo');
+    bindSchedField('sched-freq',      'frequency');
+    bindSchedField('sched-hour',      'hour');
+    bindSchedField('sched-minute',    'minute');
+    bindSchedField('sched-dow',       'day_of_week');
+    bindSchedField('sched-dom',       'day_of_month');
+    bindSchedField('sched-start',     'start_date');
+    bindSchedField('sched-end',       'end_date');
+
+    // Create schedule button
+    root.querySelectorAll('#sched-create-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const f = this._schedForm;
+        const t = (k) => this._t(`scheduled.${k}`);
+        const amtNum = parseInt(f.amount, 10);
+        if (!f.recipient.trim()) { alert(t('errRecipient')); return; }
+        if (!Number.isFinite(amtNum) || amtNum < 1) { alert(t('errAmountMin')); return; }
+
+        const serviceData = {
+          recipient:    f.recipient.trim(),
+          amount_sat:   amtNum,
+          label:        f.label.trim(),
+          memo:         f.memo.trim(),
+          frequency:    f.frequency,
+          hour:         parseInt(f.hour, 10),
+          minute:       parseInt(f.minute, 10),
+          day_of_week:  parseInt(f.day_of_week, 10),
+          day_of_month: parseInt(f.day_of_month, 10),
+        };
+        if (f.start_date) serviceData.start_date = f.start_date;
+        if (f.end_date)   serviceData.end_date   = f.end_date;
+
+        btn.disabled = true;
+        this._hass.callService('alby_hub', 'schedule_payment', serviceData)
+          .then(() => {
+            // Reset form and reload list
+            this._schedForm = {
+              recipient: '', amount: '', label: '', memo: '',
+              frequency: 'monthly', hour: '8', minute: '0',
+              day_of_week: '0', day_of_month: '1',
+              start_date: '', end_date: '',
+            };
+            this._schedules = null;
+            this._schedLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => {
+            console.warn('Alby Hub panel: schedule_payment failed', err);
+          })
+          .finally(() => { btn.disabled = false; });
+      });
+    });
+
+    // Delete schedule buttons
+    root.querySelectorAll('.sched-del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const schedId = btn.dataset.id;
+        if (!schedId) return;
+        btn.disabled = true;
+        this._hass.callService('alby_hub', 'delete_scheduled_payment', { schedule_id: schedId })
+          .then(() => {
+            this._schedules = null;
+            this._schedLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => {
+            console.warn('Alby Hub panel: delete_scheduled_payment failed', err);
+            btn.disabled = false;
+          });
+      });
+    });
+
   }
 
   // ── CSS ──────────────────────────────────────────────────────────────────────
@@ -1103,6 +1591,49 @@ class AlbyHubPanel extends HTMLElement {
       .prog-bar    { height: 8px; background: var(--secondary-background-color, #111); border-radius: 4px; overflow: hidden; margin: 6px 0; }
       .prog-fill   { height: 100%; background: var(--primary-color, #f7931a); border-radius: 4px; }
 
+      /* ── Transaction / schedule table ── */
+      .tx-scroll  { overflow-x: auto; }
+      .tx-table   { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+      .tx-table th, .tx-table td {
+        padding: 6px 8px;
+        text-align: left;
+        border-bottom: 1px solid var(--divider-color, #2a2a2a);
+        white-space: nowrap;
+      }
+      .tx-table thead th { color: var(--secondary-text-color, #aaa); font-weight: 500; }
+
+      /* ── Filter bar ── */
+      .filter-bar  { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+      .filter-btn  {
+        padding: 4px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--divider-color, #555);
+        background: transparent;
+        color: var(--secondary-text-color, #aaa);
+        cursor: pointer;
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
+      .filter-btn.active {
+        background: var(--primary-color, #f7931a);
+        color: #000;
+        border-color: var(--primary-color, #f7931a);
+        font-weight: 600;
+      }
+      .filter-btn:hover { opacity: .8; }
+
+      /* ── Small delete button ── */
+      .small-btn {
+        padding: 3px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--error-color, #f44336);
+        background: transparent;
+        color: var(--error-color, #f44336);
+        cursor: pointer;
+        font-size: 0.78rem;
+      }
+      .small-btn:hover { background: rgba(244,67,54,.12); }
+
       /* ── Typography ── */
       .muted { color: var(--secondary-text-color, #aaa); font-size: 0.85rem; }
       .small { font-size: 0.78rem; }
@@ -1132,15 +1663,19 @@ class AlbyHubPanel extends HTMLElement {
 // Register
 // ──────────────────────────────────────────────────────────────────────────────
 
-customElements.define(PANEL_ELEMENT_NAME, AlbyHubPanel);
+if (!customElements.get(PANEL_ELEMENT_NAME)) {
+  customElements.define(PANEL_ELEMENT_NAME, AlbyHubPanel);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: PANEL_ELEMENT_NAME,
-  name: 'Alby Hub Panel',
-  description: 'Alby Hub Bitcoin Lightning Integration – locked-down integration dashboard',
-  preview: false,
-});
+if (!window.customCards.some((card) => card.type === PANEL_ELEMENT_NAME)) {
+  window.customCards.push({
+    type: PANEL_ELEMENT_NAME,
+    name: 'Alby Hub Panel',
+    description: 'Alby Hub Bitcoin Lightning Integration – locked-down integration dashboard',
+    preview: false,
+  });
+}
 
 console.info(
   `%c ALBY HUB PANEL %c v${ALBY_HUB_VERSION} `,

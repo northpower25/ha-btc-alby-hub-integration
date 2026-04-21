@@ -73,13 +73,17 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._manual_lightning_address = manual_lightning_address
 
     async def _async_update_data(self) -> dict[str, Any]:
+        lightning_address = _first_valid_lightning_address(
+            self._nwc_info.lud16,
+            self._manual_lightning_address,
+        )
         data: dict[str, Any] = {
             "mode": self._mode,
             "entry_name": self._entry_name,
             "wallet_pubkey": self._nwc_info.wallet_pubkey,
             "relay": self._nwc_info.relay,
             # Prefer NWC-URI lud16; fall back to the manually configured address
-            "lightning_address": self._nwc_info.lud16 or self._manual_lightning_address,
+            "lightning_address": lightning_address,
             "connected": self._mode != MODE_EXPERT,
             "balance_lightning": None,
             "balance_onchain": None,
@@ -95,6 +99,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "nwc_budget_used": None,
             "nwc_budget_remaining": None,
             "nwc_budget_renewal": None,
+            "transactions": [],
         }
 
         if self._mode == MODE_EXPERT and self._api_client is not None:
@@ -116,6 +121,13 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             onchain = balance.get("onchain") if isinstance(balance, dict) else None
             data["balance_lightning"] = _read_sat_value(lightning)
             data["balance_onchain"] = _read_sat_value(onchain)
+
+            # Fetch recent transactions in expert mode
+            try:
+                txs = await self._api_client.list_transactions(limit=50)
+                data["transactions"] = _normalize_transactions(txs)
+            except AlbyHubApiError as err:
+                _LOGGER.debug("Failed to fetch transactions (expert mode): %s", err)
         else:
             # Cloud / NWC-only mode: fetch balance and info via NWC protocol
             await self._fetch_nwc_data(data)
@@ -136,15 +148,17 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Updates *data* in-place.  All failures are silently logged at DEBUG
         level so that other sensors are not affected.
         """
+        request_succeeded = False
+
         # get_balance → balance_lightning (NWC returns balance in millisatoshis)
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_balance")
             if result is not None and result.get("error") is None:
+                request_succeeded = True
                 bal_result = result.get("result") or {}
-                bal_msat = bal_result.get("balance")
-                if isinstance(bal_msat, (int, float)):
-                    data["balance_lightning"] = int(bal_msat) // _MSATS_PER_SAT
-                    data["connected"] = True
+                bal_sat = _extract_nwc_balance_sat(bal_result)
+                if bal_sat is not None:
+                    data["balance_lightning"] = bal_sat
         except Exception as err:
             _LOGGER.debug("NWC get_balance failed: %s", err)
 
@@ -152,14 +166,15 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_info")
             if result is not None and result.get("error") is None:
+                request_succeeded = True
                 info_result = result.get("result") or {}
                 version = info_result.get("version")
                 if version:
                     data["version"] = str(version)
-                if data.get("lightning_address") is None:
+                if _is_missing_lightning_address(data.get("lightning_address")):
                     lud16 = info_result.get("lud16") or info_result.get("lightning_address")
-                    if lud16:
-                        data["lightning_address"] = str(lud16)
+                    if not _is_missing_lightning_address(lud16):
+                        data["lightning_address"] = str(lud16).strip()
                     elif self._manual_lightning_address:
                         data["lightning_address"] = self._manual_lightning_address
         except Exception as err:
@@ -169,6 +184,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_budget")
             if result is not None and result.get("error") is None:
+                request_succeeded = True
                 budget_result = result.get("result") or {}
                 total_msat = budget_result.get("total_budget")
                 used_msat = budget_result.get("used_budget")
@@ -187,6 +203,22 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.debug("NWC get_budget failed: %s", err)
 
+        # list_transactions → recent payment history
+        try:
+            result = await async_nwc_request(
+                self._session, self._nwc_info, "list_transactions",
+                {"limit": 50, "unpaid": False},
+            )
+            if result is not None and result.get("error") is None:
+                request_succeeded = True
+                tx_result = result.get("result") or {}
+                raw_txs = tx_result.get("transactions") or []
+                data["transactions"] = _normalize_transactions(raw_txs)
+        except Exception as err:
+            _LOGGER.debug("NWC list_transactions failed: %s", err)
+
+        data["connected"] = request_succeeded
+
 
 def _read_sat_value(value: Any) -> int | None:
     """Read satoshi-like values from known Alby API balance shapes."""
@@ -203,6 +235,56 @@ def _read_sat_value(value: Any) -> int | None:
 
 
 async def _fetch_bitcoin_price(
+    session: ClientSession, provider: str, currency: str
+) -> float | None:
+    provider_chain: list[str] = [provider]
+    fallback_providers = (
+        PRICE_PROVIDER_COINGECKO,
+        PRICE_PROVIDER_COINBASE,
+        PRICE_PROVIDER_MEMPOOL,
+        PRICE_PROVIDER_BLOCKCHAIN,
+        PRICE_PROVIDER_BINANCE,
+    )
+    for fallback in fallback_providers:
+        if fallback not in provider_chain:
+            provider_chain.append(fallback)
+
+    for candidate in provider_chain:
+        price = await _fetch_bitcoin_price_from_provider(session, candidate, currency)
+        if price is not None:
+            return price
+    return None
+
+
+async def _fetch_network_stats(
+    session: ClientSession, provider: str, api_base: str | None
+) -> dict[str, int | float | None]:
+    if provider not in (NETWORK_PROVIDER_MEMPOOL, NETWORK_PROVIDER_CUSTOM_NODE):
+        return _empty_network_payload()
+
+    if provider == NETWORK_PROVIDER_CUSTOM_NODE and api_base:
+        custom_base = api_base.rstrip("/")
+        stats = await _fetch_network_stats_from_base(session, custom_base)
+        if stats["bitcoin_block_height"] is not None:
+            return stats
+        _LOGGER.debug(
+            "Custom network provider did not return valid data; falling back to %s",
+            _DEFAULT_MEMPOOL_API,
+        )
+
+    return await _fetch_network_stats_from_base(session, _DEFAULT_MEMPOOL_API)
+
+
+def _empty_network_payload() -> dict[str, None | float]:
+    return {
+        "bitcoin_block_height": None,
+        "bitcoin_hashrate": None,
+        "blocks_until_halving": None,
+        "minutes_per_block": _MINUTES_PER_BLOCK,
+    }
+
+
+async def _fetch_bitcoin_price_from_provider(
     session: ClientSession, provider: str, currency: str
 ) -> float | None:
     try:
@@ -234,8 +316,7 @@ async def _fetch_bitcoin_price(
             return float(amount) if amount is not None else None
 
         if provider == PRICE_PROVIDER_COINDESK:
-            # The CoinDesk v1 API was shut down in January 2024 – always returns None
-            _LOGGER.debug("CoinDesk v1 API is no longer available; choose a different price provider")
+            _LOGGER.debug("CoinDesk v1 API is no longer available; trying fallback provider")
             return None
 
         if provider == PRICE_PROVIDER_MEMPOOL:
@@ -243,14 +324,14 @@ async def _fetch_bitcoin_price(
             amount = data.get(currency) if isinstance(data, dict) else None
             if amount is None:
                 _LOGGER.debug(
-                    "Mempool price API did not return data for currency %s; "
-                    "available keys: %s",
+                    "Mempool price API did not return data for currency %s; available keys: %s",
                     currency,
                     list(data.keys()) if isinstance(data, dict) else data,
                 )
             return float(amount) if amount is not None else None
 
         if provider in (PRICE_PROVIDER_BITCOIN_DE, PRICE_PROVIDER_BITQUERY):
+            _LOGGER.debug("Price provider %s is not implemented; trying fallback provider", provider)
             return None
     except (TypeError, ValueError):
         return None
@@ -258,16 +339,9 @@ async def _fetch_bitcoin_price(
     return None
 
 
-async def _fetch_network_stats(
-    session: ClientSession, provider: str, api_base: str | None
+async def _fetch_network_stats_from_base(
+    session: ClientSession, base_url: str
 ) -> dict[str, int | float | None]:
-    if provider not in (NETWORK_PROVIDER_MEMPOOL, NETWORK_PROVIDER_CUSTOM_NODE):
-        return _empty_network_payload()
-
-    base_url = _DEFAULT_MEMPOOL_API
-    if provider == NETWORK_PROVIDER_CUSTOM_NODE and api_base:
-        base_url = api_base.rstrip("/")
-
     height_data = await _safe_get_json(session, f"{base_url}/api/blocks/tip/height")
     hashrate_data = await _safe_get_json(session, f"{base_url}/api/v1/mining/hashrate/3d")
 
@@ -300,13 +374,37 @@ async def _fetch_network_stats(
     }
 
 
-def _empty_network_payload() -> dict[str, None | float]:
-    return {
-        "bitcoin_block_height": None,
-        "bitcoin_hashrate": None,
-        "blocks_until_halving": None,
-        "minutes_per_block": _MINUTES_PER_BLOCK,
-    }
+def _extract_nwc_balance_sat(balance_result: Any) -> int | None:
+    if not isinstance(balance_result, dict):
+        return None
+
+    msat_keys = ("balance", "balance_msat", "msats", "msat", "total_msat")
+    for key in msat_keys:
+        value = balance_result.get(key)
+        if isinstance(value, (int, float)):
+            return int(value) // _MSATS_PER_SAT
+
+    sat_keys = ("balance_sat", "sat", "sats", "total")
+    for key in sat_keys:
+        value = balance_result.get(key)
+        if isinstance(value, (int, float)):
+            return int(value)
+
+    return None
+
+
+def _is_missing_lightning_address(value: Any) -> bool:
+    if value is None:
+        return True
+    text = str(value).strip()
+    return text == "" or text.lower() in {"unknown", "unavailable", "none", "null", "n/a", "na"}
+
+
+def _first_valid_lightning_address(*values: Any) -> str | None:
+    for value in values:
+        if not _is_missing_lightning_address(value):
+            return str(value).strip()
+    return None
 
 
 async def _safe_get_json(session: ClientSession, url: str) -> Any:
@@ -326,3 +424,66 @@ async def _safe_get_json(session: ClientSession, url: str) -> Any:
 
 def _calculate_next_halving_height(current_height: int) -> int:
     return ((current_height // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS
+
+
+def _normalize_transactions(raw: Any) -> list[dict[str, Any]]:
+    """Normalize a list of transaction dicts from either the local API or NWC.
+
+    Produces a consistent shape:
+        type        : "incoming" | "outgoing"
+        amount_sat  : int
+        fees_sat    : int
+        description : str
+        settled_at  : int | None  (Unix timestamp)
+        created_at  : int | None
+        payment_hash: str
+        settled     : bool
+    """
+    if not isinstance(raw, list):
+        # Some API shapes wrap the list: {"transactions": [...]} or {"data": [...]}
+        if isinstance(raw, dict):
+            raw = raw.get("transactions") or raw.get("data") or raw.get("items") or []
+        else:
+            return []
+
+    result: list[dict[str, Any]] = []
+    for tx in raw:
+        if not isinstance(tx, dict):
+            continue
+        tx_type = str(tx.get("type", "incoming")).lower()
+        # Amount normalisation: prefer msat keys, fall back to sat keys
+        amount_msat = tx.get("amount") or tx.get("amount_msat") or tx.get("value")
+        amount_sat: int
+        if isinstance(amount_msat, (int, float)) and amount_msat > 1000:
+            # Likely millisatoshis
+            amount_sat = int(amount_msat) // _MSATS_PER_SAT
+        elif isinstance(amount_msat, (int, float)):
+            amount_sat = int(amount_msat)
+        else:
+            amount_sat = 0
+
+        fees_msat = tx.get("fees_paid") or tx.get("fee") or tx.get("fees") or 0
+        fees_sat = int(fees_msat) // _MSATS_PER_SAT if isinstance(fees_msat, (int, float)) and fees_msat > 1000 else int(fees_msat or 0)
+
+        description = str(tx.get("description") or tx.get("memo") or tx.get("note") or "")
+
+        settled_at = tx.get("settled_at") or tx.get("paid_at") or tx.get("confirmed_at")
+        created_at = tx.get("created_at") or tx.get("timestamp")
+        payment_hash = str(tx.get("payment_hash") or tx.get("hash") or "")
+
+        settled = settled_at is not None or bool(tx.get("settled") or tx.get("paid"))
+
+        result.append({
+            "type": tx_type,
+            "amount_sat": amount_sat,
+            "fees_sat": fees_sat,
+            "description": description,
+            "settled_at": int(settled_at) if isinstance(settled_at, (int, float)) else None,
+            "created_at": int(created_at) if isinstance(created_at, (int, float)) else None,
+            "payment_hash": payment_hash,
+            "settled": settled,
+        })
+
+    # Sort newest first
+    result.sort(key=lambda x: x.get("settled_at") or x.get("created_at") or 0, reverse=True)
+    return result
