@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import importlib
 import logging
 from dataclasses import replace
 from pathlib import Path
@@ -160,18 +158,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     await async_setup_services(hass)
-
-    # Pre-load platform modules in the executor so they are already in
-    # sys.modules when async_forward_entry_setups runs. Without this,
-    # HA 2026.x detects a blocking importlib.import_module call in the
-    # event loop and logs a warning.
-    await asyncio.gather(*[
-        hass.async_add_executor_job(
-            importlib.import_module,
-            f"custom_components.alby_hub.{platform.value}",
-        )
-        for platform in PLATFORMS
-    ])
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
