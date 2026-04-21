@@ -50,6 +50,10 @@ class AlbyHubApiClient:
         """Send a payment via local API."""
         return await self._json_post("/api/payments", {"payment_request": payment_request})
 
+    async def list_transactions(self, limit: int = 50, offset: int = 0) -> dict:
+        """List recent transactions via local API."""
+        return await self._json_get(f"/api/transactions?limit={limit}&offset={offset}")
+
     async def _json_get(self, path: str) -> dict:
         try:
             async with self.session.get(self._build_url(path), timeout=10) as response:

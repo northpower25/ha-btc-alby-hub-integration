@@ -18,11 +18,16 @@ from .const import (
     MODE_EXPERT,
     SATS_PER_BTC,
     SERVICE_CREATE_INVOICE,
+    SERVICE_DELETE_SCHEDULED_PAYMENT,
+    SERVICE_LIST_SCHEDULED_PAYMENTS,
+    SERVICE_LIST_TRANSACTIONS,
+    SERVICE_SCHEDULE_PAYMENT,
     SERVICE_SEND_PAYMENT,
     TEXT_KEY_INVOICE_INPUT,
 )
 from .helpers import AlbyHubRuntime
 from .nwc_client import async_nwc_request
+from .recurring_payments import VALID_FREQUENCIES, get_scheduler
 
 _LOGGER = logging.getLogger(__name__)
 _MSATS_PER_SAT = 1000
@@ -50,12 +55,47 @@ SERVICE_SEND_PAYMENT_SCHEMA = vol.Schema(
     }
 )
 
+SERVICE_LIST_TRANSACTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+        vol.Optional("limit", default=50): vol.All(vol.Coerce(int), vol.Range(min=1, max=500)),
+    }
+)
+
+SERVICE_SCHEDULE_PAYMENT_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+        vol.Required("recipient"): cv.string,
+        vol.Required("amount_sat"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional("label"): cv.string,
+        vol.Optional("memo"): cv.string,
+        vol.Required("frequency"): vol.In(list(VALID_FREQUENCIES)),
+        vol.Optional("hour", default=8): vol.All(vol.Coerce(int), vol.Range(min=0, max=23)),
+        vol.Optional("minute", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=59)),
+        vol.Optional("day_of_week", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=6)),
+        vol.Optional("day_of_month", default=1): vol.All(vol.Coerce(int), vol.Range(min=1, max=28)),
+        vol.Optional("start_date"): cv.string,
+        vol.Optional("end_date"): cv.string,
+    }
+)
+
+SERVICE_LIST_SCHEDULED_PAYMENTS_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    }
+)
+
+SERVICE_DELETE_SCHEDULED_PAYMENT_SCHEMA = vol.Schema(
+    {
+        vol.Required("schedule_id"): cv.string,
+    }
+)
+
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register integration services once."""
     if hass.services.has_service(DOMAIN, SERVICE_CREATE_INVOICE):
         return
-
     async def handle_create_invoice(call: ServiceCall) -> ServiceResponse:
         runtime = _resolve_runtime(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
 
@@ -165,11 +205,111 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    async def handle_list_transactions(call: ServiceCall) -> ServiceResponse:
+        runtime = _resolve_runtime(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
+        limit = call.data.get("limit", 50)
+        mode = runtime.coordinator.data.get("mode")
+        raw_txs: list = []
+
+        if mode == MODE_EXPERT and runtime.api_client is not None:
+            try:
+                result = await runtime.api_client.list_transactions(limit=limit)
+                raw_txs = result if isinstance(result, list) else (
+                    result.get("transactions") or result.get("data") or []
+                )
+            except AlbyHubApiError as err:
+                raise HomeAssistantError(f"Failed to list transactions: {err}") from err
+        else:
+            result = await async_nwc_request(
+                runtime.session,
+                runtime.nwc_info,
+                "list_transactions",
+                {"limit": limit, "unpaid": False},
+            )
+            if result and result.get("error") is None:
+                tx_result = result.get("result") or {}
+                raw_txs = tx_result.get("transactions") or []
+            else:
+                raise HomeAssistantError(
+                    f"NWC list_transactions failed: {result.get('error') if result else 'no response'}"
+                )
+
+        from .coordinator import _normalize_transactions  # noqa: PLC0415
+        normalized = _normalize_transactions(raw_txs)
+        return {"transactions": normalized, "count": len(normalized)}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_LIST_TRANSACTIONS,
+        handle_list_transactions,
+        schema=SERVICE_LIST_TRANSACTIONS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def handle_schedule_payment(call: ServiceCall) -> ServiceResponse:
+        scheduler = get_scheduler(hass)
+        if scheduler is None:
+            raise HomeAssistantError("Scheduler not initialised")
+        entry_id = call.data.get(ATTR_CONFIG_ENTRY_ID) or _default_entry_id(hass)
+        try:
+            schedule = await scheduler.async_create(entry_id, dict(call.data))
+        except (ValueError, KeyError) as err:
+            raise ServiceValidationError(str(err)) from err
+        return {"schedule": schedule}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SCHEDULE_PAYMENT,
+        handle_schedule_payment,
+        schema=SERVICE_SCHEDULE_PAYMENT_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_list_scheduled_payments(call: ServiceCall) -> ServiceResponse:
+        scheduler = get_scheduler(hass)
+        if scheduler is None:
+            return {"schedules": [], "count": 0}
+        entry_id = call.data.get(ATTR_CONFIG_ENTRY_ID)
+        schedules = scheduler.list_schedules(entry_id)
+        return {"schedules": schedules, "count": len(schedules)}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_LIST_SCHEDULED_PAYMENTS,
+        handle_list_scheduled_payments,
+        schema=SERVICE_LIST_SCHEDULED_PAYMENTS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def handle_delete_scheduled_payment(call: ServiceCall) -> None:
+        scheduler = get_scheduler(hass)
+        if scheduler is None:
+            raise HomeAssistantError("Scheduler not initialised")
+        deleted = await scheduler.async_delete(call.data["schedule_id"])
+        if not deleted:
+            raise ServiceValidationError(
+                f"Schedule '{call.data['schedule_id']}' not found"
+            )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DELETE_SCHEDULED_PAYMENT,
+        handle_delete_scheduled_payment,
+        schema=SERVICE_DELETE_SCHEDULED_PAYMENT_SCHEMA,
+    )
+
 
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unload integration services when no entries remain."""
-    hass.services.async_remove(DOMAIN, SERVICE_CREATE_INVOICE)
-    hass.services.async_remove(DOMAIN, SERVICE_SEND_PAYMENT)
+    for svc in (
+        SERVICE_CREATE_INVOICE,
+        SERVICE_SEND_PAYMENT,
+        SERVICE_LIST_TRANSACTIONS,
+        SERVICE_SCHEDULE_PAYMENT,
+        SERVICE_LIST_SCHEDULED_PAYMENTS,
+        SERVICE_DELETE_SCHEDULED_PAYMENT,
+    ):
+        hass.services.async_remove(DOMAIN, svc)
 
 
 def _resolve_runtime(hass: HomeAssistant, entry_id: str | None) -> AlbyHubRuntime:
@@ -219,3 +359,8 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
     raise ServiceValidationError(
         "One of amount_sat, amount_btc, or amount_fiat must be provided."
     )
+
+
+def _default_entry_id(hass: HomeAssistant) -> str | None:
+    runtimes: dict = hass.data.get(DOMAIN, {})
+    return next(iter(runtimes), None)

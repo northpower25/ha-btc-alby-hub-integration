@@ -99,6 +99,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "nwc_budget_used": None,
             "nwc_budget_remaining": None,
             "nwc_budget_renewal": None,
+            "transactions": [],
         }
 
         if self._mode == MODE_EXPERT and self._api_client is not None:
@@ -120,6 +121,13 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             onchain = balance.get("onchain") if isinstance(balance, dict) else None
             data["balance_lightning"] = _read_sat_value(lightning)
             data["balance_onchain"] = _read_sat_value(onchain)
+
+            # Fetch recent transactions in expert mode
+            try:
+                txs = await self._api_client.list_transactions(limit=50)
+                data["transactions"] = _normalize_transactions(txs)
+            except AlbyHubApiError as err:
+                _LOGGER.debug("Failed to fetch transactions (expert mode): %s", err)
         else:
             # Cloud / NWC-only mode: fetch balance and info via NWC protocol
             await self._fetch_nwc_data(data)
@@ -194,6 +202,20 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     data["nwc_budget_renewal"] = renewal
         except Exception as err:
             _LOGGER.debug("NWC get_budget failed: %s", err)
+
+        # list_transactions → recent payment history
+        try:
+            result = await async_nwc_request(
+                self._session, self._nwc_info, "list_transactions",
+                {"limit": 50, "unpaid": False},
+            )
+            if result is not None and result.get("error") is None:
+                request_succeeded = True
+                tx_result = result.get("result") or {}
+                raw_txs = tx_result.get("transactions") or []
+                data["transactions"] = _normalize_transactions(raw_txs)
+        except Exception as err:
+            _LOGGER.debug("NWC list_transactions failed: %s", err)
 
         data["connected"] = request_succeeded
 
@@ -402,3 +424,66 @@ async def _safe_get_json(session: ClientSession, url: str) -> Any:
 
 def _calculate_next_halving_height(current_height: int) -> int:
     return ((current_height // _HALVING_INTERVAL_BLOCKS) + 1) * _HALVING_INTERVAL_BLOCKS
+
+
+def _normalize_transactions(raw: Any) -> list[dict[str, Any]]:
+    """Normalize a list of transaction dicts from either the local API or NWC.
+
+    Produces a consistent shape:
+        type        : "incoming" | "outgoing"
+        amount_sat  : int
+        fees_sat    : int
+        description : str
+        settled_at  : int | None  (Unix timestamp)
+        created_at  : int | None
+        payment_hash: str
+        settled     : bool
+    """
+    if not isinstance(raw, list):
+        # Some API shapes wrap the list: {"transactions": [...]} or {"data": [...]}
+        if isinstance(raw, dict):
+            raw = raw.get("transactions") or raw.get("data") or raw.get("items") or []
+        else:
+            return []
+
+    result: list[dict[str, Any]] = []
+    for tx in raw:
+        if not isinstance(tx, dict):
+            continue
+        tx_type = str(tx.get("type", "incoming")).lower()
+        # Amount normalisation: prefer msat keys, fall back to sat keys
+        amount_msat = tx.get("amount") or tx.get("amount_msat") or tx.get("value")
+        amount_sat: int
+        if isinstance(amount_msat, (int, float)) and amount_msat > 1000:
+            # Likely millisatoshis
+            amount_sat = int(amount_msat) // _MSATS_PER_SAT
+        elif isinstance(amount_msat, (int, float)):
+            amount_sat = int(amount_msat)
+        else:
+            amount_sat = 0
+
+        fees_msat = tx.get("fees_paid") or tx.get("fee") or tx.get("fees") or 0
+        fees_sat = int(fees_msat) // _MSATS_PER_SAT if isinstance(fees_msat, (int, float)) and fees_msat > 1000 else int(fees_msat or 0)
+
+        description = str(tx.get("description") or tx.get("memo") or tx.get("note") or "")
+
+        settled_at = tx.get("settled_at") or tx.get("paid_at") or tx.get("confirmed_at")
+        created_at = tx.get("created_at") or tx.get("timestamp")
+        payment_hash = str(tx.get("payment_hash") or tx.get("hash") or "")
+
+        settled = settled_at is not None or bool(tx.get("settled") or tx.get("paid"))
+
+        result.append({
+            "type": tx_type,
+            "amount_sat": amount_sat,
+            "fees_sat": fees_sat,
+            "description": description,
+            "settled_at": int(settled_at) if isinstance(settled_at, (int, float)) else None,
+            "created_at": int(created_at) if isinstance(created_at, (int, float)) else None,
+            "payment_hash": payment_hash,
+            "settled": settled,
+        })
+
+    # Sort newest first
+    result.sort(key=lambda x: x.get("settled_at") or x.get("created_at") or 0, reverse=True)
+    return result
