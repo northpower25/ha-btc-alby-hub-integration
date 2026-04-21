@@ -15,6 +15,7 @@
         "data": {
           "nwc_uri": "NWC connection string",
           "connection_name": "Connection name",
+          "lightning_address": "Lightning address (e.g. user@getalby.com) – optional manual fallback",
           "price_provider": "Bitcoin price data provider",
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
@@ -30,6 +31,7 @@
           "connection_name": "Connection name",
           "hub_url": "Local hub URL",
           "prefer_local_relay": "Prefer local relay",
+          "lightning_address": "Lightning address (e.g. user@getalby.com) – optional manual fallback",
           "price_provider": "Bitcoin price data provider",
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
@@ -54,6 +56,7 @@
         "data": {
           "nwc_uri": "NWC connection string",
           "connection_name": "Connection name",
+          "lightning_address": "Lightning address (e.g. user@getalby.com) – optional manual fallback",
           "price_provider": "Bitcoin price data provider",
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
@@ -69,6 +72,7 @@
           "connection_name": "Connection name",
           "hub_url": "Local hub URL",
           "prefer_local_relay": "Prefer local relay",
+          "lightning_address": "Lightning address (e.g. user@getalby.com) – optional manual fallback",
           "price_provider": "Bitcoin price data provider",
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",

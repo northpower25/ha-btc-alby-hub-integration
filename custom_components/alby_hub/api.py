@@ -46,9 +46,19 @@ class AlbyHubApiClient:
             payload["expiry"] = expiry_seconds
         return await self._json_post("/api/invoices", payload)
 
-    async def send_payment(self, payment_request: str) -> dict:
+    async def send_payment(
+        self,
+        payment_request: str,
+        amount_sat: int | None = None,
+        memo: str | None = None,
+    ) -> dict:
         """Send a payment via local API."""
-        return await self._json_post("/api/payments", {"payment_request": payment_request})
+        payload: dict[str, int | str] = {"payment_request": payment_request}
+        if amount_sat is not None:
+            payload["amount"] = amount_sat
+        if memo:
+            payload["description"] = memo
+        return await self._json_post("/api/payments", payload)
 
     async def list_transactions(self, limit: int = 50, offset: int = 0) -> dict:
         """List recent transactions via local API."""

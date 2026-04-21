@@ -97,6 +97,11 @@ send_payment:
       description: Fiat currency code for amount_fiat (e.g. EUR, USD).
       selector:
         text:
+    memo:
+      required: false
+      description: Optional payment purpose/description.
+      selector:
+        text:
 list_transactions:
   name: List transactions
   description: >

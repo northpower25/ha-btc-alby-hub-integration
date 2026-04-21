@@ -74,8 +74,8 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         lightning_address = _first_valid_lightning_address(
-            self._nwc_info.lud16,
             self._manual_lightning_address,
+            self._nwc_info.lud16,
         )
         data: dict[str, Any] = {
             "mode": self._mode,
@@ -186,9 +186,21 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if result is not None and result.get("error") is None:
                 request_succeeded = True
                 budget_result = result.get("result") or {}
-                total_msat = budget_result.get("total_budget")
-                used_msat = budget_result.get("used_budget")
-                renewal = budget_result.get("renewal_period")
+                total_msat = (
+                    budget_result.get("total_budget")
+                    or budget_result.get("budget")
+                    or budget_result.get("limit")
+                )
+                used_msat = (
+                    budget_result.get("used_budget")
+                    or budget_result.get("used")
+                    or budget_result.get("spent")
+                )
+                renewal = (
+                    budget_result.get("renewal_period")
+                    or budget_result.get("renewal")
+                    or budget_result.get("period")
+                )
                 if isinstance(used_msat, (int, float)):
                     data["nwc_budget_used"] = int(int(used_msat) // _MSATS_PER_SAT)
                 if isinstance(total_msat, (int, float)):
@@ -207,12 +219,16 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             result = await async_nwc_request(
                 self._session, self._nwc_info, "list_transactions",
-                {"limit": 50, "unpaid": False},
+                {"limit": 50, "unpaid": True},
             )
             if result is not None and result.get("error") is None:
                 request_succeeded = True
                 tx_result = result.get("result") or {}
-                raw_txs = tx_result.get("transactions") or []
+                raw_txs = (
+                    tx_result
+                    if isinstance(tx_result, list)
+                    else (tx_result.get("transactions") or tx_result.get("data") or [])
+                )
                 data["transactions"] = _normalize_transactions(raw_txs)
         except Exception as err:
             _LOGGER.debug("NWC list_transactions failed: %s", err)
@@ -413,7 +429,16 @@ async def _safe_get_json(session: ClientSession, url: str) -> Any:
             if response.status >= 400:
                 _LOGGER.debug("HTTP %s fetching %s", response.status, url)
                 return None
-            return await response.json(content_type=None)
+            content_type = response.headers.get("Content-Type", "").lower()
+            if "json" in content_type:
+                return await response.json(content_type=None)
+            raw_text = (await response.text()).strip()
+            if raw_text and raw_text.lstrip("-").isdigit():
+                return int(raw_text)
+            try:
+                return await response.json(content_type=None)
+            except ValueError:
+                return raw_text or None
     except TimeoutError:
         _LOGGER.debug("Timeout fetching %s", url)
         return None
@@ -450,20 +475,28 @@ def _normalize_transactions(raw: Any) -> list[dict[str, Any]]:
     for tx in raw:
         if not isinstance(tx, dict):
             continue
-        tx_type = str(tx.get("type", "incoming")).lower()
-        # Amount normalisation: prefer msat keys, fall back to sat keys
-        amount_msat = tx.get("amount") or tx.get("amount_msat") or tx.get("value")
-        amount_sat: int
-        if isinstance(amount_msat, (int, float)) and amount_msat > 1000:
-            # Likely millisatoshis
-            amount_sat = int(amount_msat) // _MSATS_PER_SAT
-        elif isinstance(amount_msat, (int, float)):
-            amount_sat = int(amount_msat)
+        raw_type = str(tx.get("type", "incoming")).lower()
+        if raw_type in {"incoming", "receive", "in", "credit", "incoming_payment"}:
+            tx_type = "incoming"
+        elif raw_type in {"outgoing", "send", "out", "debit", "outgoing_payment"}:
+            tx_type = "outgoing"
         else:
-            amount_sat = 0
+            tx_type = "incoming" if bool(tx.get("incoming")) else "outgoing"
 
-        fees_msat = tx.get("fees_paid") or tx.get("fee") or tx.get("fees") or 0
-        fees_sat = int(fees_msat) // _MSATS_PER_SAT if isinstance(fees_msat, (int, float)) and fees_msat > 1000 else int(fees_msat or 0)
+        amount_sat: int = 0
+        amount_msat = tx.get("amount_msat") or tx.get("msat") or tx.get("msats")
+        amount_direct = tx.get("amount") or tx.get("value")
+        if isinstance(amount_msat, (int, float)):
+            amount_sat = int(amount_msat) // _MSATS_PER_SAT
+        elif isinstance(amount_direct, (int, float)):
+            amount_sat = int(amount_direct)
+
+        fees_msat = tx.get("fees_paid_msat") or tx.get("fee_msat") or tx.get("fees_msat")
+        fees_direct = tx.get("fees_paid") or tx.get("fee") or tx.get("fees") or 0
+        if isinstance(fees_msat, (int, float)):
+            fees_sat = int(fees_msat) // _MSATS_PER_SAT
+        else:
+            fees_sat = int(fees_direct or 0) if isinstance(fees_direct, (int, float)) else 0
 
         description = str(tx.get("description") or tx.get("memo") or tx.get("note") or "")
 

@@ -47,7 +47,7 @@ from .const import (
     PRICE_PROVIDER_MEMPOOL,
     RELAY_PROXY_PORT,
 )
-from .nwc import ScopeValidationResult, parse_nwc_connection_uri, validate_scopes
+from .nwc import NwcConnectionInfo, ScopeValidationResult, parse_nwc_connection_uri, validate_scopes
 
 
 def _currency_selector() -> selector.SelectSelector:
@@ -165,7 +165,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             CONF_MODE: MODE_CLOUD,
                             CONF_NWC_URI: nwc_info.raw_uri,
                             CONF_CONNECTION_NAME: connection_name,
-                            CONF_LIGHTNING_ADDRESS: user_input.get(CONF_LIGHTNING_ADDRESS, "").strip() or None,
+                            CONF_LIGHTNING_ADDRESS: _resolve_lightning_address(user_input, nwc_info),
                             CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                             CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -223,7 +223,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_NWC_URI: nwc_info.raw_uri,
                         CONF_CONNECTION_NAME: connection_name,
                         CONF_HUB_URL: hub_url,
-                        CONF_LIGHTNING_ADDRESS: user_input.get(CONF_LIGHTNING_ADDRESS, "").strip() or None,
+                        CONF_LIGHTNING_ADDRESS: _resolve_lightning_address(user_input, nwc_info),
                         CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                         CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                         CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -280,7 +280,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                                 user_input.get(CONF_CONNECTION_NAME, "").strip()
                                 or DEFAULT_CONNECTION_NAME
                             ),
-                            CONF_LIGHTNING_ADDRESS: user_input.get(CONF_LIGHTNING_ADDRESS, "").strip() or None,
+                            CONF_LIGHTNING_ADDRESS: _resolve_lightning_address(user_input, nwc_info),
                             CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                             CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -328,7 +328,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                             or DEFAULT_CONNECTION_NAME
                         ),
                         CONF_HUB_URL: hub_url,
-                        CONF_LIGHTNING_ADDRESS: user_input.get(CONF_LIGHTNING_ADDRESS, "").strip() or None,
+                        CONF_LIGHTNING_ADDRESS: _resolve_lightning_address(user_input, nwc_info),
                         CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
                         CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                         CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
@@ -470,3 +470,11 @@ def _build_local_relay(hub_url: str) -> str | None:
         return None
 
     return f"{scheme}://{parsed.hostname}:{RELAY_PROXY_PORT}"
+
+
+def _resolve_lightning_address(user_input: dict, nwc_info: NwcConnectionInfo) -> str | None:
+    manual = user_input.get(CONF_LIGHTNING_ADDRESS, "").strip()
+    if manual:
+        return manual
+    parsed_lud16 = (nwc_info.lud16 or "").strip()
+    return parsed_lud16 or None

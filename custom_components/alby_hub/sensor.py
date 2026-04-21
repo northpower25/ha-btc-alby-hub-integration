@@ -199,6 +199,8 @@ class AlbyHubLastInvoiceSensor(AlbyHubCoordinatorEntity, RestoreEntity):
         super().__init__(coordinator, entry_id)
         self._attr_unique_id = f"{entry_id}_{SENSOR_KEY_LAST_INVOICE}"
         self._bolt11: str = ""
+        self._amount_sat: int | None = None
+        self._memo: str | None = None
 
     async def async_added_to_hass(self) -> None:
         """Restore the last invoice from storage after a restart."""
@@ -206,6 +208,10 @@ class AlbyHubLastInvoiceSensor(AlbyHubCoordinatorEntity, RestoreEntity):
         last_state = await self.async_get_last_state()
         if last_state is not None:
             self._bolt11 = last_state.attributes.get("bolt11", "") or ""
+            amount_sat = last_state.attributes.get("amount_sat")
+            self._amount_sat = int(amount_sat) if isinstance(amount_sat, (int, float)) else None
+            memo = last_state.attributes.get("memo")
+            self._memo = str(memo) if isinstance(memo, str) and memo.strip() else None
 
     @property
     def state(self) -> str:
@@ -215,9 +221,20 @@ class AlbyHubLastInvoiceSensor(AlbyHubCoordinatorEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> dict:
         """Expose the full BOLT11 invoice as an attribute."""
-        return {"bolt11": self._bolt11}
+        return {
+            "bolt11": self._bolt11,
+            "amount_sat": self._amount_sat,
+            "memo": self._memo,
+        }
 
-    async def async_set_invoice(self, invoice: str) -> None:
+    async def async_set_invoice(
+        self,
+        invoice: str,
+        amount_sat: int | None = None,
+        memo: str | None = None,
+    ) -> None:
         """Store a new BOLT11 invoice and push the state update."""
         self._bolt11 = invoice
+        self._amount_sat = amount_sat
+        self._memo = memo.strip() if isinstance(memo, str) and memo.strip() else None
         self.async_write_ha_state()
