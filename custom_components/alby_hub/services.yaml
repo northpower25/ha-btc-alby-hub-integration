@@ -238,3 +238,108 @@ delete_scheduled_payment:
       description: Unique ID of the schedule to delete (UUID string).
       selector:
         text:
+update_scheduled_payment:
+  name: Update scheduled payment
+  description: >
+    Update fields of an existing recurring payment schedule by schedule_id.
+    Only provided fields are changed.
+  fields:
+    schedule_id:
+      required: true
+      description: Unique ID of the schedule to update (UUID string).
+      selector:
+        text:
+    recipient:
+      required: false
+      description: New recipient (BOLT11 or Lightning address).
+      selector:
+        text:
+    amount_sat:
+      required: false
+      description: New amount in satoshis.
+      selector:
+        number:
+          min: 1
+          mode: box
+          step: 1
+    label:
+      required: false
+      description: New label.
+      selector:
+        text:
+    memo:
+      required: false
+      description: New payment memo.
+      selector:
+        text:
+    frequency:
+      required: false
+      description: New recurrence frequency.
+      selector:
+        select:
+          options:
+            - daily
+            - weekly
+            - monthly
+            - quarterly
+    hour:
+      required: false
+      description: New hour of day (0-23).
+      selector:
+        number:
+          min: 0
+          max: 23
+          mode: box
+          step: 1
+    minute:
+      required: false
+      description: New minute of hour (0-59).
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+          step: 1
+    day_of_week:
+      required: false
+      description: New day of week for weekly frequency (0-6).
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+          step: 1
+    day_of_month:
+      required: false
+      description: New day of month for monthly/quarterly (1-28).
+      selector:
+        number:
+          min: 1
+          max: 28
+          mode: box
+          step: 1
+    start_date:
+      required: false
+      description: New start date (YYYY-MM-DD).
+      selector:
+        text:
+    end_date:
+      required: false
+      description: New end date (YYYY-MM-DD). Leave empty for no end.
+      selector:
+        text:
+    enabled:
+      required: false
+      description: Enable or disable this schedule.
+      selector:
+        boolean:
+run_scheduled_payment_now:
+  name: Run scheduled payment now
+  description: >
+    Execute a configured schedule immediately and keep it active for future runs.
+  fields:
+    schedule_id:
+      required: true
+      description: Unique ID of the schedule to run now (UUID string).
+      selector:
+        text:

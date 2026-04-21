@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 from decimal import Decimal
+from urllib.parse import quote
 
 import voluptuous as vol
 
+from aiohttp import ClientTimeout
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -20,9 +22,11 @@ from .const import (
     SERVICE_CREATE_INVOICE,
     SERVICE_DELETE_SCHEDULED_PAYMENT,
     SERVICE_LIST_SCHEDULED_PAYMENTS,
+    SERVICE_RUN_SCHEDULED_PAYMENT_NOW,
     SERVICE_LIST_TRANSACTIONS,
     SERVICE_SCHEDULE_PAYMENT,
     SERVICE_SEND_PAYMENT,
+    SERVICE_UPDATE_SCHEDULED_PAYMENT,
     TEXT_KEY_INVOICE_INPUT,
 )
 from .helpers import AlbyHubRuntime
@@ -87,6 +91,30 @@ SERVICE_LIST_SCHEDULED_PAYMENTS_SCHEMA = vol.Schema(
 )
 
 SERVICE_DELETE_SCHEDULED_PAYMENT_SCHEMA = vol.Schema(
+    {
+        vol.Required("schedule_id"): cv.string,
+    }
+)
+
+SERVICE_UPDATE_SCHEDULED_PAYMENT_SCHEMA = vol.Schema(
+    {
+        vol.Required("schedule_id"): cv.string,
+        vol.Optional("recipient"): cv.string,
+        vol.Optional("amount_sat"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional("label"): cv.string,
+        vol.Optional("memo"): cv.string,
+        vol.Optional("frequency"): vol.In(list(VALID_FREQUENCIES)),
+        vol.Optional("hour"): vol.All(vol.Coerce(int), vol.Range(min=0, max=23)),
+        vol.Optional("minute"): vol.All(vol.Coerce(int), vol.Range(min=0, max=59)),
+        vol.Optional("day_of_week"): vol.All(vol.Coerce(int), vol.Range(min=0, max=6)),
+        vol.Optional("day_of_month"): vol.All(vol.Coerce(int), vol.Range(min=1, max=28)),
+        vol.Optional("start_date"): cv.string,
+        vol.Optional("end_date"): vol.Any(cv.string, None),
+        vol.Optional("enabled"): cv.boolean,
+    }
+)
+
+SERVICE_RUN_SCHEDULED_PAYMENT_NOW_SCHEMA = vol.Schema(
     {
         vol.Required("schedule_id"): cv.string,
     }
@@ -170,12 +198,21 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if {"amount_sat", "amount_btc", "amount_fiat"} & set(call.data):
             amount_sat = _resolve_amount_sat(call.data, runtime)
         memo = call.data.get("memo")
+        is_lightning_address = _is_lightning_address(payment_request)
+        if is_lightning_address and amount_sat is None:
+            raise ServiceValidationError(
+                "Lightning address payments require amount_sat, amount_btc, or amount_fiat."
+            )
+        resolved_payment_request = await _resolve_payment_request(
+            runtime, payment_request, amount_sat, memo
+        )
+        send_amount = None if is_lightning_address else amount_sat
 
         if mode == MODE_EXPERT and runtime.api_client is not None:
             try:
                 result = await runtime.api_client.send_payment(
-                    payment_request,
-                    amount_sat=amount_sat,
+                    resolved_payment_request,
+                    amount_sat=send_amount,
                     memo=memo,
                 )
                 _LOGGER.debug("Payment sent successfully: %s", result)
@@ -183,9 +220,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise HomeAssistantError(f"Failed to send payment: {err}") from err
         else:
             # Cloud mode: use NWC pay_invoice
-            params: dict[str, str | int] = {"invoice": payment_request}
-            if amount_sat is not None:
-                params["amount"] = amount_sat * _MSATS_PER_SAT
+            params: dict[str, str | int] = {"invoice": resolved_payment_request}
+            if send_amount is not None:
+                params["amount"] = send_amount * _MSATS_PER_SAT
             if memo:
                 params["description"] = memo
             result = await async_nwc_request(
@@ -320,6 +357,42 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=SERVICE_DELETE_SCHEDULED_PAYMENT_SCHEMA,
     )
 
+    async def handle_update_scheduled_payment(call: ServiceCall) -> ServiceResponse:
+        scheduler = get_scheduler(hass)
+        if scheduler is None:
+            raise HomeAssistantError("Scheduler not initialised")
+        schedule_id = call.data["schedule_id"]
+        updates = {k: v for k, v in call.data.items() if k != "schedule_id"}
+        updated = await scheduler.async_update(schedule_id, updates)
+        if updated is None:
+            raise ServiceValidationError(f"Schedule '{schedule_id}' not found")
+        return {"schedule": updated}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_UPDATE_SCHEDULED_PAYMENT,
+        handle_update_scheduled_payment,
+        schema=SERVICE_UPDATE_SCHEDULED_PAYMENT_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_run_scheduled_payment_now(call: ServiceCall) -> ServiceResponse:
+        scheduler = get_scheduler(hass)
+        if scheduler is None:
+            raise HomeAssistantError("Scheduler not initialised")
+        schedule = await scheduler.async_run_now(call.data["schedule_id"])
+        if schedule is None:
+            raise ServiceValidationError(f"Schedule '{call.data['schedule_id']}' not found")
+        return {"schedule": schedule}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RUN_SCHEDULED_PAYMENT_NOW,
+        handle_run_scheduled_payment_now,
+        schema=SERVICE_RUN_SCHEDULED_PAYMENT_NOW_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
 
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unload integration services when no entries remain."""
@@ -330,6 +403,8 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_SCHEDULE_PAYMENT,
         SERVICE_LIST_SCHEDULED_PAYMENTS,
         SERVICE_DELETE_SCHEDULED_PAYMENT,
+        SERVICE_UPDATE_SCHEDULED_PAYMENT,
+        SERVICE_RUN_SCHEDULED_PAYMENT_NOW,
     ):
         hass.services.async_remove(DOMAIN, svc)
 
@@ -386,3 +461,94 @@ def _resolve_amount_sat(data: dict, runtime: AlbyHubRuntime) -> int:
 def _default_entry_id(hass: HomeAssistant) -> str | None:
     runtimes: dict = hass.data.get(DOMAIN, {})
     return next(iter(runtimes), None)
+
+
+def _is_lightning_address(payment_request: str) -> bool:
+    value = payment_request.strip()
+    if "@" not in value or " " in value:
+        return False
+    lowered = value.lower()
+    return not lowered.startswith(("lnbc", "lntb", "lnbcrt", "lnurl"))
+
+
+async def _resolve_payment_request(
+    runtime: AlbyHubRuntime,
+    payment_request: str,
+    amount_sat: int | None,
+    memo: str | None,
+) -> str:
+    """Resolve Lightning addresses to BOLT11 invoices."""
+    target = payment_request.strip()
+    if not _is_lightning_address(target):
+        return target
+    if amount_sat is None:
+        raise ServiceValidationError(
+            "Lightning address payments require amount_sat, amount_btc, or amount_fiat."
+        )
+    return await _fetch_lnurl_invoice(runtime, target, amount_sat, memo)
+
+
+async def _fetch_lnurl_invoice(
+    runtime: AlbyHubRuntime,
+    lightning_address: str,
+    amount_sat: int,
+    memo: str | None,
+) -> str:
+    try:
+        localpart, domain = lightning_address.split("@", 1)
+    except ValueError as err:
+        raise ServiceValidationError("Invalid Lightning address format") from err
+    if not localpart or not domain:
+        raise ServiceValidationError("Invalid Lightning address format")
+
+    msat_amount = amount_sat * _MSATS_PER_SAT
+    lnurlp_url = f"https://{domain}/.well-known/lnurlp/{quote(localpart, safe='')}"
+    timeout = ClientTimeout(total=10)
+
+    async with runtime.session.get(lnurlp_url, timeout=timeout) as response:
+        if response.status >= 400:
+            raise HomeAssistantError(
+                f"Failed to resolve Lightning address ({response.status}) at {domain}"
+            )
+        metadata = await response.json(content_type=None)
+
+    if not isinstance(metadata, dict):
+        raise HomeAssistantError("Lightning address metadata response was invalid")
+
+    callback_url = metadata.get("callback")
+    min_sendable = metadata.get("minSendable")
+    max_sendable = metadata.get("maxSendable")
+    if not isinstance(callback_url, str) or not callback_url:
+        raise HomeAssistantError("Lightning address metadata is missing callback URL")
+
+    if isinstance(min_sendable, (int, float)) and msat_amount < int(min_sendable):
+        raise ServiceValidationError(
+            "Amount is below the minimum supported by this Lightning address"
+        )
+    if isinstance(max_sendable, (int, float)) and msat_amount > int(max_sendable):
+        raise ServiceValidationError(
+            "Amount is above the maximum supported by this Lightning address"
+        )
+
+    params: dict[str, int | str] = {"amount": msat_amount}
+    comment_allowed = metadata.get("commentAllowed")
+    if memo and isinstance(comment_allowed, (int, float)) and int(comment_allowed) > 0:
+        params["comment"] = memo[: int(comment_allowed)]
+
+    async with runtime.session.get(callback_url, params=params, timeout=timeout) as response:
+        if response.status >= 400:
+            raise HomeAssistantError(
+                f"Lightning address callback failed with HTTP {response.status}"
+            )
+        callback_data = await response.json(content_type=None)
+
+    if not isinstance(callback_data, dict):
+        raise HomeAssistantError("Lightning address callback response was invalid")
+    if callback_data.get("status") == "ERROR":
+        reason = callback_data.get("reason") or "unknown reason"
+        raise HomeAssistantError(f"Lightning address callback error: {reason}")
+
+    invoice = callback_data.get("pr") or callback_data.get("payment_request")
+    if not isinstance(invoice, str) or not invoice.strip():
+        raise HomeAssistantError("Lightning address callback did not return a BOLT11 invoice")
+    return invoice.strip()

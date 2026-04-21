@@ -54,6 +54,8 @@ SERVICE_LIST_TRANSACTIONS = "list_transactions"
 SERVICE_SCHEDULE_PAYMENT = "schedule_payment"
 SERVICE_LIST_SCHEDULED_PAYMENTS = "list_scheduled_payments"
 SERVICE_DELETE_SCHEDULED_PAYMENT = "delete_scheduled_payment"
+SERVICE_UPDATE_SCHEDULED_PAYMENT = "update_scheduled_payment"
+SERVICE_RUN_SCHEDULED_PAYMENT_NOW = "run_scheduled_payment_now"
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 
