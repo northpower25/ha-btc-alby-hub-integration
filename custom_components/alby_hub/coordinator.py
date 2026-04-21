@@ -74,7 +74,8 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         lightning_address = _first_valid_lightning_address(
-            # Manual value should override URI-discovered lud16 when provided by user.
+            # _first_valid_lightning_address returns the first non-empty value in argument order.
+            # Manual value should therefore override URI-discovered lud16 when provided by user.
             self._manual_lightning_address,
             self._nwc_info.lud16,
         )

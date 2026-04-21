@@ -623,10 +623,10 @@ class AlbyHubPanel extends HTMLElement {
 
   _tabReceive(p) {
     const t       = (k) => this._t(`receive.${k}`);
-    const entityUnit = this._val(this._eid('invoiceAmountUnit', p), 'SAT');
+    const fallbackUnit = this._val(this._eid('invoiceAmountUnit', p), 'SAT');
     // Use pending (user-typed) values when available, fall back to entity state
     const amountRaw = this._pendingInvAmount || this._val(this._eid('invoiceAmount', p), '0');
-    const unit = this._pendingInvUnit || entityUnit;
+    const unit = this._pendingInvUnit || fallbackUnit;
     const amount = this._displayAmountValue(amountRaw, unit);
     const memo = this._pendingInvMemo || '';
     const options = this._attr(this._eid('invoiceAmountUnit', p), 'options', ['SAT', 'BTC']);
