@@ -1077,7 +1077,7 @@ class AlbyHubPanel extends HTMLElement {
     const serviceData = {};
     const entry = this._resolveEntryId(p);
     if (entry) serviceData.config_entry_id = entry;
-    this._hass.callService('alby_hub', 'list_transactions', serviceData, { return_response: true })
+    this._hass.callService('alby_hub', 'list_transactions', serviceData, undefined, true, true)
       .then((resp) => {
         this._transactions = (resp && resp.transactions) ? resp.transactions : [];
         this._txLoading = false;
@@ -1096,7 +1096,7 @@ class AlbyHubPanel extends HTMLElement {
     const serviceData = {};
     const entry = this._resolveEntryId(p);
     if (entry) serviceData.config_entry_id = entry;
-    this._hass.callService('alby_hub', 'list_scheduled_payments', serviceData, { return_response: true })
+    this._hass.callService('alby_hub', 'list_scheduled_payments', serviceData, undefined, true, true)
       .then((resp) => {
         this._schedules = (resp && resp.schedules) ? resp.schedules : [];
         this._schedLoading = false;
@@ -1222,7 +1222,7 @@ class AlbyHubPanel extends HTMLElement {
           }
           if (memo) serviceData.memo = memo;
 
-          this._hass.callService('alby_hub', 'create_invoice', serviceData, { return_response: true }).then((resp) => {
+          this._hass.callService('alby_hub', 'create_invoice', serviceData, undefined, true, true).then((resp) => {
             if (resp?.payment_request) {
               this._lastInvoiceByPrefix[btn.dataset.prefix] = {
                 bolt11: resp.payment_request,

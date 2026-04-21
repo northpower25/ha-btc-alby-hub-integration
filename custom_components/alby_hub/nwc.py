@@ -95,7 +95,7 @@ def validate_scopes(info: NwcConnectionInfo) -> ScopeValidationResult:
 
 def _first_param(params: dict[str, list[str]], *keys: str) -> str | None:
     for key in keys:
-        values = params.get(key.lower())
+        values = params.get(key)
         if not values:
             continue
         value = values[0].strip()
