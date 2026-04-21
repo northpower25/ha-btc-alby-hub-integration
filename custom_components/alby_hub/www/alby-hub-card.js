@@ -805,7 +805,10 @@ class AlbyHubPanel extends HTMLElement {
           const amountRaw = (this._pendingInvAmount || amountEl?.value || '').trim();
           const unit = (this._pendingInvUnit || unitEl?.value || 'SAT').toUpperCase();
           const amountNum = parseFloat(amountRaw);
-          if (!Number.isFinite(amountNum) || amountNum <= 0) return;
+          if (!Number.isFinite(amountNum) || amountNum <= 0) {
+            console.warn('Alby Hub panel: invalid invoice amount', amountRaw);
+            return;
+          }
 
           const serviceData = {};
           if (unit === 'SAT') {
@@ -826,10 +829,14 @@ class AlbyHubPanel extends HTMLElement {
                 this._eid('lastInvoice', btn.dataset.prefix),
                 this._eid('lightningBalance', btn.dataset.prefix),
               ],
-            }).catch(() => {});
+            }).catch((err) => {
+              console.warn('Alby Hub panel: failed to refresh entities after invoice creation', err);
+            });
             this._lastUpdate = 0;
             this._updateContent();
-          }).catch(() => {});
+          }).catch((err) => {
+            console.warn('Alby Hub panel: invoice creation failed', err);
+          });
         }
       });
     });
