@@ -52,6 +52,7 @@ SERVICE_SEND_PAYMENT_SCHEMA = vol.Schema(
         vol.Optional("amount_btc"): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional("amount_fiat"): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional("fiat_currency"): cv.string,
+        vol.Optional("memo"): cv.string,
     }
 )
 
@@ -133,13 +134,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             invoice_str = inv_result.get("invoice") or inv_result.get("payment_request") or ""
             _LOGGER.debug("NWC invoice created: %s…", invoice_str[:20] if invoice_str else "")
 
-        if invoice_str:
-            if runtime.last_invoice_entity is not None:
-                await runtime.last_invoice_entity.async_set_invoice(invoice_str)
+        if invoice_str and runtime.last_invoice_entity is not None:
+            await runtime.last_invoice_entity.async_set_invoice(
+                invoice_str,
+                amount_sat=amount_sat,
+                memo=call.data.get("memo"),
+            )
 
         return {
             "payment_request": invoice_str,
             "amount_sat": amount_sat,
+            "memo": call.data.get("memo"),
             "qr_url": (
                 f"https://api.qrserver.com/v1/create-qr-code/?data=lightning:{invoice_str}&size=300x300"
                 if invoice_str
@@ -161,20 +166,33 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
 
         mode = runtime.coordinator.data.get("mode")
+        amount_sat: int | None = None
+        if {"amount_sat", "amount_btc", "amount_fiat"} & set(call.data):
+            amount_sat = _resolve_amount_sat(call.data, runtime)
+        memo = call.data.get("memo")
 
         if mode == MODE_EXPERT and runtime.api_client is not None:
             try:
-                result = await runtime.api_client.send_payment(payment_request)
+                result = await runtime.api_client.send_payment(
+                    payment_request,
+                    amount_sat=amount_sat,
+                    memo=memo,
+                )
                 _LOGGER.debug("Payment sent successfully: %s", result)
             except AlbyHubApiError as err:
                 raise HomeAssistantError(f"Failed to send payment: {err}") from err
         else:
             # Cloud mode: use NWC pay_invoice
+            params: dict[str, str | int] = {"invoice": payment_request}
+            if amount_sat is not None:
+                params["amount"] = amount_sat * _MSATS_PER_SAT
+            if memo:
+                params["description"] = memo
             result = await async_nwc_request(
                 runtime.session,
                 runtime.nwc_info,
                 "pay_invoice",
-                {"invoice": payment_request},
+                params,
             )
             if result is None or result.get("error"):
                 raise HomeAssistantError(
@@ -224,11 +242,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 runtime.session,
                 runtime.nwc_info,
                 "list_transactions",
-                {"limit": limit, "unpaid": False},
+                {"limit": limit, "unpaid": True},
             )
             if result and result.get("error") is None:
                 tx_result = result.get("result") or {}
-                raw_txs = tx_result.get("transactions") or []
+                raw_txs = (
+                    tx_result
+                    if isinstance(tx_result, list)
+                    else (tx_result.get("transactions") or tx_result.get("data") or [])
+                )
             else:
                 raise HomeAssistantError(
                     f"NWC list_transactions failed: {result.get('error') if result else 'no response'}"

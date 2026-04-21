@@ -39,10 +39,13 @@ const TRANSLATIONS = {
     receive: {
       createInvoice: 'Rechnung erstellen',
       amount: 'Betrag', unit: 'Einheit (SAT / BTC / Fiat)',
+      purpose: 'Verwendungszweck (optional)',
       btn: 'Rechnung erstellen ⚡',
       invoiceTitle: 'BOLT11-Rechnung & QR-Code',
       noInvoice: 'Noch keine Rechnung. Betrag und Einheit oben eingeben, dann <b>Rechnung erstellen</b> drücken.',
       scanHint: 'Rechnung scannen oder kopieren',
+      invoiceAmountSat: 'Betrag (sat)',
+      invoicePurpose: 'Verwendungszweck',
       lnAddressTitle: 'Lightning-Adresse',
       lnAddressQrTitle: 'Lightning-Adresse QR (ohne festen Betrag empfangen)',
       lnAddressUnavail: 'Lightning-Adresse nicht verfügbar.',
@@ -55,6 +58,7 @@ const TRANSLATIONS = {
       amountTitle: 'Betrag (optional – bei Lightning-Adresse erforderlich)',
       amount: 'Betrag',
       unit: 'Einheit (SAT / BTC / Fiat)',
+      purpose: 'Verwendungszweck (optional)',
       howTitle: 'Zahlung durchführen',
       how1: '<b>Option 1 – Einfügen:</b><br>BOLT11-Rechnung oder Lightning-Adresse in das Feld oben einfügen.',
       how2: '<b>Option 2 – Kamera (HA Companion App):</b><br>QR-Code-Scan wird direkt im Lovelace-Dashboard unterstützt, nicht im benutzerdefinierten Panel.',
@@ -148,10 +152,13 @@ const TRANSLATIONS = {
     receive: {
       createInvoice: 'Create Invoice',
       amount: 'Amount', unit: 'Unit (SAT / BTC / Fiat)',
+      purpose: 'Purpose (optional)',
       btn: 'Create Invoice ⚡',
       invoiceTitle: 'BOLT11 Invoice & QR Code',
       noInvoice: 'No invoice yet. Set the amount and unit above, then press <b>Create Invoice</b>.',
       scanHint: 'Scan or copy the invoice above',
+      invoiceAmountSat: 'Amount (sat)',
+      invoicePurpose: 'Purpose',
       lnAddressTitle: 'Lightning Address',
       lnAddressQrTitle: 'Lightning Address QR (receive without fixed amount)',
       lnAddressUnavail: 'Lightning address not available.',
@@ -164,6 +171,7 @@ const TRANSLATIONS = {
       amountTitle: 'Amount (optional – required when paying a Lightning address)',
       amount: 'Amount',
       unit: 'Unit (SAT / BTC / Fiat)',
+      purpose: 'Purpose (optional)',
       howTitle: 'How to pay',
       how1: '<b>Option 1 – Paste:</b><br>Copy a BOLT11 invoice (or Lightning address) and paste it into the field above.',
       how2: '<b>Option 2 – Camera (HA Companion App):</b><br>QR-code scanning is supported in the native Lovelace dashboard, not in this custom panel.',
@@ -297,9 +305,12 @@ class AlbyHubPanel extends HTMLElement {
     // Preserved input values (survive re-renders)
     this._pendingInvAmount = '';   // receive: amount typed by user
     this._pendingInvUnit   = '';   // receive: unit selected by user
+    this._pendingInvMemo   = '';   // receive: memo / purpose
     this._pendingPayInput  = '';   // send: payment string typed by user
     this._pendingPayAmount = '';   // send: amount typed by user
     this._pendingPayUnit   = '';   // send: unit selected by user
+    this._pendingPayMemo   = '';   // send: memo / purpose
+    this._lastInvoiceByPrefix = {}; // prefix -> {bolt11, amount_sat, memo}
     // Activity tab state
     this._txFilter = 'all';        // 'all' | 'incoming' | 'outgoing'
     this._transactions = null;     // null = not loaded, [] = loaded
@@ -445,6 +456,15 @@ class AlbyHubPanel extends HTMLElement {
   _attr(id, attr, def = '')      { return this._state(id)?.attributes?.[attr] ?? def; }
   _num(id, def = 0)              { return parseFloat(this._val(id, String(def))) || def; }
   _isUnavail(v)                  { return !v || v === 'unavailable' || v === 'unknown' || v === 'none' || v === ''; }
+  _displayAmountValue(raw, unit) {
+    if (raw === undefined || raw === null) return '';
+    const str = String(raw);
+    if ((unit || '').toUpperCase() === 'SAT') {
+      const n = parseFloat(str);
+      if (Number.isFinite(n)) return String(Math.floor(n));
+    }
+    return str;
+  }
   _eid(kind, prefix) {
     const cfg = ENTITY_IDS[kind];
     if (!cfg || !prefix) return '';
@@ -603,12 +623,22 @@ class AlbyHubPanel extends HTMLElement {
 
   _tabReceive(p) {
     const t       = (k) => this._t(`receive.${k}`);
+    const fallbackUnit = this._val(this._eid('invoiceAmountUnit', p), 'SAT');
     // Use pending (user-typed) values when available, fall back to entity state
-    const amount  = this._pendingInvAmount || this._val(this._eid('invoiceAmount', p), '0');
-    const unit    = this._pendingInvUnit   || this._val(this._eid('invoiceAmountUnit', p), 'SAT');
+    const amountRaw = this._pendingInvAmount || this._val(this._eid('invoiceAmount', p), '0');
+    const unit = this._pendingInvUnit || fallbackUnit;
+    const amount = this._displayAmountValue(amountRaw, unit);
+    const memo = this._pendingInvMemo || '';
     const options = this._attr(this._eid('invoiceAmountUnit', p), 'options', ['SAT', 'BTC']);
-    // last_invoice is now a sensor; full BOLT11 is stored in the "bolt11" attribute
-    const invoice   = this._attr(this._eid('lastInvoice', p), 'bolt11', '');
+    // last_invoice is a sensor; latest successful service response is used as immediate fallback
+    const invoiceEntity = this._eid('lastInvoice', p);
+    const latestInvoice = this._lastInvoiceByPrefix[p] || {};
+    const invoice = this._attr(invoiceEntity, 'bolt11', '') || latestInvoice.bolt11 || '';
+    const invoiceAmountSatRaw = this._attr(invoiceEntity, 'amount_sat', null);
+    const invoiceAmountSat = Number.isFinite(Number(invoiceAmountSatRaw))
+      ? Number(invoiceAmountSatRaw)
+      : (Number.isFinite(Number(latestInvoice.amount_sat)) ? Number(latestInvoice.amount_sat) : null);
+    const invoiceMemo = this._attr(invoiceEntity, 'memo', '') || latestInvoice.memo || '';
     const address   = this._val(this._eid('lightningAddress', p), '');
     const lightning = this._num(this._eid('lightningBalance', p));
     const onchain   = this._num(this._eid('onChainBalance', p));
@@ -623,8 +653,10 @@ class AlbyHubPanel extends HTMLElement {
     const invoiceBlock = !this._isUnavail(invoice)
       ? `<code class="invoice-code">${this._esc(invoice)}</code>
          <div class="qr-wrap">
-           <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=lightning:${encodeURIComponent(invoice)}&size=280x280&margin=8" alt="Invoice QR">
-         </div>
+            <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=lightning:${encodeURIComponent(invoice)}&size=280x280&margin=8" alt="Invoice QR">
+          </div>
+         ${invoiceAmountSat !== null ? `<div class="muted small"><b>${t('invoiceAmountSat')}:</b> ${invoiceAmountSat.toLocaleString()} sat</div>` : ''}
+         <div class="muted small"><b>${t('invoicePurpose')}:</b> ${this._esc(invoiceMemo || '—')}</div>
          <div class="muted small">${t('scanHint')}</div>`
       : `<div class="muted">${t('noInvoice')}</div>`;
 
@@ -646,6 +678,10 @@ class AlbyHubPanel extends HTMLElement {
         <div class="field">
           <label>${t('unit')}</label>
           <select class="inp" id="inv-unit" data-entity="${this._esc(this._eid('invoiceAmountUnit', p))}">${opts}</select>
+        </div>
+        <div class="field">
+          <label>${t('purpose')}</label>
+          <input type="text" class="inp" id="inv-memo" value="${this._esc(memo)}">
         </div>
         <button class="btn" id="create-inv-btn" data-prefix="${this._esc(p)}">${t('btn')}</button>
       </div>
@@ -684,8 +720,10 @@ class AlbyHubPanel extends HTMLElement {
     })());
     const lightning  = this._num(this._eid('lightningBalance', p));
     const onchain    = this._num(this._eid('onChainBalance', p));
-    const payAmount  = this._pendingPayAmount || this._val(this._eid('invoiceAmount', p), '0');
+    const payAmountRaw = this._pendingPayAmount || this._val(this._eid('invoiceAmount', p), '0');
     const payUnit    = this._pendingPayUnit   || this._val(this._eid('invoiceAmountUnit', p), 'SAT');
+    const payAmount  = this._displayAmountValue(payAmountRaw, payUnit);
+    const payMemo    = this._pendingPayMemo || '';
     const options    = this._attr(this._eid('invoiceAmountUnit', p), 'options', ['SAT', 'BTC']);
     const opts = Array.isArray(options)
       ? options
@@ -710,6 +748,10 @@ class AlbyHubPanel extends HTMLElement {
               data-entity="${this._esc(this._eid('invoiceAmount', p))}" style="flex:1">
             <select class="inp" id="pay-unit" data-entity="${this._esc(this._eid('invoiceAmountUnit', p))}" style="flex:0 0 90px">${opts}</select>
           </div>
+        </div>
+        <div class="field">
+          <label>${t('purpose')}</label>
+          <input type="text" class="inp" id="pay-memo" value="${this._esc(payMemo)}">
         </div>
       </div>
 
@@ -1029,7 +1071,7 @@ class AlbyHubPanel extends HTMLElement {
     const serviceData = {};
     const entry = this._resolveEntryId(p);
     if (entry) serviceData.config_entry_id = entry;
-    this._hass.callService('alby_hub', 'list_transactions', serviceData)
+    this._hass.callService('alby_hub', 'list_transactions', serviceData, undefined, true)
       .then((resp) => {
         this._transactions = (resp && resp.transactions) ? resp.transactions : [];
         this._txLoading = false;
@@ -1048,7 +1090,7 @@ class AlbyHubPanel extends HTMLElement {
     const serviceData = {};
     const entry = this._resolveEntryId(p);
     if (entry) serviceData.config_entry_id = entry;
-    this._hass.callService('alby_hub', 'list_scheduled_payments', serviceData)
+    this._hass.callService('alby_hub', 'list_scheduled_payments', serviceData, undefined, true)
       .then((resp) => {
         this._schedules = (resp && resp.schedules) ? resp.schedules : [];
         this._schedLoading = false;
@@ -1142,14 +1184,21 @@ class AlbyHubPanel extends HTMLElement {
       });
     });
 
+    root.querySelectorAll('#inv-memo').forEach((el) => {
+      el.addEventListener('input',  () => { this._pendingInvMemo = el.value; });
+      el.addEventListener('change', () => { this._pendingInvMemo = el.value; });
+    });
+
     // Create invoice button
     root.querySelectorAll('#create-inv-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.dataset.prefix) {
           const amountEl = root.querySelector('#inv-amount');
           const unitEl = root.querySelector('#inv-unit');
+          const memoEl = root.querySelector('#inv-memo');
           const amountRaw = (this._pendingInvAmount || amountEl?.value || '').trim();
           const unit = (this._pendingInvUnit || unitEl?.value || 'SAT').toUpperCase();
+          const memo = (this._pendingInvMemo || memoEl?.value || '').trim();
           const amountNum = parseFloat(amountRaw);
           if (!Number.isFinite(amountNum) || amountNum <= 0) {
             console.warn('Alby Hub panel: invalid invoice amount', amountRaw);
@@ -1165,11 +1214,20 @@ class AlbyHubPanel extends HTMLElement {
             serviceData.amount_fiat = amountNum;
             serviceData.fiat_currency = unit;
           }
+          if (memo) serviceData.memo = memo;
 
-          this._hass.callService('alby_hub', 'create_invoice', serviceData).then(() => {
+          this._hass.callService('alby_hub', 'create_invoice', serviceData, undefined, true).then((resp) => {
+            if (resp?.payment_request) {
+              this._lastInvoiceByPrefix[btn.dataset.prefix] = {
+                bolt11: resp.payment_request,
+                amount_sat: resp.amount_sat,
+                memo,
+              };
+            }
             // Clear pending receive inputs after create (entity will be updated)
             this._pendingInvAmount = '';
             this._pendingInvUnit = '';
+            this._pendingInvMemo = '';
             this._hass.callService('homeassistant', 'update_entity', {
               entity_id: [
                 this._eid('lastInvoice', btn.dataset.prefix),
@@ -1222,6 +1280,11 @@ class AlbyHubPanel extends HTMLElement {
       });
     });
 
+    root.querySelectorAll('#pay-memo').forEach((el) => {
+      el.addEventListener('input',  () => { this._pendingPayMemo = el.value; });
+      el.addEventListener('change', () => { this._pendingPayMemo = el.value; });
+    });
+
     // Send payment button – pass payment_request and amount directly to avoid
     // the 255-char text entity state limit
     root.querySelectorAll('#send-btn').forEach((btn) => {
@@ -1229,6 +1292,7 @@ class AlbyHubPanel extends HTMLElement {
         const payInput  = this._pendingPayInput.trim();
         const payAmount = this._pendingPayAmount;
         const payUnit   = this._pendingPayUnit || 'SAT';
+        const payMemo   = this._pendingPayMemo.trim();
         const serviceData = {};
         if (payInput) serviceData.payment_request = payInput;
         // Pass amount params if provided and a Lightning address is being used
@@ -1242,11 +1306,13 @@ class AlbyHubPanel extends HTMLElement {
             serviceData.fiat_currency = payUnit;
           }
         }
+        if (payMemo) serviceData.memo = payMemo;
         this._hass.callService('alby_hub', 'send_payment', serviceData).then(() => {
           // Clear pending values after successful send
           this._pendingPayInput  = '';
           this._pendingPayAmount = '';
           this._pendingPayUnit   = '';
+          this._pendingPayMemo   = '';
           // Force re-render
           this._lastUpdate = 0;
           this._updateContent();
