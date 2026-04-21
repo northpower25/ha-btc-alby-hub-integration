@@ -800,12 +800,36 @@ class AlbyHubPanel extends HTMLElement {
     root.querySelectorAll('#create-inv-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.dataset.prefix) {
-          this._hass.callService('button', 'press', {
-            entity_id: this._eid('createInvoice', btn.dataset.prefix),
-          });
-          // Clear pending receive inputs after create (entity will be updated)
-          this._pendingInvAmount = '';
-          this._pendingInvUnit   = '';
+          const amountEl = root.querySelector('#inv-amount');
+          const unitEl = root.querySelector('#inv-unit');
+          const amountRaw = (this._pendingInvAmount || amountEl?.value || '').trim();
+          const unit = (this._pendingInvUnit || unitEl?.value || 'SAT').toUpperCase();
+          const amountNum = parseFloat(amountRaw);
+          if (!Number.isFinite(amountNum) || amountNum <= 0) return;
+
+          const serviceData = {};
+          if (unit === 'SAT') {
+            serviceData.amount_sat = Math.max(1, Math.floor(amountNum));
+          } else if (unit === 'BTC') {
+            serviceData.amount_btc = amountNum;
+          } else {
+            serviceData.amount_fiat = amountNum;
+            serviceData.fiat_currency = unit;
+          }
+
+          this._hass.callService('alby_hub', 'create_invoice', serviceData).then(() => {
+            // Clear pending receive inputs after create (entity will be updated)
+            this._pendingInvAmount = '';
+            this._pendingInvUnit   = '';
+            this._hass.callService('homeassistant', 'update_entity', {
+              entity_id: [
+                this._eid('lastInvoice', btn.dataset.prefix),
+                this._eid('lightningBalance', btn.dataset.prefix),
+              ],
+            }).catch(() => {});
+            this._lastUpdate = 0;
+            this._updateContent();
+          }).catch(() => {});
         }
       });
     });
@@ -1132,15 +1156,19 @@ class AlbyHubPanel extends HTMLElement {
 // Register
 // ──────────────────────────────────────────────────────────────────────────────
 
-customElements.define(PANEL_ELEMENT_NAME, AlbyHubPanel);
+if (!customElements.get(PANEL_ELEMENT_NAME)) {
+  customElements.define(PANEL_ELEMENT_NAME, AlbyHubPanel);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: PANEL_ELEMENT_NAME,
-  name: 'Alby Hub Panel',
-  description: 'Alby Hub Bitcoin Lightning Integration – locked-down integration dashboard',
-  preview: false,
-});
+if (!window.customCards.some((card) => card.type === PANEL_ELEMENT_NAME)) {
+  window.customCards.push({
+    type: PANEL_ELEMENT_NAME,
+    name: 'Alby Hub Panel',
+    description: 'Alby Hub Bitcoin Lightning Integration – locked-down integration dashboard',
+    preview: false,
+  });
+}
 
 console.info(
   `%c ALBY HUB PANEL %c v${ALBY_HUB_VERSION} `,
