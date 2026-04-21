@@ -22,8 +22,8 @@ Wer Workarounds für ältere Versionen einbaut, erzeugt genau die Debug-Loops, d
 |---|---|
 | `OptionsFlow` | Kein `__init__(config_entry)`. HA setzt `self.config_entry` automatisch vor `async_step_init`. `async_get_options_flow` gibt `AlbyHubOptionsFlowHandler()` (ohne Argument) zurück. |
 | Plattform-Setup | `await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)` – keine manuellen Executor-Tricks. |
-| Platform pre-imports | `from . import binary_sensor, button, config_flow, …` in `__init__.py` – Python's `__import__` ist unsichtbar für den Blocking-Detektor und füllt `sys.modules` vor dem Event-Loop-Zugriff. |
-| Blocking-Detektor | In 2026.1 **wirft** `importlib.import_module(...)` im Event-Loop eine Exception (kein bloßes Log-Warning mehr). Module müssen deshalb per `from . import …` vorab in `sys.modules` sein. |
+| Platform pre-imports | `from . import binary_sensor, button, …` in `__init__.py` (ohne `config_flow`!) – füllt `sys.modules` für die Plattform-Module vor. `config_flow` **darf nicht** per Pre-Import geladen werden, da HA es eigenständig über `_platforms_to_preload` im Executor lädt. |
+| Blocking-Detektor | In 2026.1 **loggt** `importlib.import_module(...)` im Event-Loop nur eine Warnung (`strict=False` für Custom Integrations). HA lädt `config_flow` korrekt im Executor wenn es nicht in `sys.modules` ist – kein manueller Pre-Import nötig oder erwünscht. |
 | Static paths | `hass.http.async_register_static_paths([StaticPathConfig(...)])` |
 | Panel custom | `from homeassistant.components.panel_custom import async_register_panel` |
 | Translator | Dateien in `translations/<lang>.json`; `strings.json` als Fallback. Kein Setup-Feld für Sprache. |
@@ -48,7 +48,8 @@ Die PRs #15–#23 kreisten alle um dasselbe Problem: Workarounds wurden für HA-
 - PR #20/#21: Richtiger Ansatz wieder entdeckt, `cryptography` lazy-load hinzugefügt
 - PR #22: Pre-Import wieder entfernt (erneuter Rückbau)
 - PR #23: Pre-Import wieder hergestellt
-- PR #24: `config_flow` in Pre-Import ergänzt + OptionsFlow-API auf 2026.1 aktualisiert
+- PR #24: `config_flow` fälschlicherweise in Pre-Import ergänzt + OptionsFlow-API auf 2026.1 aktualisiert
+- PR #25: `config_flow` aus Pre-Import entfernt (Bugfix: HA lädt es korrekt selbst im Executor); Blocking-Detektor-Dokumentation korrigiert
 
 **Lösung:** Einziger Maßstab ist HA 2026.1. Keine Diskussion über ältere Versionen.
 
