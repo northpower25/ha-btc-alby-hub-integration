@@ -823,7 +823,7 @@ class AlbyHubPanel extends HTMLElement {
           this._hass.callService('alby_hub', 'create_invoice', serviceData).then(() => {
             // Clear pending receive inputs after create (entity will be updated)
             this._pendingInvAmount = '';
-            this._pendingInvUnit   = '';
+            this._pendingInvUnit = '';
             this._hass.callService('homeassistant', 'update_entity', {
               entity_id: [
                 this._eid('lastInvoice', btn.dataset.prefix),

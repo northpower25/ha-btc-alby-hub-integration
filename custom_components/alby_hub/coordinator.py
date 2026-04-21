@@ -84,7 +84,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "relay": self._nwc_info.relay,
             # Prefer NWC-URI lud16; fall back to the manually configured address
             "lightning_address": lightning_address,
-            "connected": False,
+            "connected": self._mode != MODE_EXPERT,
             "balance_lightning": None,
             "balance_onchain": None,
             "bitcoin_block_height": None,
@@ -140,11 +140,13 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Updates *data* in-place.  All failures are silently logged at DEBUG
         level so that other sensors are not affected.
         """
+        request_succeeded = False
+
         # get_balance → balance_lightning (NWC returns balance in millisatoshis)
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_balance")
             if result is not None and result.get("error") is None:
-                data["connected"] = True
+                request_succeeded = True
                 bal_result = result.get("result") or {}
                 bal_sat = _extract_nwc_balance_sat(bal_result)
                 if bal_sat is not None:
@@ -156,7 +158,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_info")
             if result is not None and result.get("error") is None:
-                data["connected"] = True
+                request_succeeded = True
                 info_result = result.get("result") or {}
                 version = info_result.get("version")
                 if version:
@@ -174,7 +176,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_budget")
             if result is not None and result.get("error") is None:
-                data["connected"] = True
+                request_succeeded = True
                 budget_result = result.get("result") or {}
                 total_msat = budget_result.get("total_budget")
                 used_msat = budget_result.get("used_budget")
@@ -192,6 +194,8 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     data["nwc_budget_renewal"] = renewal
         except Exception as err:
             _LOGGER.debug("NWC get_budget failed: %s", err)
+
+        data["connected"] = request_succeeded
 
 
 def _read_sat_value(value: Any) -> int | None:
