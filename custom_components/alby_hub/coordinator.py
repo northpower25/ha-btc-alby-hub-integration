@@ -107,29 +107,31 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._mode == MODE_EXPERT and self._api_client is not None:
             if not await self._api_client.health_check():
                 data["connected"] = False
-                return data
+                # Keep data flow alive via NWC fallback if local expert API is
+                # currently unavailable.
+                await self._fetch_nwc_data(data)
+            else:
+                try:
+                    info = await self._api_client.get_info()
+                    balance = await self._api_client.get_balance()
+                except AlbyHubApiError as err:
+                    raise UpdateFailed(f"Failed to fetch expert-mode API data: {err}") from err
 
-            try:
-                info = await self._api_client.get_info()
-                balance = await self._api_client.get_balance()
-            except AlbyHubApiError as err:
-                raise UpdateFailed(f"Failed to fetch expert-mode API data: {err}") from err
+                data["connected"] = True
+                data["version"] = info.get("version")
+                data["alias"] = info.get("alias") or info.get("name")
 
-            data["connected"] = True
-            data["version"] = info.get("version")
-            data["alias"] = info.get("alias") or info.get("name")
+                lightning = balance.get("lightning") if isinstance(balance, dict) else None
+                onchain = balance.get("onchain") if isinstance(balance, dict) else None
+                data["balance_lightning"] = _read_sat_value(lightning)
+                data["balance_onchain"] = _read_sat_value(onchain)
 
-            lightning = balance.get("lightning") if isinstance(balance, dict) else None
-            onchain = balance.get("onchain") if isinstance(balance, dict) else None
-            data["balance_lightning"] = _read_sat_value(lightning)
-            data["balance_onchain"] = _read_sat_value(onchain)
-
-            # Fetch recent transactions in expert mode
-            try:
-                txs = await self._api_client.list_transactions(limit=50)
-                data["transactions"] = _normalize_transactions(txs)
-            except AlbyHubApiError as err:
-                _LOGGER.debug("Failed to fetch transactions (expert mode): %s", err)
+                # Fetch recent transactions in expert mode
+                try:
+                    txs = await self._api_client.list_transactions(limit=50)
+                    data["transactions"] = _normalize_transactions(txs)
+                except AlbyHubApiError as err:
+                    _LOGGER.debug("Failed to fetch transactions (expert mode): %s", err)
         else:
             # Cloud / NWC-only mode: fetch balance and info via NWC protocol
             await self._fetch_nwc_data(data)
