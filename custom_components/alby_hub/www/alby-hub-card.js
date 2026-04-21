@@ -655,7 +655,7 @@ class AlbyHubPanel extends HTMLElement {
          <div class="qr-wrap">
             <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=lightning:${encodeURIComponent(invoice)}&size=280x280&margin=8" alt="Invoice QR">
           </div>
-         ${invoiceAmountSat !== null ? `<div class="muted small"><b>${t('invoiceAmountSat')}:</b> ${Math.floor(invoiceAmountSat).toLocaleString()} sat</div>` : ''}
+         ${invoiceAmountSat !== null ? `<div class="muted small"><b>${t('invoiceAmountSat')}:</b> ${invoiceAmountSat.toLocaleString()} sat</div>` : ''}
          <div class="muted small"><b>${t('invoicePurpose')}:</b> ${this._esc(invoiceMemo || '—')}</div>
          <div class="muted small">${t('scanHint')}</div>`
       : `<div class="muted">${t('noInvoice')}</div>`;

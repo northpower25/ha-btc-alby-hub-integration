@@ -74,6 +74,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         lightning_address = _first_valid_lightning_address(
+            # Manual value should override URI-discovered lud16 when provided by user.
             self._manual_lightning_address,
             self._nwc_info.lud16,
         )
@@ -433,8 +434,11 @@ async def _safe_get_json(session: ClientSession, url: str) -> Any:
             if "json" in content_type:
                 return await response.json(content_type=None)
             raw_text = (await response.text()).strip()
-            if raw_text and raw_text.lstrip("-").isdigit():
-                return int(raw_text)
+            if raw_text:
+                try:
+                    return int(raw_text)
+                except ValueError:
+                    pass
             try:
                 return await response.json(content_type=None)
             except ValueError:
