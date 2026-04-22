@@ -332,7 +332,7 @@ In the Alby Hub panel (tab **Send**) you can use a device camera to scan QR code
 4. The detected BOLT11 code is automatically transferred to the payment field.
 5. Click **➤ Send Payment**.
 
-**Note:** This feature uses the browser's native BarcodeDetector API (available in Chrome/Edge ≥ 83 and the HA Companion App on Android). In Firefox or Safari, the file upload option is shown instead.
+**Note:** This feature uses the browser's native BarcodeDetector API (available in Chrome/Edge ≥ 83 and the HA Companion App on Android). The panel also includes a Chrome/Edge compatibility fallback via video-frame scanning. In Firefox or Safari, the file upload option is shown instead.
 
 ### Option 2 – Upload image / photo
 

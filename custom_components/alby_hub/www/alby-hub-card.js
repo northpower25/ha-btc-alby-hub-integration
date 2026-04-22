@@ -151,7 +151,7 @@ const TRANSLATIONS = {
       found: '✅ QR-Code erkannt',
       notFound: '❌ Kein QR-Code erkannt. Bitte erneut versuchen.',
       error: '⚠️ Scan-Fehler',
-      noBarcodeApiHint: '⚠️ BarcodeDetector nicht verfügbar (Firefox/Safari). Bitte "Bild wählen" nutzen.',
+      noBarcodeApiHint: '⚠️ QR-Erkennung im Browser nicht verfügbar. Bitte Chrome/Edge aktualisieren oder "Bild wählen" nutzen.',
       companionHint: '💡 HA Companion App (Android/iOS): QR-Code direkt im Lovelace-Dashboard über das Kamera-Symbol scannen.',
     },
     autoExamples: {
@@ -320,7 +320,7 @@ const TRANSLATIONS = {
       found: '✅ QR code detected',
       notFound: '❌ No QR code found. Please try again.',
       error: '⚠️ Scan error',
-      noBarcodeApiHint: '⚠️ BarcodeDetector not available (Firefox/Safari). Please use "Choose image".',
+      noBarcodeApiHint: '⚠️ Browser QR detection is unavailable. Please update Chrome/Edge or use "Choose image".',
       companionHint: '💡 HA Companion App (Android/iOS): scan QR codes in the Lovelace dashboard via the camera icon.',
     },
     autoExamples: {
@@ -1253,6 +1253,86 @@ class AlbyHubPanel extends HTMLElement {
       .sort();
   }
 
+  async _createQrDetector() {
+    if (typeof BarcodeDetector === 'undefined') return null;
+    try {
+      if (typeof BarcodeDetector.getSupportedFormats === 'function') {
+        const formats = await BarcodeDetector.getSupportedFormats();
+        if (Array.isArray(formats) && formats.length > 0 && !formats.includes('qr_code')) {
+          return null;
+        }
+      }
+      return new BarcodeDetector({ formats: ['qr_code'] });
+    } catch (_) {
+      // Older browser builds may reject the format option; retry without it.
+      try {
+        return new BarcodeDetector();
+      } catch (_) {
+        // No usable detector in this runtime.
+        return null;
+      }
+    }
+  }
+
+  _sourceToCanvas(source) {
+    if (source instanceof HTMLCanvasElement) {
+      return source.width > 1 && source.height > 1 ? source : null;
+    }
+
+    let width = 0;
+    let height = 0;
+    if (source instanceof HTMLVideoElement) {
+      width = source.videoWidth || 0;
+      height = source.videoHeight || 0;
+    } else if (source instanceof HTMLImageElement) {
+      width = source.naturalWidth || source.width || 0;
+      height = source.naturalHeight || source.height || 0;
+    }
+    if (width < 2 || height < 2) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = source instanceof HTMLVideoElement
+      ? canvas.getContext('2d', { willReadFrequently: true })
+      : canvas.getContext('2d');
+    if (!ctx) return null;
+    try {
+      ctx.drawImage(source, 0, 0, width, height);
+      return canvas;
+    } catch (_) {
+      // Drawing can fail on invalid/unready sources.
+      return null;
+    }
+  }
+
+  async _detectQrWithDetector(source, detector) {
+    if (!detector) return null;
+    const detectValue = async (target) => {
+      const codes = await detector.detect(target);
+      if (!Array.isArray(codes)) return null;
+      const first = codes.find((code) => typeof code?.rawValue === 'string' && code.rawValue.trim().length > 0);
+      return first ? first.rawValue.trim() : null;
+    };
+
+    try {
+      const direct = await detectValue(source);
+      if (direct) return direct;
+    } catch (_) {
+      // fallback below (required for some Chrome/Edge environments)
+    }
+
+    const canvas = this._sourceToCanvas(source);
+    if (!canvas) return null;
+
+    try {
+      return await detectValue(canvas);
+    } catch (_) {
+      // Detection can still fail for edge browser/runtime combinations.
+      return null;
+    }
+  }
+
   // ── Camera scan card ─────────────────────────────────────────────────────────
 
   _buildCameraScanCard() {
@@ -2007,8 +2087,8 @@ class AlbyHubPanel extends HTMLElement {
         this._cameraScanMsg = t('scanning');
         this._updateContent();
         try {
-          const hasBarcodeApi = typeof BarcodeDetector !== 'undefined';
-          if (!hasBarcodeApi) {
+          const detector = await this._createQrDetector();
+          if (!detector) {
             this._cameraScanMsg = t('noBarcodeApiHint');
             this._updateContent();
             return;
@@ -2029,11 +2109,10 @@ class AlbyHubPanel extends HTMLElement {
           const img = new Image();
           await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = imgUrl; });
           URL.revokeObjectURL(imgUrl);
-          const detector = new BarcodeDetector({ formats: ['qr_code'] });
-          const barcodes = await detector.detect(img);
-          if (barcodes.length > 0) {
-            this._pendingPayInput = barcodes[0].rawValue;
-            this._cameraScanMsg = t('found') + ': ' + barcodes[0].rawValue.slice(0, 30) + (barcodes[0].rawValue.length > 30 ? '…' : '');
+          const qrValue = await this._detectQrWithDetector(img, detector);
+          if (qrValue) {
+            this._pendingPayInput = qrValue;
+            this._cameraScanMsg = t('found') + ': ' + qrValue.slice(0, 30) + (qrValue.length > 30 ? '…' : '');
           } else {
             this._cameraScanMsg = t('notFound');
           }
@@ -2053,8 +2132,8 @@ class AlbyHubPanel extends HTMLElement {
           return;
         }
         const t = (k) => this._t(`camera.${k}`);
-        const hasBarcodeApi = typeof BarcodeDetector !== 'undefined';
-        if (!hasBarcodeApi) {
+        const detector = await this._createQrDetector();
+        if (!detector) {
           this._cameraScanMsg = t('noBarcodeApiHint');
           this._updateContent();
           return;
@@ -2069,17 +2148,16 @@ class AlbyHubPanel extends HTMLElement {
           const video = this.shadowRoot.querySelector('#camera-video');
           if (video) { video.srcObject = stream; video.play().catch(() => {}); }
 
-          const detector = new BarcodeDetector({ formats: ['qr_code'] });
           const scanLoop = async () => {
             if (!this._cameraScanning || !this._cameraStream) return;
             const vid = this.shadowRoot.querySelector('#camera-video');
             if (!vid || vid.readyState < 2) { requestAnimationFrame(scanLoop); return; }
             try {
-              const codes = await detector.detect(vid);
-              if (codes.length > 0) {
-                this._pendingPayInput = codes[0].rawValue;
+              const qrValue = await this._detectQrWithDetector(vid, detector);
+              if (qrValue) {
+                this._pendingPayInput = qrValue;
                 this._cameraStream = stream; // ensure _stopCameraStream can stop it
-                const foundMsg = t('found') + ': ' + codes[0].rawValue.slice(0, 40) + (codes[0].rawValue.length > 40 ? '…' : '');
+                const foundMsg = t('found') + ': ' + qrValue.slice(0, 40) + (qrValue.length > 40 ? '…' : '');
                 this._stopCameraStream();
                 this._cameraScanMsg = foundMsg;
                 this._updateContent();
@@ -2102,8 +2180,8 @@ class AlbyHubPanel extends HTMLElement {
         const file = input.files?.[0];
         if (!file) return;
         const t = (k) => this._t(`camera.${k}`);
-        const hasBarcodeApi = typeof BarcodeDetector !== 'undefined';
-        if (!hasBarcodeApi) {
+        const detector = await this._createQrDetector();
+        if (!detector) {
           this._cameraScanMsg = t('noBarcodeApiHint');
           this._updateContent();
           return;
@@ -2115,11 +2193,10 @@ class AlbyHubPanel extends HTMLElement {
           const img = new Image();
           await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = imgUrl; });
           URL.revokeObjectURL(imgUrl);
-          const detector = new BarcodeDetector({ formats: ['qr_code'] });
-          const barcodes = await detector.detect(img);
-          if (barcodes.length > 0) {
-            this._pendingPayInput = barcodes[0].rawValue;
-            this._cameraScanMsg = t('found') + ': ' + barcodes[0].rawValue.slice(0, 40) + (barcodes[0].rawValue.length > 40 ? '…' : '');
+          const qrValue = await this._detectQrWithDetector(img, detector);
+          if (qrValue) {
+            this._pendingPayInput = qrValue;
+            this._cameraScanMsg = t('found') + ': ' + qrValue.slice(0, 40) + (qrValue.length > 40 ? '…' : '');
           } else {
             this._cameraScanMsg = t('notFound');
           }

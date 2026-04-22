@@ -225,6 +225,10 @@ gespeichert in `.storage/lovelace.alby-hub`). Es enthält drei Views:
 - **Send**: Text-Entität für Invoice-Input, Anleitung (Companion App QR / Paste), Button
 - **Network**: Bitcoin-Preis, Blockhöhe, Hashrate, Halving-Daten
 
+Das JS-Panel (`www/alby-hub-card.js`) stellt zusätzlich einen QR-Scan im Reiter **Senden** bereit
+(Gerätekamera, HA-Kamera-Snapshot, Datei-Upload). Für Chrome/Edge wird neben direkter
+`BarcodeDetector.detect(...)`-Nutzung ein Canvas-Frame-Fallback verwendet.
+
 **Wichtig:** Nachträgliche Änderungen an `_default_dashboard_config()` betreffen **keine bestehenden**
 Installationen. Bestehende Nutzer müssen das Dashboard manuell anpassen oder es löschen und die
 Integration neu starten.
