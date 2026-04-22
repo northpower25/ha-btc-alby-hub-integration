@@ -138,6 +138,58 @@ const TRANSLATIONS = {
       errAmountMin: 'Betrag muss mindestens 1 sat sein.',
       errRecipient: 'Bitte Empfänger angeben.',
     },
+    camera: {
+      title: '📷 QR-Code scannen',
+      selectEntity: 'HA Kamera-Entität (optional)',
+      noCamera: '– keine –',
+      scanEntityBtn: '📷 Snapshot scannen',
+      deviceCameraBtn: '📱 Gerätekamera starten',
+      fileInputBtn: '🖼 Bild wählen',
+      stopBtn: '⏹ Scan stoppen',
+      hint: 'Erkannter QR-Code wird automatisch ins Zahlungsfeld übertragen.',
+      scanning: '⏳ Scanne…',
+      found: '✅ QR-Code erkannt',
+      notFound: '❌ Kein QR-Code erkannt. Bitte erneut versuchen.',
+      error: '⚠️ Scan-Fehler',
+      noBarcodeApiHint: '⚠️ BarcodeDetector nicht verfügbar (Firefox/Safari). Bitte "Bild wählen" nutzen.',
+      companionHint: '💡 HA Companion App (Android/iOS): QR-Code direkt im Lovelace-Dashboard über das Kamera-Symbol scannen.',
+    },
+    autoExamples: {
+      receiveTitle: '🤖 Automatisierungen – Empfangen (Beispiele)',
+      sendTitle: '🤖 Automatisierungen – Senden (Beispiele)',
+      intro: 'Beispiel auswählen → 📋 Kopieren → in HA unter <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> einfügen → anpassen → speichern.',
+      copy: '📋 Kopieren',
+      copied: '✅ Kopiert!',
+    },
+    autoBuilder: {
+      title: '⚙️ Automatisierungs-Generator',
+      intro: 'Felder ausfüllen → YAML generieren → kopieren → in HA-Automatisierungseditor einfügen.',
+      direction: 'Richtung',
+      dirSend: 'Zahlung auslösen (Senden)',
+      dirReceive: 'Auf Zahlung reagieren (Empfangen)',
+      triggerType: 'Auslöser-Typ',
+      trigStateOn: 'Entität wird eingeschaltet (→ on)',
+      trigThreshAbove: 'Sensorwert überschreitet Grenzwert',
+      trigThreshBelow: 'Sensorwert unterschreitet Grenzwert',
+      trigBalanceIncrease: 'Lightning-Balance steigt (Zahlung empfangen)',
+      trigEntityId: 'Entitäts-ID des Auslösers',
+      trigThreshold: 'Grenzwert',
+      actionType: 'Aktion',
+      actSendPayment: 'Lightning-Zahlung senden',
+      actTurnOn: 'Entität einschalten',
+      actTurnOff: 'Entität ausschalten',
+      actNotify: 'Benachrichtigung senden',
+      recipient: 'Empfänger (z.B. user@wallet.de)',
+      amountSat: 'Betrag (sat)',
+      memo: 'Zahlungsnotiz (optional)',
+      targetEntityId: 'Ziel-Entität (z.B. switch.steckdose)',
+      notifyMsg: 'Benachrichtigungstext',
+      generateBtn: '⚡ YAML generieren',
+      copyBtn: '📋 YAML kopieren',
+      copied: '✅ Kopiert!',
+      placeholder: 'Formular ausfüllen und auf "⚡ YAML generieren" klicken…',
+      haHint: '💡 <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> → einfügen → speichern.',
+    },
     unavailable: 'nicht verfügbar',
   },
   en: {
@@ -255,6 +307,58 @@ const TRANSLATIONS = {
       errAmountMin: 'Amount must be at least 1 sat.',
       errRecipient: 'Please specify a recipient.',
     },
+    camera: {
+      title: '📷 Scan QR Code',
+      selectEntity: 'HA camera entity (optional)',
+      noCamera: '– none –',
+      scanEntityBtn: '📷 Scan snapshot',
+      deviceCameraBtn: '📱 Start device camera',
+      fileInputBtn: '🖼 Choose image',
+      stopBtn: '⏹ Stop scan',
+      hint: 'Detected QR code will be automatically transferred to the payment field.',
+      scanning: '⏳ Scanning…',
+      found: '✅ QR code detected',
+      notFound: '❌ No QR code found. Please try again.',
+      error: '⚠️ Scan error',
+      noBarcodeApiHint: '⚠️ BarcodeDetector not available (Firefox/Safari). Please use "Choose image".',
+      companionHint: '💡 HA Companion App (Android/iOS): scan QR codes in the Lovelace dashboard via the camera icon.',
+    },
+    autoExamples: {
+      receiveTitle: '🤖 Automation Examples (Receive)',
+      sendTitle: '🤖 Automation Examples (Send)',
+      intro: 'Choose an example → 📋 Copy → in HA go to <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b>, paste, adapt and save.',
+      copy: '📋 Copy',
+      copied: '✅ Copied!',
+    },
+    autoBuilder: {
+      title: '⚙️ Automation Generator',
+      intro: 'Fill in the fields → generate YAML → copy → paste into the HA automation editor.',
+      direction: 'Direction',
+      dirSend: 'Trigger a payment (Send)',
+      dirReceive: 'React to payment (Receive)',
+      triggerType: 'Trigger type',
+      trigStateOn: 'Entity is turned on (→ on)',
+      trigThreshAbove: 'Sensor value exceeds threshold',
+      trigThreshBelow: 'Sensor value falls below threshold',
+      trigBalanceIncrease: 'Lightning balance increases (payment received)',
+      trigEntityId: 'Trigger entity ID',
+      trigThreshold: 'Threshold value',
+      actionType: 'Action',
+      actSendPayment: 'Send Lightning payment',
+      actTurnOn: 'Turn entity on',
+      actTurnOff: 'Turn entity off',
+      actNotify: 'Send notification',
+      recipient: 'Recipient (e.g. user@wallet.com)',
+      amountSat: 'Amount (sat)',
+      memo: 'Payment memo (optional)',
+      targetEntityId: 'Target entity (e.g. switch.socket)',
+      notifyMsg: 'Notification message',
+      generateBtn: '⚡ Generate YAML',
+      copyBtn: '📋 Copy YAML',
+      copied: '✅ Copied!',
+      placeholder: 'Fill in the form and click "⚡ Generate YAML"…',
+      haHint: '💡 <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b> → paste → save.',
+    },
     unavailable: 'unavailable',
   },
 };
@@ -334,6 +438,26 @@ class AlbyHubPanel extends HTMLElement {
       day_of_week: '0', day_of_month: '1',
       start_date: this._todayIso(), end_date: '',
     };
+    // Camera scan state
+    this._cameraStream = null;
+    this._cameraScanning = false;
+    this._cameraEntitySel = '';
+    this._cameraScanMsg = '';
+    // Automation builder state
+    this._autoForm = {
+      direction: 'send',
+      triggerType: 'state_on',
+      trigEntityId: '',
+      threshold: '100',
+      actionType: 'send_payment',
+      recipient: '',
+      amountSat: '1000',
+      memo: '',
+      targetEntityId: '',
+      notifyMsg: '',
+    };
+    this._autoYaml = '';
+    this._autoBuilderVisible = false;
   }
 
   connectedCallback() {
@@ -569,6 +693,14 @@ class AlbyHubPanel extends HTMLElement {
       el.scrollLeft = snap.scrollLeft;
       el.scrollTop = snap.scrollTop;
     });
+    // Re-attach live camera stream if scanning
+    if (this._cameraScanning && this._cameraStream) {
+      const video = this.shadowRoot.querySelector('#camera-video');
+      if (video && !video.srcObject) {
+        video.srcObject = this._cameraStream;
+        video.play().catch(() => {});
+      }
+    }
     this._lastUpdate = Date.now();
   }
 
@@ -728,7 +860,10 @@ class AlbyHubPanel extends HTMLElement {
         ${this._row('⚡', this._t('overview.lightning'), `${lightning.toLocaleString()} sat`)}
         ${this._row('₿', this._t('overview.onchain'),  `${onchain.toLocaleString()} sat`)}
       </div>
-    </div>`;
+    </div>
+    ${this._buildAutoExamplesCard('receive')}
+    ${this._buildAutoBuilderCard()}
+    `;
   }
 
   // ── Tab: Send ────────────────────────────────────────────────────────────────
@@ -793,7 +928,11 @@ class AlbyHubPanel extends HTMLElement {
         ${this._row('⚡', this._t('overview.lightning'), `${lightning.toLocaleString()} sat`)}
         ${this._row('₿', this._t('overview.onchain'),  `${onchain.toLocaleString()} sat`)}
       </div>
-    </div>`;
+    </div>
+    ${this._buildCameraScanCard()}
+    ${this._buildAutoExamplesCard('send')}
+    ${this._buildAutoBuilderCard()}
+    `;
   }
 
   // ── Tab: Budget ──────────────────────────────────────────────────────────────
@@ -1106,6 +1245,304 @@ class AlbyHubPanel extends HTMLElement {
     </div>`;
   }
 
+  // ── Camera entity helper ────────────────────────────────────────────────────
+
+  _getCameraEntities() {
+    return Object.keys(this._hass?.states || {})
+      .filter((id) => id.startsWith('camera.'))
+      .sort();
+  }
+
+  // ── Camera scan card ─────────────────────────────────────────────────────────
+
+  _buildCameraScanCard() {
+    const t = (k) => this._t(`camera.${k}`);
+    const cameras = this._getCameraEntities();
+    const cameraOptions = cameras
+      .map((id) => `<option value="${this._esc(id)}"${id === this._cameraEntitySel ? ' selected' : ''}>${this._esc(id)}</option>`)
+      .join('');
+    const hasBarcodeApi = typeof BarcodeDetector !== 'undefined';
+
+    return `<div class="card">
+      <div class="card-title">${t('title')}</div>
+      <p class="muted" style="font-size:0.8rem">${t('hint')}</p>
+      ${!hasBarcodeApi ? `<p class="muted" style="font-size:0.75rem;background:rgba(255,165,0,.1);padding:6px 10px;border-radius:6px;margin-bottom:8px">${t('noBarcodeApiHint')}</p>` : ''}
+      ${cameras.length > 0 ? `<div class="field">
+        <label>${t('selectEntity')}</label>
+        <select class="inp" id="camera-entity-sel">
+          <option value="">${t('noCamera')}</option>
+          ${cameraOptions}
+        </select>
+        <button class="filter-btn" id="scan-entity-btn" style="margin-top:6px;width:100%">${t('scanEntityBtn')}</button>
+      </div>` : ''}
+      <div class="field" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+        <button class="filter-btn${this._cameraScanning ? ' active' : ''}" id="scan-device-btn" style="flex:1">${this._cameraScanning ? t('stopBtn') : t('deviceCameraBtn')}</button>
+        <label class="filter-btn" for="scan-file-input" style="flex:1;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center">${t('fileInputBtn')}</label>
+        <input type="file" id="scan-file-input" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:0;height:0">
+      </div>
+      ${this._cameraScanning ? `<video id="camera-video" autoplay playsinline muted style="width:100%;border-radius:8px;margin-top:8px;max-height:220px;object-fit:cover;background:#000"></video>` : ''}
+      ${this._cameraScanMsg ? `<p class="muted" style="margin-top:6px;font-size:0.82rem">${this._esc(this._cameraScanMsg)}</p>` : ''}
+      <p class="muted" style="font-size:0.73rem;margin-top:8px">${t('companionHint')}</p>
+    </div>`;
+  }
+
+  // ── Automation examples card ─────────────────────────────────────────────────
+
+  _buildAutoExamplesCard(direction) {
+    const t = (k) => this._t(`autoExamples.${k}`);
+    const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
+    const isDE = lang === 'de';
+    const title = direction === 'receive' ? t('receiveTitle') : t('sendTitle');
+
+    const examples = direction === 'receive' ? [
+      {
+        desc: isDE
+          ? 'Wenn eine Zahlung empfangen wird → Benachrichtigung senden'
+          : 'When a payment is received → send notification',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Zahlung empfangen, Benachrichtigung' : 'Alby Hub – Payment received, notify'}"`,
+          `description: >`,
+          `  ${isDE ? 'Sendet eine Benachrichtigung wenn die Lightning-Balance steigt.' : 'Sends a notification when the Lightning balance increases.'}`,
+          `trigger:`,
+          `  - platform: state`,
+          `    entity_id: sensor.alby_hub_lightning_balance`,
+          `condition:`,
+          `  - condition: template`,
+          `    value_template: >`,
+          `      {{ trigger.to_state.state | int(0) >`,
+          `         trigger.from_state.state | int(0) }}`,
+          `action:`,
+          `  - service: notify.notify`,
+          `    data:`,
+          `      message: >`,
+          `        ${isDE ? '⚡ Zahlung empfangen!' : '⚡ Payment received!'}`,
+          `        ${isDE ? 'Neue Balance' : 'New balance'}: {{ states('sensor.alby_hub_lightning_balance') }} sat`,
+          `mode: single`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Wenn eine Zahlung empfangen wird → Schalter einschalten'
+          : 'When a payment is received → turn on a switch',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Zahlung empfangen, Zugang freischalten' : 'Alby Hub – Payment received, grant access'}"`,
+          `description: >`,
+          `  ${isDE ? 'Ersetze switch.beispiel_zugang durch deine Ziel-Entität.' : 'Replace switch.example_access with your target entity.'}`,
+          `trigger:`,
+          `  - platform: state`,
+          `    entity_id: sensor.alby_hub_lightning_balance`,
+          `condition:`,
+          `  - condition: template`,
+          `    value_template: >`,
+          `      {{ trigger.to_state.state | int(0) >`,
+          `         trigger.from_state.state | int(0) }}`,
+          `action:`,
+          `  - service: switch.turn_on`,
+          `    target:`,
+          `      entity_id: ${isDE ? 'switch.beispiel_zugang' : 'switch.example_access'}`,
+          `mode: single`,
+        ].join('\n'),
+      },
+    ] : [
+      {
+        desc: isDE
+          ? 'Wenn ein Schalter eingeschaltet wird → Lightning-Zahlung senden'
+          : 'When a switch is turned on → send Lightning payment',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Schalter → Zahlung auslösen' : 'Alby Hub – Switch → trigger payment'}"`,
+          `description: >`,
+          `  ${isDE ? 'Ersetze switch.zahlungs_schalter, Empfänger und Betrag.' : 'Replace switch.payment_trigger, recipient, and amount.'}`,
+          `trigger:`,
+          `  - platform: state`,
+          `    entity_id: ${isDE ? 'switch.zahlungs_schalter' : 'switch.payment_trigger'}`,
+          `    to: "on"`,
+          `action:`,
+          `  - service: alby_hub.send_payment`,
+          `    data:`,
+          `      payment_request: "recipient@lightning.address"`,
+          `      amount_sat: 1000`,
+          `      memo: "${isDE ? 'Automatische Zahlung von HA' : 'Automatic payment from HA'}"`,
+          `mode: single`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Wenn ein Sensor-Grenzwert überschritten wird → Lightning-Zahlung senden'
+          : 'When a sensor threshold is exceeded → send Lightning payment',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Grenzwert → Zahlung' : 'Alby Hub – Threshold → payment'}"`,
+          `description: >`,
+          `  ${isDE ? 'Ersetze Sensor-ID, Grenzwert, Empfänger und Betrag.' : 'Replace sensor ID, threshold, recipient, and amount.'}`,
+          `trigger:`,
+          `  - platform: numeric_state`,
+          `    entity_id: ${isDE ? 'sensor.beispiel_sensor' : 'sensor.example_sensor'}`,
+          `    above: 100`,
+          `action:`,
+          `  - service: alby_hub.send_payment`,
+          `    data:`,
+          `      payment_request: "recipient@lightning.address"`,
+          `      amount_sat: 5000`,
+          `      memo: "${isDE ? 'Abrechnung' : 'Billing'} {{ now().strftime('%Y-%m-%d') }}"`,
+          `mode: single`,
+        ].join('\n'),
+      },
+    ];
+
+    if (!this._autoExamplesStore) this._autoExamplesStore = {};
+    this._autoExamplesStore[direction] = examples;
+
+    const cards = examples.map((ex, idx) => `
+      <div class="auto-example">
+        <div class="auto-example-desc">${this._esc(ex.desc)}</div>
+        <pre class="auto-yaml"><code>${this._esc(ex.yaml)}</code></pre>
+        <button class="filter-btn copy-example-btn" data-direction="${direction}" data-idx="${idx}">${t('copy')}</button>
+      </div>`).join('');
+
+    return `<div class="card">
+      <div class="card-title">${title}</div>
+      <p class="muted" style="font-size:0.8rem">${t('intro')}</p>
+      ${cards}
+    </div>`;
+  }
+
+  // ── Automation builder card ───────────────────────────────────────────────────
+
+  _buildAutoBuilderCard() {
+    const t   = (k) => this._t(`autoBuilder.${k}`);
+    const f   = this._autoForm;
+    const isSend    = f.direction === 'send';
+    const isStateOn = f.triggerType === 'state_on';
+    const isAbove   = f.triggerType === 'thresh_above';
+    const isBelow   = f.triggerType === 'thresh_below';
+    const isPayment = f.actionType === 'send_payment';
+    const isNotify  = f.actionType === 'notify';
+
+    const triggerFields = isSend ? `
+      <div class="field">
+        <label>${t('triggerType')}</label>
+        <select class="inp" id="ab-trig-type">
+          <option value="state_on"     ${isStateOn ? 'selected' : ''}>${t('trigStateOn')}</option>
+          <option value="thresh_above" ${isAbove   ? 'selected' : ''}>${t('trigThreshAbove')}</option>
+          <option value="thresh_below" ${isBelow   ? 'selected' : ''}>${t('trigThreshBelow')}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>${t('trigEntityId')}</label>
+        <input type="text" class="inp" id="ab-trig-entity" placeholder="${isStateOn ? 'switch.your_switch' : 'sensor.your_sensor'}" value="${this._esc(f.trigEntityId)}">
+      </div>
+      ${!isStateOn ? `<div class="field">
+        <label>${t('trigThreshold')}</label>
+        <input type="number" class="inp" id="ab-threshold" value="${this._esc(f.threshold)}">
+      </div>` : ''}
+    ` : `
+      <div class="field">
+        <label>${t('triggerType')}</label>
+        <select class="inp" id="ab-trig-type" disabled>
+          <option value="balance_increase" selected>${t('trigBalanceIncrease')}</option>
+        </select>
+      </div>
+    `;
+
+    const actionFields = `
+      <div class="field">
+        <label>${t('actionType')}</label>
+        <select class="inp" id="ab-action-type">
+          ${isSend ? `<option value="send_payment" ${isPayment ? 'selected' : ''}>${t('actSendPayment')}</option>` : ''}
+          <option value="turn_on"  ${f.actionType === 'turn_on'  ? 'selected' : ''}>${t('actTurnOn')}</option>
+          <option value="turn_off" ${f.actionType === 'turn_off' ? 'selected' : ''}>${t('actTurnOff')}</option>
+          <option value="notify"   ${isNotify ? 'selected' : ''}>${t('actNotify')}</option>
+        </select>
+      </div>
+      ${isPayment && isSend ? `
+        <div class="field">
+          <label>${t('recipient')}</label>
+          <input type="text" class="inp" id="ab-recipient" placeholder="user@lightning.address" value="${this._esc(f.recipient)}">
+        </div>
+        <div class="field" style="display:flex;gap:6px">
+          <div style="flex:1">
+            <label>${t('amountSat')}</label>
+            <input type="number" class="inp" id="ab-amount" min="1" value="${this._esc(f.amountSat)}">
+          </div>
+        </div>
+        <div class="field">
+          <label>${t('memo')}</label>
+          <input type="text" class="inp" id="ab-memo" value="${this._esc(f.memo)}">
+        </div>
+      ` : ''}
+      ${(f.actionType === 'turn_on' || f.actionType === 'turn_off') ? `
+        <div class="field">
+          <label>${t('targetEntityId')}</label>
+          <input type="text" class="inp" id="ab-target-entity" placeholder="switch.your_entity" value="${this._esc(f.targetEntityId)}">
+        </div>
+      ` : ''}
+      ${isNotify ? `
+        <div class="field">
+          <label>${t('notifyMsg')}</label>
+          <input type="text" class="inp" id="ab-notify-msg" value="${this._esc(f.notifyMsg)}">
+        </div>
+      ` : ''}
+    `;
+
+    const yamlBlock = this._autoYaml
+      ? `<pre class="auto-yaml" style="margin-top:10px"><code>${this._esc(this._autoYaml)}</code></pre>
+         <button class="filter-btn" id="ab-copy-btn" style="margin-top:6px;width:100%">${t('copyBtn')}</button>`
+      : `<p class="muted" style="font-size:0.8rem;margin-top:8px">${t('placeholder')}</p>`;
+
+    return `<div class="card">
+      <div class="card-title">${t('title')}</div>
+      <p class="muted" style="font-size:0.8rem">${t('intro')}</p>
+      <div class="field">
+        <label>${t('direction')}</label>
+        <select class="inp" id="ab-direction">
+          <option value="send"    ${f.direction === 'send'    ? 'selected' : ''}>${t('dirSend')}</option>
+          <option value="receive" ${f.direction === 'receive' ? 'selected' : ''}>${t('dirReceive')}</option>
+        </select>
+      </div>
+      ${triggerFields}
+      ${actionFields}
+      <button class="btn" id="ab-generate-btn" style="margin-top:4px">${t('generateBtn')}</button>
+      ${yamlBlock}
+      <p class="muted" style="font-size:0.73rem;margin-top:10px">${t('haHint')}</p>
+    </div>`;
+  }
+
+  _generateAutomationYaml() {
+    const f    = this._autoForm;
+    const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
+    const isDE = lang === 'de';
+    const isSend = f.direction === 'send';
+
+    let triggerAndCondition = '';
+    if (f.triggerType === 'state_on') {
+      triggerAndCondition = `trigger:\n  - platform: state\n    entity_id: ${f.trigEntityId || 'switch.your_switch'}\n    to: "on"`;
+    } else if (f.triggerType === 'thresh_above') {
+      triggerAndCondition = `trigger:\n  - platform: numeric_state\n    entity_id: ${f.trigEntityId || 'sensor.your_sensor'}\n    above: ${f.threshold || '100'}`;
+    } else if (f.triggerType === 'thresh_below') {
+      triggerAndCondition = `trigger:\n  - platform: numeric_state\n    entity_id: ${f.trigEntityId || 'sensor.your_sensor'}\n    below: ${f.threshold || '100'}`;
+    } else {
+      triggerAndCondition = `trigger:\n  - platform: state\n    entity_id: sensor.alby_hub_lightning_balance\ncondition:\n  - condition: template\n    value_template: >\n      {{ trigger.to_state.state | int(0) >\n         trigger.from_state.state | int(0) }}`;
+    }
+
+    let action = '';
+    if (f.actionType === 'send_payment') {
+      const memoLine = f.memo ? `\n      memo: "${f.memo}"` : '';
+      action = `action:\n  - service: alby_hub.send_payment\n    data:\n      payment_request: "${f.recipient || 'recipient@lightning.address'}"\n      amount_sat: ${f.amountSat || '1000'}${memoLine}`;
+    } else if (f.actionType === 'turn_on') {
+      action = `action:\n  - service: switch.turn_on\n    target:\n      entity_id: ${f.targetEntityId || 'switch.your_entity'}`;
+    } else if (f.actionType === 'turn_off') {
+      action = `action:\n  - service: switch.turn_off\n    target:\n      entity_id: ${f.targetEntityId || 'switch.your_entity'}`;
+    } else {
+      const msg = f.notifyMsg || (isDE ? '⚡ Zahlung empfangen!' : '⚡ Payment received!');
+      action = `action:\n  - service: notify.notify\n    data:\n      message: "${msg}"`;
+    }
+
+    const aliasStr = isSend
+      ? (isDE ? 'Alby Hub – Zahlung auslösen' : 'Alby Hub – Trigger payment')
+      : (isDE ? 'Alby Hub – Auf Zahlung reagieren' : 'Alby Hub – React to payment');
+
+    return `alias: "${aliasStr}"\n${triggerAndCondition}\n${action}\nmode: single`;
+  }
+
   // ── Data loaders for async tabs ──────────────────────────────────────────────
 
   _loadTransactions(p) {
@@ -1165,6 +1602,17 @@ class AlbyHubPanel extends HTMLElement {
     }
   }
 
+  // ── Camera stream cleanup helper ─────────────────────────────────────────────
+
+  _stopCameraStream() {
+    if (this._cameraStream) {
+      this._cameraStream.getTracks().forEach((t) => t.stop());
+      this._cameraStream = null;
+    }
+    this._cameraScanning = false;
+    this._cameraScanMsg = '';
+  }
+
   // ── Event listeners ──────────────────────────────────────────────────────────
 
   _attachListeners() {
@@ -1183,6 +1631,10 @@ class AlbyHubPanel extends HTMLElement {
       btn.addEventListener('click', () => {
         const prevTab = this._activeTab;
         this._activeTab = btn.dataset.tab;
+        // Stop camera when leaving the Send tab
+        if (prevTab === 'send' && this._cameraStream) {
+          this._stopCameraStream();
+        }
         // Reset loaded data when navigating to async tabs so fresh data is loaded
         if (this._activeTab === 'activity' && prevTab !== 'activity') {
           this._transactions = null;
@@ -1541,6 +1993,196 @@ class AlbyHubPanel extends HTMLElement {
       });
     });
 
+    // ── Camera scan listeners ────────────────────────────────────────────────
+
+    root.querySelectorAll('#camera-entity-sel').forEach((sel) => {
+      sel.addEventListener('change', () => { this._cameraEntitySel = sel.value; });
+    });
+
+    root.querySelectorAll('#scan-entity-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const entityId = this._cameraEntitySel;
+        if (!entityId) return;
+        const t = (k) => this._t(`camera.${k}`);
+        this._cameraScanMsg = t('scanning');
+        this._updateContent();
+        try {
+          const hasBarcodeApi = typeof BarcodeDetector !== 'undefined';
+          if (!hasBarcodeApi) {
+            this._cameraScanMsg = t('noBarcodeApiHint');
+            this._updateContent();
+            return;
+          }
+          // Fetch camera snapshot with HA auth
+          let snapUrl = `/api/camera_proxy/${entityId}`;
+          let imgBlob;
+          if (typeof this._hass.fetchWithAuth === 'function') {
+            const resp = await this._hass.fetchWithAuth(snapUrl);
+            imgBlob = await resp.blob();
+          } else {
+            const token = this._hass.connection?.options?.accessToken ||
+                          this._hass.auth?.data?.access_token || '';
+            const resp = await fetch(snapUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+            imgBlob = await resp.blob();
+          }
+          const imgUrl = URL.createObjectURL(imgBlob);
+          const img = new Image();
+          await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = imgUrl; });
+          URL.revokeObjectURL(imgUrl);
+          const detector = new BarcodeDetector({ formats: ['qr_code'] });
+          const barcodes = await detector.detect(img);
+          if (barcodes.length > 0) {
+            this._pendingPayInput = barcodes[0].rawValue;
+            this._cameraScanMsg = t('found') + ': ' + barcodes[0].rawValue.slice(0, 30) + (barcodes[0].rawValue.length > 30 ? '…' : '');
+          } else {
+            this._cameraScanMsg = t('notFound');
+          }
+        } catch (err) {
+          this._cameraScanMsg = t('error') + ': ' + String(err).slice(0, 80);
+        }
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('#scan-device-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (this._cameraScanning) {
+          // Stop camera
+          this._stopCameraStream();
+          this._updateContent();
+          return;
+        }
+        const t = (k) => this._t(`camera.${k}`);
+        const hasBarcodeApi = typeof BarcodeDetector !== 'undefined';
+        if (!hasBarcodeApi) {
+          this._cameraScanMsg = t('noBarcodeApiHint');
+          this._updateContent();
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          this._cameraStream = stream;
+          this._cameraScanning = true;
+          this._cameraScanMsg = t('scanning');
+          this._updateContent();
+
+          const video = this.shadowRoot.querySelector('#camera-video');
+          if (video) { video.srcObject = stream; video.play().catch(() => {}); }
+
+          const detector = new BarcodeDetector({ formats: ['qr_code'] });
+          const scanLoop = async () => {
+            if (!this._cameraScanning || !this._cameraStream) return;
+            const vid = this.shadowRoot.querySelector('#camera-video');
+            if (!vid || vid.readyState < 2) { requestAnimationFrame(scanLoop); return; }
+            try {
+              const codes = await detector.detect(vid);
+              if (codes.length > 0) {
+                this._pendingPayInput = codes[0].rawValue;
+                this._cameraStream = stream; // ensure _stopCameraStream can stop it
+                const foundMsg = t('found') + ': ' + codes[0].rawValue.slice(0, 40) + (codes[0].rawValue.length > 40 ? '…' : '');
+                this._stopCameraStream();
+                this._cameraScanMsg = foundMsg;
+                this._updateContent();
+                return;
+              }
+            } catch (_) { /* keep scanning */ }
+            if (this._cameraScanning) requestAnimationFrame(scanLoop);
+          };
+          requestAnimationFrame(scanLoop);
+        } catch (err) {
+          this._cameraScanning = false;
+          this._cameraScanMsg = this._t('camera.error') + ': ' + String(err).slice(0, 80);
+          this._updateContent();
+        }
+      });
+    });
+
+    root.querySelectorAll('#scan-file-input').forEach((input) => {
+      input.addEventListener('change', async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const t = (k) => this._t(`camera.${k}`);
+        const hasBarcodeApi = typeof BarcodeDetector !== 'undefined';
+        if (!hasBarcodeApi) {
+          this._cameraScanMsg = t('noBarcodeApiHint');
+          this._updateContent();
+          return;
+        }
+        this._cameraScanMsg = t('scanning');
+        this._updateContent();
+        try {
+          const imgUrl = URL.createObjectURL(file);
+          const img = new Image();
+          await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = imgUrl; });
+          URL.revokeObjectURL(imgUrl);
+          const detector = new BarcodeDetector({ formats: ['qr_code'] });
+          const barcodes = await detector.detect(img);
+          if (barcodes.length > 0) {
+            this._pendingPayInput = barcodes[0].rawValue;
+            this._cameraScanMsg = t('found') + ': ' + barcodes[0].rawValue.slice(0, 40) + (barcodes[0].rawValue.length > 40 ? '…' : '');
+          } else {
+            this._cameraScanMsg = t('notFound');
+          }
+        } catch (err) {
+          this._cameraScanMsg = t('error') + ': ' + String(err).slice(0, 80);
+        }
+        this._updateContent();
+      });
+    });
+
+    // ── Copy automation example buttons ─────────────────────────────────────
+
+    root.querySelectorAll('.copy-example-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const dir = btn.dataset.direction;
+        const idx = parseInt(btn.dataset.idx, 10);
+        const yaml = this._autoExamplesStore?.[dir]?.[idx]?.yaml;
+        if (!yaml) return;
+        const origText = btn.textContent;
+        navigator.clipboard.writeText(yaml).then(() => {
+          btn.textContent = this._t('autoExamples.copied');
+          setTimeout(() => { btn.textContent = origText; }, 2000);
+        }).catch(() => { btn.textContent = origText; });
+      });
+    });
+
+    // ── Automation builder listeners ─────────────────────────────────────────
+
+    const bindABField = (id, key, rerenderOnChange = false) => {
+      const el = root.querySelector(`#${id}`);
+      if (!el) return;
+      el.addEventListener('change', () => { this._autoForm[key] = el.value; if (rerenderOnChange) { this._autoYaml = ''; this._updateContent(); } });
+      el.addEventListener('input',  () => { this._autoForm[key] = el.value; });
+    };
+    bindABField('ab-direction',     'direction', true);
+    bindABField('ab-trig-type',     'triggerType', true);
+    bindABField('ab-trig-entity',   'trigEntityId');
+    bindABField('ab-threshold',     'threshold');
+    bindABField('ab-action-type',   'actionType', true);
+    bindABField('ab-recipient',     'recipient');
+    bindABField('ab-amount',        'amountSat');
+    bindABField('ab-memo',          'memo');
+    bindABField('ab-target-entity', 'targetEntityId');
+    bindABField('ab-notify-msg',    'notifyMsg');
+
+    root.querySelectorAll('#ab-generate-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._autoYaml = this._generateAutomationYaml();
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('#ab-copy-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (!this._autoYaml) return;
+        const origText = btn.textContent;
+        navigator.clipboard.writeText(this._autoYaml).then(() => {
+          btn.textContent = this._t('autoBuilder.copied');
+          setTimeout(() => { btn.textContent = origText; }, 2000);
+        }).catch(() => { btn.textContent = origText; });
+      });
+    });
+
   }
 
   // ── CSS ──────────────────────────────────────────────────────────────────────
@@ -1810,6 +2452,33 @@ class AlbyHubPanel extends HTMLElement {
         font-size: 0.78rem;
       }
       .small-btn:hover { background: rgba(244,67,54,.12); }
+
+      /* ── Automation examples & builder ── */
+      .auto-example {
+        margin-bottom: 14px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--divider-color, #2a2a2a);
+      }
+      .auto-example:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+      .auto-example-desc {
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-bottom: 6px;
+        color: var(--primary-text-color);
+      }
+      .auto-yaml {
+        background: var(--secondary-background-color, #111);
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 0.72rem;
+        font-family: monospace;
+        white-space: pre;
+        overflow-x: auto;
+        margin: 6px 0;
+        color: var(--primary-text-color);
+        border: 1px solid var(--divider-color, #333);
+      }
+      .auto-yaml code { font-family: inherit; }
 
       /* ── Typography ── */
       .muted { color: var(--secondary-text-color, #aaa); font-size: 0.85rem; }
