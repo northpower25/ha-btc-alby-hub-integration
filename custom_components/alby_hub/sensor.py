@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Callable
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescription
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
@@ -163,7 +163,7 @@ async def async_setup_entry(
     runtime.last_invoice_entity = last_invoice
 
 
-class AlbyHubSensor(AlbyHubCoordinatorEntity):
+class AlbyHubSensor(AlbyHubCoordinatorEntity, SensorEntity):
     """Sensor backed by coordinator data."""
 
     entity_description: AlbyHubSensorDescription
@@ -201,7 +201,7 @@ class AlbyHubSensor(AlbyHubCoordinatorEntity):
         return None
 
 
-class AlbyHubLastInvoiceSensor(AlbyHubCoordinatorEntity, RestoreEntity):
+class AlbyHubLastInvoiceSensor(AlbyHubCoordinatorEntity, SensorEntity, RestoreEntity):
     """Sensor that stores the last created BOLT11 invoice in an attribute.
 
     HA's state machine limits state strings to 255 characters, which is too
