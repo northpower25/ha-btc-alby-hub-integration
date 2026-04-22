@@ -1312,7 +1312,7 @@ class AlbyHubPanel extends HTMLElement {
       const codes = await detector.detect(target);
       if (!Array.isArray(codes)) return null;
       const first = codes.find((code) => typeof code?.rawValue === 'string' && code.rawValue.trim().length > 0);
-      return first ? first.rawValue : null;
+      return first ? first.rawValue.trim() : null;
     };
 
     try {
@@ -1323,7 +1323,7 @@ class AlbyHubPanel extends HTMLElement {
     }
 
     const canvas = this._sourceToCanvas(source);
-    if (!canvas || canvas === source) return null;
+    if (!canvas) return null;
 
     try {
       return await detectValue(canvas);
