@@ -162,20 +162,6 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     status="ok",
                     response={"healthy": True},
                 )
-            else:
-                _record_debug_call(
-                    debug_calls,
-                    name="expert.health_check",
-                    status="error",
-                    error="health_check returned false",
-                    response={"healthy": False},
-                    log_failure=True,
-                )
-                data["connected"] = False
-                # Keep data flow alive via NWC fallback if local expert API is
-                # currently unavailable.
-                await self._fetch_nwc_data(data, debug_calls)
-            else:
                 try:
                     info = await self._api_client.get_info()
                     _record_debug_call(
@@ -200,7 +186,6 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         log_failure=True,
                     )
                     raise UpdateFailed(f"Failed to fetch expert-mode API data: {err}") from err
-
                 data["connected"] = True
                 data["version"] = info.get("version")
                 data["alias"] = info.get("alias") or info.get("name")
@@ -244,6 +229,19 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         log_failure=True,
                     )
                     _LOGGER.debug("Failed to fetch transactions (expert mode): %s", err)
+            else:
+                _record_debug_call(
+                    debug_calls,
+                    name="expert.health_check",
+                    status="error",
+                    error="health_check returned false",
+                    response={"healthy": False},
+                    log_failure=True,
+                )
+                data["connected"] = False
+                # Keep data flow alive via NWC fallback if local expert API is
+                # currently unavailable.
+                await self._fetch_nwc_data(data, debug_calls)
         else:
             # Cloud / NWC-only mode: fetch balance and info via NWC protocol
             await self._fetch_nwc_data(data, debug_calls)
