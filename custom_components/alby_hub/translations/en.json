@@ -132,6 +132,9 @@
       },
       "nwc_budget_renewal": {
         "name": "NWC budget renewal period"
+      },
+      "api_debug_status": {
+        "name": "API debug status"
       }
     },
     "binary_sensor": {

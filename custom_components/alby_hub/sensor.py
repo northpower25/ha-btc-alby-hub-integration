@@ -9,6 +9,7 @@ from typing import Any, Callable
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -16,6 +17,7 @@ from .entity import AlbyHubCoordinatorEntity
 from .helpers import get_runtime
 from .const import (
     DOMAIN,
+    SENSOR_KEY_API_DEBUG_STATUS,
     SENSOR_KEY_LAST_INVOICE,
     SENSOR_KEY_NWC_BUDGET_REMAINING,
     SENSOR_KEY_NWC_BUDGET_RENEWAL,
@@ -125,6 +127,13 @@ SENSOR_DESCRIPTIONS: tuple[AlbyHubSensorDescription, ...] = (
         icon="mdi:calendar-refresh",
         value_fn=lambda data: data.get("nwc_budget_renewal"),
     ),
+    AlbyHubSensorDescription(
+        key=SENSOR_KEY_API_DEBUG_STATUS,
+        translation_key=SENSOR_KEY_API_DEBUG_STATUS,
+        icon="mdi:bug-outline",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.get("api_debug_status"),
+    ),
 )
 
 
@@ -180,6 +189,16 @@ class AlbyHubSensor(AlbyHubCoordinatorEntity):
         if self.entity_description.key == "bitcoin_price":
             return self.coordinator.data.get("price_currency")
         return self.entity_description.native_unit_of_measurement
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Expose rich API diagnostics on the dedicated debug sensor."""
+        if self.entity_description.key != SENSOR_KEY_API_DEBUG_STATUS:
+            return None
+        debug_details = self.coordinator.data.get("api_debug_details")
+        if isinstance(debug_details, dict):
+            return debug_details
+        return None
 
 
 class AlbyHubLastInvoiceSensor(AlbyHubCoordinatorEntity, RestoreEntity):
