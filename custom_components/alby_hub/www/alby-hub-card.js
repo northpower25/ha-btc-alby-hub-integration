@@ -1312,7 +1312,7 @@ class AlbyHubPanel extends HTMLElement {
             script.src = url;
             script.async = true;
             script.defer = true;
-            script.dataset.html5Qrcode = '1';
+            script.setAttribute('data-html5-qrcode', '1');
             script.onload = () => resolve();
             script.onerror = () => reject(new Error('html5-qrcode load failed'));
             document.head.appendChild(script);
@@ -1336,14 +1336,23 @@ class AlbyHubPanel extends HTMLElement {
     const host = this.shadowRoot?.querySelector('#html5qr-reader');
     if (!host) return null;
 
+    const mimeType = fileOrBlob?.type || 'image/png';
+    const extByType = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    };
+    const fileExt = extByType[mimeType] || 'png';
     this._html5QrFileCounter += 1;
-    const generatedFileName = `alby-hub-qr-${Date.now()}-${this._html5QrFileCounter}.png`;
+    const generatedFileName = `alby-hub-qr-${Date.now()}-${this._html5QrFileCounter}.${fileExt}`;
     const file = fileOrBlob instanceof File
       ? fileOrBlob
-      : new File([fileOrBlob], generatedFileName, { type: fileOrBlob?.type || 'image/png' });
+      : new File([fileOrBlob], generatedFileName, { type: mimeType });
     const scanner = new Html5Qrcode(host);
     try {
-      const decoded = await scanner.scanFile(file, true);
+      const showScanPreview = true;
+      const decoded = await scanner.scanFile(file, showScanPreview);
       if (typeof decoded !== 'string') return null;
       const text = decoded.trim();
       return text.length > 0 ? text : null;
@@ -1482,7 +1491,7 @@ class AlbyHubPanel extends HTMLElement {
         <label class="filter-btn" for="scan-file-input" style="flex:1;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center">${t('fileInputBtn')}</label>
         <input type="file" id="scan-file-input" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:0;height:0">
       </div>
-      <div id="html5qr-reader" style="width:100%;margin-top:8px;max-height:220px;overflow:hidden;border-radius:8px;background:#000;${this._cameraScanning && this._cameraFallbackActive ? '' : 'display:none'}"></div>
+      <div id="html5qr-reader" style="width:100%;margin-top:8px;max-height:220px;overflow:hidden;border-radius:8px;background:#000;display:${this._cameraScanning && this._cameraFallbackActive ? 'block' : 'none'}"></div>
       ${this._cameraScanning && !this._cameraFallbackActive ? `<video id="camera-video" autoplay playsinline muted style="width:100%;border-radius:8px;margin-top:8px;max-height:220px;object-fit:cover;background:#000"></video>` : ''}
       ${this._cameraScanMsg ? `<p class="muted" style="margin-top:6px;font-size:0.82rem">${this._esc(this._cameraScanMsg)}</p>` : ''}
       <p class="muted" style="font-size:0.73rem;margin-top:8px">${t('companionHint')}</p>
