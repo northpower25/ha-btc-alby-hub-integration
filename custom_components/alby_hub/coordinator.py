@@ -207,10 +207,11 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         network_stats = await _fetch_network_stats(
             self._session, self._network_provider, self._network_api_base
         )
-        for key, value in network_stats.items():
-            if value is None and data.get(key) is not None:
-                continue
-            data[key] = value
+        data.update({
+            key: value
+            for key, value in network_stats.items()
+            if value is not None or data.get(key) is None
+        })
 
         return data
 
@@ -608,7 +609,7 @@ def _apply_budget_from_payload(data: dict[str, Any], payload: Any) -> None:
 
 
 def _find_first_numeric(payload: dict[str, Any], keys: tuple[str, ...]) -> int | None:
-    for container in _iterate_dict_candidates(payload):
+    for container in _collect_dict_candidates(payload):
         for key in keys:
             raw = container.get(key)
             if isinstance(raw, bool):
@@ -627,7 +628,7 @@ def _find_first_numeric(payload: dict[str, Any], keys: tuple[str, ...]) -> int |
 
 
 def _find_first_text(payload: dict[str, Any], keys: tuple[str, ...]) -> str | None:
-    for container in _iterate_dict_candidates(payload):
+    for container in _collect_dict_candidates(payload):
         for key in keys:
             raw = container.get(key)
             if isinstance(raw, str) and raw.strip():
@@ -635,7 +636,7 @@ def _find_first_text(payload: dict[str, Any], keys: tuple[str, ...]) -> str | No
     return None
 
 
-def _iterate_dict_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def _collect_dict_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
     candidates = [payload]
     nested_keys = (
         "result",
