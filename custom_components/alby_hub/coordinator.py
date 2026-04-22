@@ -1109,13 +1109,15 @@ async def _safe_get_json(
     }
     try:
         result: Any = None
+        raw_text: str | None = None
         async with session.get(
             url,
             timeout=ClientTimeout(total=_API_REQUEST_TIMEOUT_SECONDS),
             headers=headers,
         ) as response:
-            raw_text = await response.text()
             if response.status >= 400:
+                if call_name and debug_calls is not None:
+                    raw_text = await response.text()
                 if call_name and debug_calls is not None:
                     _record_debug_call(
                         debug_calls,
@@ -1130,11 +1132,16 @@ async def _safe_get_json(
                 return None
             content_type = response.headers.get("Content-Type", "").lower()
             if "json" in content_type:
-                try:
-                    result = json.loads(raw_text)
-                except json.JSONDecodeError:
-                    result = None
+                if call_name and debug_calls is not None:
+                    raw_text = await response.text()
+                    result = _parse_json_text(raw_text)
+                else:
+                    try:
+                        result = await response.json(content_type=None)
+                    except ValueError:
+                        result = None
             else:
+                raw_text = await response.text()
                 stripped = raw_text.strip()
                 if stripped:
                     try:
@@ -1145,17 +1152,14 @@ async def _safe_get_json(
                         except ValueError:
                             result = stripped
                 else:
-                    try:
-                        result = json.loads(raw_text)
-                    except json.JSONDecodeError:
-                        result = None
+                    result = _parse_json_text(raw_text)
         if call_name and debug_calls is not None:
             _record_debug_call(
                 debug_calls,
                 name=call_name,
                 status="ok" if result is not None else "error",
                 request={"url": url},
-                raw_response=raw_text if raw_text else "empty",
+                raw_response=raw_text if raw_text else "not_captured",
                 response=result if result is not None else "empty",
                 error=None if result is not None else "empty response",
             )
@@ -1197,6 +1201,13 @@ def _extract_nwc_error(result: Any) -> str:
         if error is not None:
             return str(error)
     return "unknown error"
+
+
+def _parse_json_text(raw_text: str) -> Any:
+    try:
+        return json.loads(raw_text)
+    except json.JSONDecodeError:
+        return None
 
 
 def _record_debug_call(
