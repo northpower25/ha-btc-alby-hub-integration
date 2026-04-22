@@ -1602,6 +1602,17 @@ class AlbyHubPanel extends HTMLElement {
     }
   }
 
+  // ── Camera stream cleanup helper ─────────────────────────────────────────────
+
+  _stopCameraStream() {
+    if (this._cameraStream) {
+      this._cameraStream.getTracks().forEach((t) => t.stop());
+      this._cameraStream = null;
+    }
+    this._cameraScanning = false;
+    this._cameraScanMsg = '';
+  }
+
   // ── Event listeners ──────────────────────────────────────────────────────────
 
   _attachListeners() {
@@ -1622,10 +1633,7 @@ class AlbyHubPanel extends HTMLElement {
         this._activeTab = btn.dataset.tab;
         // Stop camera when leaving the Send tab
         if (prevTab === 'send' && this._cameraStream) {
-          this._cameraStream.getTracks().forEach((t) => t.stop());
-          this._cameraStream = null;
-          this._cameraScanning = false;
-          this._cameraScanMsg = '';
+          this._stopCameraStream();
         }
         // Reset loaded data when navigating to async tabs so fresh data is loaded
         if (this._activeTab === 'activity' && prevTab !== 'activity') {
@@ -2040,12 +2048,7 @@ class AlbyHubPanel extends HTMLElement {
       btn.addEventListener('click', async () => {
         if (this._cameraScanning) {
           // Stop camera
-          if (this._cameraStream) {
-            this._cameraStream.getTracks().forEach((track) => track.stop());
-            this._cameraStream = null;
-          }
-          this._cameraScanning = false;
-          this._cameraScanMsg = '';
+          this._stopCameraStream();
           this._updateContent();
           return;
         }
@@ -2075,10 +2078,10 @@ class AlbyHubPanel extends HTMLElement {
               const codes = await detector.detect(vid);
               if (codes.length > 0) {
                 this._pendingPayInput = codes[0].rawValue;
-                stream.getTracks().forEach((track) => track.stop());
-                this._cameraStream = null;
-                this._cameraScanning = false;
-                this._cameraScanMsg = t('found') + ': ' + codes[0].rawValue.slice(0, 40) + (codes[0].rawValue.length > 40 ? '…' : '');
+                this._cameraStream = stream; // ensure _stopCameraStream can stop it
+                const foundMsg = t('found') + ': ' + codes[0].rawValue.slice(0, 40) + (codes[0].rawValue.length > 40 ? '…' : '');
+                this._stopCameraStream();
+                this._cameraScanMsg = foundMsg;
                 this._updateContent();
                 return;
               }
