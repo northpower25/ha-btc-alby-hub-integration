@@ -83,6 +83,7 @@ SENSOR_KEY_NWC_BUDGET_TOTAL = "nwc_budget_total"
 SENSOR_KEY_NWC_BUDGET_USED = "nwc_budget_used"
 SENSOR_KEY_NWC_BUDGET_REMAINING = "nwc_budget_remaining"
 SENSOR_KEY_NWC_BUDGET_RENEWAL = "nwc_budget_renewal"
+SENSOR_KEY_API_DEBUG_STATUS = "api_debug_status"
 
 # Common fiat currencies for the price_currency selector (sorted alphabetically)
 COMMON_FIAT_CURRENCIES: list[str] = [

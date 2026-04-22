@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
@@ -31,6 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 _BALANCE_KEYS: tuple[str, ...] = ("balance", "sat", "sats", "total")
 _HASHES_PER_EXAHASH = 1_000_000_000_000_000_000
 _API_REQUEST_TIMEOUT_SECONDS = 5
+_DEBUG_PAYLOAD_MAX_LENGTH = 1200
 _HALVING_INTERVAL_BLOCKS = 210000
 _MINUTES_PER_BLOCK = 10
 _MSATS_PER_SAT = 1000  # millisatoshis per satoshi
@@ -122,6 +123,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._manual_lightning_address = _first_valid_lightning_address(manual_lightning_address)
 
     async def _async_update_data(self) -> dict[str, Any]:
+        debug_calls: dict[str, dict[str, Any]] = {}
         lightning_address = _first_valid_lightning_address(
             self._manual_lightning_address,
             self._nwc_info.lud16,
@@ -148,21 +150,43 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "nwc_budget_remaining": None,
             "nwc_budget_renewal": None,
             "transactions": [],
+            "api_debug_status": "ok",
+            "api_debug_details": {"updated_at": None, "errors": 0, "calls": {}},
         }
 
         if self._mode == MODE_EXPERT and self._api_client is not None:
-            if not await self._api_client.health_check():
-                data["connected"] = False
-                # Keep data flow alive via NWC fallback if local expert API is
-                # currently unavailable.
-                await self._fetch_nwc_data(data)
-            else:
+            health_ok = await self._api_client.health_check()
+            if health_ok:
+                _record_debug_call(
+                    debug_calls,
+                    name="expert.health_check",
+                    status="ok",
+                    response={"healthy": True},
+                )
                 try:
                     info = await self._api_client.get_info()
+                    _record_debug_call(
+                        debug_calls,
+                        name="expert.get_info",
+                        status="ok",
+                        response=info,
+                    )
                     balance = await self._api_client.get_balance()
+                    _record_debug_call(
+                        debug_calls,
+                        name="expert.get_balance",
+                        status="ok",
+                        response=balance,
+                    )
                 except AlbyHubApiError as err:
+                    _record_debug_call(
+                        debug_calls,
+                        name="expert.api",
+                        status="error",
+                        error=str(err),
+                        log_failure=True,
+                    )
                     raise UpdateFailed(f"Failed to fetch expert-mode API data: {err}") from err
-
                 data["connected"] = True
                 data["version"] = info.get("version")
                 data["alias"] = info.get("alias") or info.get("name")
@@ -189,11 +213,39 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 try:
                     txs = await self._api_client.list_transactions(limit=50)
                     data["transactions"] = _normalize_transactions(txs)
+                    _record_debug_call(
+                        debug_calls,
+                        name="expert.list_transactions",
+                        status="ok",
+                        request={"limit": 50},
+                        response=txs,
+                    )
                 except AlbyHubApiError as err:
+                    _record_debug_call(
+                        debug_calls,
+                        name="expert.list_transactions",
+                        status="error",
+                        request={"limit": 50},
+                        error=str(err),
+                        log_failure=True,
+                    )
                     _LOGGER.debug("Failed to fetch transactions (expert mode): %s", err)
+            else:
+                _record_debug_call(
+                    debug_calls,
+                    name="expert.health_check",
+                    status="error",
+                    error="health_check returned false",
+                    response={"healthy": False},
+                    log_failure=True,
+                )
+                data["connected"] = False
+                # Keep data flow alive via NWC fallback if local expert API is
+                # currently unavailable.
+                await self._fetch_nwc_data(data, debug_calls)
         else:
             # Cloud / NWC-only mode: fetch balance and info via NWC protocol
-            await self._fetch_nwc_data(data)
+            await self._fetch_nwc_data(data, debug_calls)
 
         if _is_missing_lightning_address(data.get("lightning_address")):
             data["lightning_address"] = _first_valid_lightning_address(
@@ -202,20 +254,23 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
         data["bitcoin_price"] = await _fetch_bitcoin_price(
-            self._session, self._price_provider, self._price_currency
+            self._session, self._price_provider, self._price_currency, debug_calls
         )
         network_stats = await _fetch_network_stats(
-            self._session, self._network_provider, self._network_api_base
+            self._session, self._network_provider, self._network_api_base, debug_calls
         )
         data.update({
             key: value
             for key, value in network_stats.items()
             if value is not None
         })
+        _finalize_debug_payload(data, debug_calls)
 
         return data
 
-    async def _fetch_nwc_data(self, data: dict[str, Any]) -> None:
+    async def _fetch_nwc_data(
+        self, data: dict[str, Any], debug_calls: dict[str, dict[str, Any]]
+    ) -> None:
         """Fetch Lightning balance and hub info via NWC get_balance / get_info / get_budget.
 
         Updates *data* in-place.  All failures are silently logged at DEBUG
@@ -226,6 +281,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # get_balance → balance_lightning (NWC returns balance in millisatoshis)
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_balance")
+            request_payload = {"method": "get_balance", "params": {}}
             if result is not None and result.get("error") is None:
                 request_succeeded = True
                 bal_result = result.get("result") or {}
@@ -236,12 +292,39 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if onchain_sat is not None:
                     data["balance_onchain"] = onchain_sat
                 _apply_budget_from_payload(data, bal_result)
+                _record_debug_call(
+                    debug_calls,
+                    name="nwc.get_balance",
+                    status="ok",
+                    request=request_payload,
+                    response=result,
+                )
+            else:
+                error_text = _extract_nwc_error(result)
+                _record_debug_call(
+                    debug_calls,
+                    name="nwc.get_balance",
+                    status="error",
+                    request=request_payload,
+                    response=result,
+                    error=error_text,
+                    log_failure=True,
+                )
         except Exception as err:
+            _record_debug_call(
+                debug_calls,
+                name="nwc.get_balance",
+                status="error",
+                request={"method": "get_balance", "params": {}},
+                error=str(err),
+                log_failure=True,
+            )
             _LOGGER.debug("NWC get_balance failed: %s", err)
 
         # get_info → version, and lightning_address fallback if not in URI
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_info")
+            request_payload = {"method": "get_info", "params": {}}
             if result is not None and result.get("error") is None:
                 request_succeeded = True
                 info_result = result.get("result") or {}
@@ -265,17 +348,70 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     next_halving_height = _calculate_next_halving_height(block_height)
                     data["blocks_until_halving"] = max(next_halving_height - block_height, 0)
                 _apply_budget_from_payload(data, info_result)
+                _record_debug_call(
+                    debug_calls,
+                    name="nwc.get_info",
+                    status="ok",
+                    request=request_payload,
+                    response=result,
+                )
+            else:
+                error_text = _extract_nwc_error(result)
+                _record_debug_call(
+                    debug_calls,
+                    name="nwc.get_info",
+                    status="error",
+                    request=request_payload,
+                    response=result,
+                    error=error_text,
+                    log_failure=True,
+                )
         except Exception as err:
+            _record_debug_call(
+                debug_calls,
+                name="nwc.get_info",
+                status="error",
+                request={"method": "get_info", "params": {}},
+                error=str(err),
+                log_failure=True,
+            )
             _LOGGER.debug("NWC get_info failed: %s", err)
 
         # get_budget → NWC spending limits (optional, not supported by all implementations)
         try:
             result = await async_nwc_request(self._session, self._nwc_info, "get_budget")
+            request_payload = {"method": "get_budget", "params": {}}
             if result is not None and result.get("error") is None:
                 request_succeeded = True
                 budget_result = result.get("result") or {}
                 _apply_budget_from_payload(data, budget_result)
+                _record_debug_call(
+                    debug_calls,
+                    name="nwc.get_budget",
+                    status="ok",
+                    request=request_payload,
+                    response=result,
+                )
+            else:
+                error_text = _extract_nwc_error(result)
+                _record_debug_call(
+                    debug_calls,
+                    name="nwc.get_budget",
+                    status="error",
+                    request=request_payload,
+                    response=result,
+                    error=error_text,
+                    log_failure=True,
+                )
         except Exception as err:
+            _record_debug_call(
+                debug_calls,
+                name="nwc.get_budget",
+                status="error",
+                request={"method": "get_budget", "params": {}},
+                error=str(err),
+                log_failure=True,
+            )
             _LOGGER.debug("NWC get_budget failed: %s", err)
 
         # list_transactions → recent payment history
@@ -285,6 +421,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._session, self._nwc_info, "list_transactions",
                 {"limit": 50, "unpaid": True},
             )
+            request_payload = {"method": "list_transactions", "params": {"limit": 50, "unpaid": True}}
             if result is not None and result.get("error") is None:
                 request_succeeded = True
                 tx_result = result.get("result") or {}
@@ -294,7 +431,33 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     else (tx_result.get("transactions") or tx_result.get("data") or [])
                 )
                 data["transactions"] = _normalize_transactions(raw_txs)
+                _record_debug_call(
+                    debug_calls,
+                    name="nwc.list_transactions",
+                    status="ok",
+                    request=request_payload,
+                    response=result,
+                )
+            else:
+                error_text = _extract_nwc_error(result)
+                _record_debug_call(
+                    debug_calls,
+                    name="nwc.list_transactions",
+                    status="error",
+                    request=request_payload,
+                    response=result,
+                    error=error_text,
+                    log_failure=True,
+                )
         except Exception as err:
+            _record_debug_call(
+                debug_calls,
+                name="nwc.list_transactions",
+                status="error",
+                request={"method": "list_transactions", "params": {"limit": 50, "unpaid": True}},
+                error=str(err),
+                log_failure=True,
+            )
             _LOGGER.debug("NWC list_transactions failed: %s", err)
 
         data["connected"] = request_succeeded
@@ -319,7 +482,10 @@ def _read_sat_value(value: Any) -> int | None:
 
 
 async def _fetch_bitcoin_price(
-    session: ClientSession, provider: str, currency: str
+    session: ClientSession,
+    provider: str,
+    currency: str,
+    debug_calls: dict[str, dict[str, Any]],
 ) -> float | None:
     provider_chain: list[str] = [provider]
     fallback_providers = (
@@ -334,33 +500,63 @@ async def _fetch_bitcoin_price(
             provider_chain.append(fallback)
 
     for candidate in provider_chain:
-        price = await _fetch_bitcoin_price_from_provider(session, candidate, currency)
+        price = await _fetch_bitcoin_price_from_provider(
+            session, candidate, currency, debug_calls
+        )
         if price is not None:
             return price
+    _record_debug_call(
+        debug_calls,
+        name="price.final",
+        status="error",
+        error=f"no provider returned price for {currency}",
+        log_failure=True,
+    )
     return None
 
 
 async def _fetch_network_stats(
-    session: ClientSession, provider: str, api_base: str | None
+    session: ClientSession,
+    provider: str,
+    api_base: str | None,
+    debug_calls: dict[str, dict[str, Any]],
 ) -> dict[str, int | float | None]:
     if provider == NETWORK_PROVIDER_CUSTOM_NODE and api_base:
         custom_base = api_base.rstrip("/")
-        stats = await _fetch_network_stats_from_base(session, custom_base)
+        stats = await _fetch_network_stats_from_base(
+            session, custom_base, "network.custom", debug_calls
+        )
         if stats["bitcoin_block_height"] is not None:
             return stats
+        _record_debug_call(
+            debug_calls,
+            name="network.custom",
+            status="error",
+            error=f"no block height from custom provider {custom_base}",
+            log_failure=True,
+        )
         _LOGGER.debug(
             "Custom network provider did not return valid data; falling back to %s",
             _DEFAULT_MEMPOOL_API,
         )
 
     if provider in (NETWORK_PROVIDER_MEMPOOL, NETWORK_PROVIDER_CUSTOM_NODE):
-        mempool_stats = await _fetch_network_stats_from_base(session, _DEFAULT_MEMPOOL_API)
+        mempool_stats = await _fetch_network_stats_from_base(
+            session, _DEFAULT_MEMPOOL_API, "network.mempool", debug_calls
+        )
         if mempool_stats["bitcoin_block_height"] is not None:
             return mempool_stats
 
-    blockchain_stats = await _fetch_network_stats_from_blockchain(session)
+    blockchain_stats = await _fetch_network_stats_from_blockchain(session, debug_calls)
     if blockchain_stats["bitcoin_block_height"] is not None:
         return blockchain_stats
+    _record_debug_call(
+        debug_calls,
+        name="network.final",
+        status="error",
+        error="no network provider returned block height",
+        log_failure=True,
+    )
     return _empty_network_payload()
 
 
@@ -374,42 +570,101 @@ def _empty_network_payload() -> dict[str, None | float]:
 
 
 async def _fetch_bitcoin_price_from_provider(
-    session: ClientSession, provider: str, currency: str
+    session: ClientSession,
+    provider: str,
+    currency: str,
+    debug_calls: dict[str, dict[str, Any]],
 ) -> float | None:
     try:
         if provider == PRICE_PROVIDER_COINGECKO:
             data = await _safe_get_json(
                 session,
                 f"https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies={currency.lower()}",
+                call_name=f"price.{provider}",
+                debug_calls=debug_calls,
             )
             value = data.get("bitcoin", {}).get(currency.lower()) if isinstance(data, dict) else None
+            if value is None:
+                _record_debug_call(
+                    debug_calls,
+                    name=f"price.{provider}",
+                    status="error",
+                    error=f"missing currency {currency}",
+                    response=data,
+                )
             return float(value) if value is not None else None
 
         if provider == PRICE_PROVIDER_COINBASE:
             data = await _safe_get_json(
-                session, f"https://api.coinbase.com/v2/prices/BTC-{currency}/spot"
+                session,
+                f"https://api.coinbase.com/v2/prices/BTC-{currency}/spot",
+                call_name=f"price.{provider}",
+                debug_calls=debug_calls,
             )
             amount = data.get("data", {}).get("amount") if isinstance(data, dict) else None
+            if amount is None:
+                _record_debug_call(
+                    debug_calls,
+                    name=f"price.{provider}",
+                    status="error",
+                    error=f"missing amount for {currency}",
+                    response=data,
+                )
             return float(amount) if amount is not None else None
 
         if provider == PRICE_PROVIDER_BINANCE:
             data = await _safe_get_json(
-                session, f"https://api.binance.com/api/v3/ticker/price?symbol=BTC{currency}"
+                session,
+                f"https://api.binance.com/api/v3/ticker/price?symbol=BTC{currency}",
+                call_name=f"price.{provider}",
+                debug_calls=debug_calls,
             )
             amount = data.get("price") if isinstance(data, dict) else None
+            if amount is None:
+                _record_debug_call(
+                    debug_calls,
+                    name=f"price.{provider}",
+                    status="error",
+                    error=f"missing amount for {currency}",
+                    response=data,
+                )
             return float(amount) if amount is not None else None
 
         if provider == PRICE_PROVIDER_BLOCKCHAIN:
-            data = await _safe_get_json(session, "https://blockchain.info/ticker")
+            data = await _safe_get_json(
+                session,
+                "https://blockchain.info/ticker",
+                call_name=f"price.{provider}",
+                debug_calls=debug_calls,
+            )
             amount = data.get(currency, {}).get("last") if isinstance(data, dict) else None
+            if amount is None:
+                _record_debug_call(
+                    debug_calls,
+                    name=f"price.{provider}",
+                    status="error",
+                    error=f"missing currency {currency}",
+                    response=data,
+                )
             return float(amount) if amount is not None else None
 
         if provider == PRICE_PROVIDER_COINDESK:
+            _record_debug_call(
+                debug_calls,
+                name=f"price.{provider}",
+                status="error",
+                error="provider deprecated",
+            )
             _LOGGER.debug("CoinDesk v1 API is no longer available; trying fallback provider")
             return None
 
         if provider == PRICE_PROVIDER_MEMPOOL:
-            data = await _safe_get_json(session, f"{_DEFAULT_MEMPOOL_API}/api/v1/prices")
+            data = await _safe_get_json(
+                session,
+                f"{_DEFAULT_MEMPOOL_API}/api/v1/prices",
+                call_name=f"price.{provider}",
+                debug_calls=debug_calls,
+            )
             amount = data.get(currency) if isinstance(data, dict) else None
             if amount is None:
                 _LOGGER.debug(
@@ -417,24 +672,64 @@ async def _fetch_bitcoin_price_from_provider(
                     currency,
                     list(data.keys()) if isinstance(data, dict) else data,
                 )
+                _record_debug_call(
+                    debug_calls,
+                    name=f"price.{provider}",
+                    status="error",
+                    error=f"missing currency {currency}",
+                    response=data,
+                )
             return float(amount) if amount is not None else None
 
         if provider in (PRICE_PROVIDER_BITCOIN_DE, PRICE_PROVIDER_BITQUERY):
+            _record_debug_call(
+                debug_calls,
+                name=f"price.{provider}",
+                status="error",
+                error="provider not implemented",
+            )
             _LOGGER.debug("Price provider %s is not implemented; trying fallback provider", provider)
             return None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as err:
+        _record_debug_call(
+            debug_calls,
+            name=f"price.{provider}",
+            status="error",
+            error=str(err),
+            log_failure=True,
+        )
         return None
 
     return None
 
 
 async def _fetch_network_stats_from_base(
-    session: ClientSession, base_url: str
+    session: ClientSession,
+    base_url: str,
+    source_name: str,
+    debug_calls: dict[str, dict[str, Any]],
 ) -> dict[str, int | float | None]:
-    height_data = await _safe_get_json(session, f"{base_url}/api/blocks/tip/height")
-    hashrate_data = await _safe_get_json(session, f"{base_url}/api/v1/mining/hashrate/3d")
+    height_data = await _safe_get_json(
+        session,
+        f"{base_url}/api/blocks/tip/height",
+        call_name=f"{source_name}.height",
+        debug_calls=debug_calls,
+    )
+    hashrate_data = await _safe_get_json(
+        session,
+        f"{base_url}/api/v1/mining/hashrate/3d",
+        call_name=f"{source_name}.hashrate",
+        debug_calls=debug_calls,
+    )
 
     if not isinstance(height_data, int):
+        _record_debug_call(
+            debug_calls,
+            name=source_name,
+            status="error",
+            error=f"invalid block height response from {base_url}",
+            response=height_data,
+        )
         _LOGGER.debug(
             "Network stats: block height endpoint returned unexpected data: %r (base_url=%s)",
             height_data,
@@ -465,13 +760,33 @@ async def _fetch_network_stats_from_base(
 
 async def _fetch_network_stats_from_blockchain(
     session: ClientSession,
+    debug_calls: dict[str, dict[str, Any]],
 ) -> dict[str, int | float | None]:
-    data = await _safe_get_json(session, _BLOCKCHAIN_STATS_API)
+    data = await _safe_get_json(
+        session,
+        _BLOCKCHAIN_STATS_API,
+        call_name="network.blockchain_com",
+        debug_calls=debug_calls,
+    )
     if not isinstance(data, dict):
+        _record_debug_call(
+            debug_calls,
+            name="network.blockchain_com",
+            status="error",
+            error="invalid response payload",
+            response=data,
+        )
         return _empty_network_payload()
 
     block_height = data.get("n_blocks_total")
     if not isinstance(block_height, int):
+        _record_debug_call(
+            debug_calls,
+            name="network.blockchain_com",
+            status="error",
+            error="missing n_blocks_total",
+            response=data,
+        )
         return _empty_network_payload()
 
     raw_hashrate = data.get("hash_rate")
@@ -677,42 +992,147 @@ def _first_valid_lightning_address(*values: Any) -> str | None:
     return None
 
 
-async def _safe_get_json(session: ClientSession, url: str) -> Any:
+async def _safe_get_json(
+    session: ClientSession,
+    url: str,
+    *,
+    call_name: str | None = None,
+    debug_calls: dict[str, dict[str, Any]] | None = None,
+) -> Any:
     headers = {
         "Accept": "application/json,text/plain,*/*",
         "User-Agent": "HomeAssistant AlbyHub Integration",
     }
     try:
+        result: Any = None
         async with session.get(
             url,
             timeout=ClientTimeout(total=_API_REQUEST_TIMEOUT_SECONDS),
             headers=headers,
         ) as response:
             if response.status >= 400:
+                if call_name and debug_calls is not None:
+                    _record_debug_call(
+                        debug_calls,
+                        name=call_name,
+                        status="error",
+                        request={"url": url},
+                        error=f"http_status_{response.status}",
+                        log_failure=True,
+                    )
                 _LOGGER.debug("HTTP %s fetching %s", response.status, url)
                 return None
             content_type = response.headers.get("Content-Type", "").lower()
             if "json" in content_type:
-                return await response.json(content_type=None)
-            raw_text = (await response.text()).strip()
-            if raw_text:
-                try:
-                    return int(raw_text)
-                except ValueError:
+                result = await response.json(content_type=None)
+            else:
+                raw_text = (await response.text()).strip()
+                if raw_text:
                     try:
-                        return float(raw_text)
+                        result = int(raw_text)
                     except ValueError:
-                        pass
-            try:
-                return await response.json(content_type=None)
-            except ValueError:
-                return raw_text or None
+                        try:
+                            result = float(raw_text)
+                        except ValueError:
+                            result = raw_text
+                else:
+                    try:
+                        result = await response.json(content_type=None)
+                    except ValueError:
+                        result = None
+        if call_name and debug_calls is not None:
+            _record_debug_call(
+                debug_calls,
+                name=call_name,
+                status="ok" if result is not None else "error",
+                request={"url": url},
+                response=result if result is not None else "empty",
+                error=None if result is not None else "empty response",
+            )
+        return result
     except TimeoutError:
+        if call_name and debug_calls is not None:
+            _record_debug_call(
+                debug_calls,
+                name=call_name,
+                status="error",
+                request={"url": url},
+                error="timeout",
+                log_failure=True,
+            )
         _LOGGER.debug("Timeout fetching %s", url)
         return None
     except (ClientError, ValueError) as err:
+        if call_name and debug_calls is not None:
+            _record_debug_call(
+                debug_calls,
+                name=call_name,
+                status="error",
+                request={"url": url},
+                error=str(err),
+                log_failure=True,
+            )
         _LOGGER.debug("Error fetching %s: %s", url, err)
         return None
+
+
+def _extract_nwc_error(result: Any) -> str:
+    if result is None:
+        return "no response"
+    if isinstance(result, dict):
+        error = result.get("error")
+        if isinstance(error, dict):
+            message = error.get("message") or error.get("code") or str(error)
+            return str(message)
+        if error is not None:
+            return str(error)
+    return "unknown error"
+
+
+def _record_debug_call(
+    debug_calls: dict[str, dict[str, Any]],
+    *,
+    name: str,
+    status: str,
+    request: Any = None,
+    response: Any = None,
+    error: str | None = None,
+    log_failure: bool = False,
+) -> None:
+    entry: dict[str, Any] = {"status": status}
+    if request is not None:
+        entry["request"] = _to_debug_payload(request)
+    if response is not None:
+        entry["response"] = _to_debug_payload(response)
+    if error:
+        entry["error"] = str(error)
+    debug_calls[name] = entry
+
+    if status != "ok" and (log_failure or error):
+        reason = error or "unexpected or empty API response"
+        _LOGGER.warning("API debug [%s] failed: %s", name, reason)
+
+
+def _to_debug_payload(value: Any, max_length: int = _DEBUG_PAYLOAD_MAX_LENGTH) -> str:
+    if isinstance(value, (dict, list, tuple, int, float, bool)) or value is None:
+        rendered = repr(value)
+    else:
+        rendered = str(value)
+    if len(rendered) > max_length:
+        rendered = f"{rendered[:max_length]}... [truncated]"
+    return rendered
+
+
+def _finalize_debug_payload(
+    data: dict[str, Any], debug_calls: dict[str, dict[str, Any]]
+) -> None:
+    errors = sum(1 for details in debug_calls.values() if details.get("status") != "ok")
+    data["api_debug_status"] = "ok" if errors == 0 else f"errors:{errors}"
+    data["api_debug_details"] = {
+        "updated_at": datetime.now(UTC).isoformat(),
+        "errors": errors,
+        "calls": debug_calls,
+    }
 
 
 def _calculate_next_halving_height(current_height: int) -> int:

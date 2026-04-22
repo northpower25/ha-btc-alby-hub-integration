@@ -133,6 +133,9 @@
       "nwc_budget_renewal": {
         "name": "NWC Budget-Erneuerungszeitraum"
       },
+      "api_debug_status": {
+        "name": "API-Debug-Status"
+      },
       "last_invoice": {
         "name": "Letzte Rechnung"
       }
