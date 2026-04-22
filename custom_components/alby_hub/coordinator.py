@@ -1108,10 +1108,11 @@ def _record_debug_call(
     debug_calls[name] = entry
 
     if status != "ok" and (log_failure or error):
-        _LOGGER.warning("API debug [%s] failed: %s", name, error or "no data returned")
+        reason = error or "unexpected or empty API response"
+        _LOGGER.warning("API debug [%s] failed: %s", name, reason)
 
 
-def _to_debug_payload(value: Any, max_length: int = 1200) -> Any:
+def _to_debug_payload(value: Any, max_length: int = 1200) -> str:
     if isinstance(value, (dict, list, tuple, int, float, bool)) or value is None:
         rendered = repr(value)
     else:
