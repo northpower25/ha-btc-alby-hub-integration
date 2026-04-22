@@ -119,6 +119,19 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 data["version"] = info.get("version")
                 data["alias"] = info.get("alias") or info.get("name")
 
+                # Extract lightning address from local API info when not already known
+                if _is_missing_lightning_address(data.get("lightning_address")):
+                    api_address = _first_valid_lightning_address(
+                        info.get("lightning_address"),
+                        info.get("lud16"),
+                        info.get("lnaddress"),
+                        info.get("ln_addr"),
+                    )
+                    if not _is_missing_lightning_address(api_address):
+                        data["lightning_address"] = str(api_address).strip()
+                    elif self._manual_lightning_address:
+                        data["lightning_address"] = self._manual_lightning_address
+
                 lightning = balance.get("lightning") if isinstance(balance, dict) else None
                 onchain = balance.get("onchain") if isinstance(balance, dict) else None
                 data["balance_lightning"] = _read_sat_value(lightning)

@@ -470,15 +470,20 @@ async def _resolve_payment_request(
     amount_sat: int | None,
     memo: str | None,
 ) -> str:
-    """Resolve Lightning addresses to BOLT11 invoices."""
+    """Resolve Lightning addresses to BOLT11 invoices.
+
+    For plain BOLT11 strings the input is returned unchanged.
+    For Lightning addresses the LNURL-pay flow is executed and the
+    resulting BOLT11 invoice is returned.  ``amount_sat`` must be
+    non-None when ``payment_request`` is a Lightning address; callers
+    are responsible for validating this before the call.
+    """
     target = payment_request.strip()
     if not is_lightning_address(target):
         return target
-    if amount_sat is None:
-        raise ServiceValidationError(
-            "Lightning address payments require amount_sat, amount_btc, or amount_fiat."
-        )
-    return await _fetch_lnurl_invoice(runtime, target, int(amount_sat), memo)
+    # amount_sat is guaranteed non-None here: handle_send_payment validates
+    # this before calling _resolve_payment_request.
+    return await _fetch_lnurl_invoice(runtime, target, int(amount_sat), memo)  # type: ignore[arg-type]
 
 
 async def _fetch_lnurl_invoice(

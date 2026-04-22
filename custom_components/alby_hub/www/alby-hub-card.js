@@ -1035,13 +1035,14 @@ class AlbyHubPanel extends HTMLElement {
 
     // ── Schedule list ────────────────────────────────────────────────────────
     const schedules = this._schedules || [];
+    // Each header entry: { label, style? }
     const scheduleHeaders = [
-      t('colLabel'),
-      t('colRecipient'),
-      t('colAmount'),
-      t('colFreq'),
-      t('colNext'),
-      t('colLastRun'),
+      { label: t('colLabel') },
+      { label: t('colRecipient') },
+      { label: t('colAmount'), style: 'text-align:right' },
+      { label: t('colFreq') },
+      { label: t('colNext') },
+      { label: t('colLastRun') },
     ];
     // One extra column is reserved for row action buttons (edit/run/delete).
     const scheduleColumnCount = scheduleHeaders.length + 1;
@@ -1079,7 +1080,7 @@ class AlbyHubPanel extends HTMLElement {
         <table class="tx-table">
           <thead>
             <tr>
-              ${scheduleHeaders.map((label, idx) => `<th${idx === 2 ? ' style="text-align:right"' : ''}>${label}</th>`).join('')}
+              ${scheduleHeaders.map((h) => `<th${h.style ? ` style="${h.style}"` : ''}>${h.label}</th>`).join('')}
               <th aria-label="${this._t('scheduled.deleteBtn')}"></th>
             </tr>
           </thead>
