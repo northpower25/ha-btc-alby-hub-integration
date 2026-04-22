@@ -36,6 +36,54 @@ _MINUTES_PER_BLOCK = 10
 _MSATS_PER_SAT = 1000  # millisatoshis per satoshi
 _DEFAULT_MEMPOOL_API = "https://mempool.space"
 _BLOCKCHAIN_STATS_API = "https://api.blockchain.info/stats"
+_NUMERIC_BUDGET_TOTAL_MSAT_KEYS: tuple[str, ...] = (
+    "total_budget_msat",
+    "budget_msat",
+    "limit_msat",
+    "max_budget_msat",
+)
+_NUMERIC_BUDGET_USED_MSAT_KEYS: tuple[str, ...] = (
+    "used_budget_msat",
+    "used_msat",
+    "spent_msat",
+)
+_NUMERIC_BUDGET_TOTAL_SAT_KEYS: tuple[str, ...] = (
+    "total_budget_sat",
+    "budget_sat",
+    "limit_sat",
+    "total_budget",
+    "budget",
+    "limit",
+    "max_budget",
+)
+_NUMERIC_BUDGET_USED_SAT_KEYS: tuple[str, ...] = (
+    "used_budget_sat",
+    "used_sat",
+    "spent_sat",
+    "used_budget",
+    "used",
+    "spent",
+)
+_RENEWAL_KEYS: tuple[str, ...] = (
+    "renewal_period",
+    "renewal",
+    "period",
+    "budget_renewal",
+    "budget_period",
+)
+_NETWORK_HEIGHT_KEYS: tuple[str, ...] = (
+    "block_height",
+    "blockheight",
+    "height",
+    "best_height",
+    "current_block_height",
+)
+_LIGHTNING_ADDRESS_KEYS: tuple[str, ...] = (
+    "lud16",
+    "lightning_address",
+    "lnaddress",
+    "ln_addr",
+)
 
 
 class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -159,7 +207,11 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         network_stats = await _fetch_network_stats(
             self._session, self._network_provider, self._network_api_base
         )
-        data.update(network_stats)
+        data.update({
+            key: value
+            for key, value in network_stats.items()
+            if value is not None
+        })
 
         return data
 
@@ -180,6 +232,10 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 bal_sat = _extract_nwc_balance_sat(bal_result)
                 if bal_sat is not None:
                     data["balance_lightning"] = bal_sat
+                onchain_sat = _extract_nwc_onchain_balance_sat(bal_result)
+                if onchain_sat is not None:
+                    data["balance_onchain"] = onchain_sat
+                _apply_budget_from_payload(data, bal_result)
         except Exception as err:
             _LOGGER.debug("NWC get_balance failed: %s", err)
 
@@ -192,17 +248,23 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 version = info_result.get("version")
                 if version:
                     data["version"] = str(version)
+                relay = _extract_relay(info_result)
+                if relay:
+                    data["relay"] = relay
                 if _is_missing_lightning_address(data.get("lightning_address")):
                     address_candidate = _first_valid_lightning_address(
-                        info_result.get("lud16"),
-                        info_result.get("lightning_address"),
-                        info_result.get("lnaddress"),
-                        info_result.get("ln_addr"),
+                        *(_extract_lightning_address_candidates(info_result)),
                     )
                     if not _is_missing_lightning_address(address_candidate):
                         data["lightning_address"] = str(address_candidate).strip()
                     elif self._manual_lightning_address:
                         data["lightning_address"] = self._manual_lightning_address
+                block_height = _extract_network_height(info_result)
+                if block_height is not None:
+                    data["bitcoin_block_height"] = block_height
+                    next_halving_height = _calculate_next_halving_height(block_height)
+                    data["blocks_until_halving"] = max(next_halving_height - block_height, 0)
+                _apply_budget_from_payload(data, info_result)
         except Exception as err:
             _LOGGER.debug("NWC get_info failed: %s", err)
 
@@ -212,32 +274,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if result is not None and result.get("error") is None:
                 request_succeeded = True
                 budget_result = result.get("result") or {}
-                total_msat = (
-                    budget_result.get("total_budget")
-                    or budget_result.get("budget")
-                    or budget_result.get("limit")
-                )
-                used_msat = (
-                    budget_result.get("used_budget")
-                    or budget_result.get("used")
-                    or budget_result.get("spent")
-                )
-                renewal = (
-                    budget_result.get("renewal_period")
-                    or budget_result.get("renewal")
-                    or budget_result.get("period")
-                )
-                if isinstance(used_msat, (int, float)):
-                    data["nwc_budget_used"] = int(int(used_msat) // _MSATS_PER_SAT)
-                if isinstance(total_msat, (int, float)):
-                    total_sat = int(int(total_msat) // _MSATS_PER_SAT)
-                    data["nwc_budget_total"] = total_sat
-                    if data["nwc_budget_used"] is not None:
-                        data["nwc_budget_remaining"] = max(
-                            0, total_sat - data["nwc_budget_used"]
-                        )
-                if isinstance(renewal, str) and renewal:
-                    data["nwc_budget_renewal"] = renewal
+                _apply_budget_from_payload(data, budget_result)
         except Exception as err:
             _LOGGER.debug("NWC get_budget failed: %s", err)
 
@@ -265,6 +302,8 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 def _read_sat_value(value: Any) -> int | None:
     """Read satoshi-like values from known Alby API balance shapes."""
+    if isinstance(value, bool):
+        return None
     if isinstance(value, int):
         return value
     if isinstance(value, float):
@@ -272,6 +311,8 @@ def _read_sat_value(value: Any) -> int | None:
     if isinstance(value, dict):
         for key in _BALANCE_KEYS:
             nested = value.get(key)
+            if isinstance(nested, bool):
+                continue
             if isinstance(nested, (int, float)):
                 return int(nested)
     return None
@@ -471,6 +512,155 @@ def _extract_nwc_balance_sat(balance_result: Any) -> int | None:
             return int(value)
 
     return None
+
+
+def _extract_nwc_onchain_balance_sat(balance_result: Any) -> int | None:
+    if not isinstance(balance_result, dict):
+        return None
+
+    sat_keys = (
+        "onchain_balance_sat",
+        "onchain_sat",
+        "onchain",
+        "balance_onchain",
+        "confirmed_balance",
+        "onchain_confirmed",
+    )
+    for key in sat_keys:
+        value = balance_result.get(key)
+        if isinstance(value, dict):
+            nested = _read_sat_value(value)
+            if nested is not None:
+                return nested
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)):
+            return int(value)
+
+    msat_keys = (
+        "onchain_balance_msat",
+        "onchain_msat",
+        "balance_onchain_msat",
+    )
+    for key in msat_keys:
+        value = balance_result.get(key)
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)):
+            return int(value) // _MSATS_PER_SAT
+
+    return None
+
+
+def _extract_lightning_address_candidates(payload: dict[str, Any]) -> tuple[Any, ...]:
+    candidates: list[Any] = []
+    for key in _LIGHTNING_ADDRESS_KEYS:
+        candidates.append(payload.get(key))
+    profile = payload.get("profile")
+    if isinstance(profile, dict):
+        for key in _LIGHTNING_ADDRESS_KEYS:
+            candidates.append(profile.get(key))
+    wallet = payload.get("wallet")
+    if isinstance(wallet, dict):
+        for key in _LIGHTNING_ADDRESS_KEYS:
+            candidates.append(wallet.get(key))
+    return tuple(candidates)
+
+
+def _extract_relay(payload: dict[str, Any]) -> str | None:
+    relay = payload.get("relay")
+    if isinstance(relay, str) and relay.strip():
+        return relay.strip()
+
+    relays = payload.get("relays")
+    if isinstance(relays, list):
+        for candidate in relays:
+            if isinstance(candidate, str) and candidate.strip():
+                return candidate.strip()
+
+    return None
+
+
+def _extract_network_height(payload: dict[str, Any]) -> int | None:
+    height = _find_first_numeric(payload, _NETWORK_HEIGHT_KEYS)
+    return height if isinstance(height, int) and height > 0 else None
+
+
+def _apply_budget_from_payload(data: dict[str, Any], payload: Any) -> None:
+    if not isinstance(payload, dict):
+        return
+
+    used_sat = _find_first_numeric(payload, _NUMERIC_BUDGET_USED_MSAT_KEYS)
+    if isinstance(used_sat, int):
+        used_sat //= _MSATS_PER_SAT
+    else:
+        used_sat = _find_first_numeric(payload, _NUMERIC_BUDGET_USED_SAT_KEYS)
+
+    total_sat = _find_first_numeric(payload, _NUMERIC_BUDGET_TOTAL_MSAT_KEYS)
+    if isinstance(total_sat, int):
+        total_sat //= _MSATS_PER_SAT
+    else:
+        total_sat = _find_first_numeric(payload, _NUMERIC_BUDGET_TOTAL_SAT_KEYS)
+
+    renewal = _find_first_text(payload, _RENEWAL_KEYS)
+
+    if isinstance(used_sat, int) and used_sat >= 0:
+        data["nwc_budget_used"] = used_sat
+    if isinstance(total_sat, int) and total_sat >= 0:
+        data["nwc_budget_total"] = total_sat
+    if data.get("nwc_budget_total") is not None and data.get("nwc_budget_used") is not None:
+        data["nwc_budget_remaining"] = max(
+            0, int(data["nwc_budget_total"]) - int(data["nwc_budget_used"])
+        )
+    if renewal:
+        data["nwc_budget_renewal"] = renewal
+
+
+def _find_first_numeric(payload: dict[str, Any], keys: tuple[str, ...]) -> int | None:
+    for container in _collect_dict_candidates(payload):
+        for key in keys:
+            raw = container.get(key)
+            if isinstance(raw, bool):
+                continue
+            if isinstance(raw, (int, float)):
+                return int(raw)
+            if isinstance(raw, str):
+                stripped = raw.strip()
+                if not stripped:
+                    continue
+                try:
+                    return int(float(stripped))
+                except ValueError:
+                    continue
+    return None
+
+
+def _find_first_text(payload: dict[str, Any], keys: tuple[str, ...]) -> str | None:
+    for container in _collect_dict_candidates(payload):
+        for key in keys:
+            raw = container.get(key)
+            if isinstance(raw, str) and raw.strip():
+                return raw.strip()
+    return None
+
+
+def _collect_dict_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates = [payload]
+    nested_keys = (
+        "result",
+        "budget",
+        "limits",
+        "limit",
+        "spending",
+        "wallet",
+        "profile",
+        "info",
+    )
+    for key in nested_keys:
+        nested = payload.get(key)
+        if isinstance(nested, dict):
+            candidates.append(nested)
+    return candidates
 
 
 def _is_missing_lightning_address(value: Any) -> bool:
