@@ -532,6 +532,8 @@ def _extract_nwc_onchain_balance_sat(balance_result: Any) -> int | None:
             nested = _read_sat_value(value)
             if nested is not None:
                 return nested
+        if isinstance(value, bool):
+            continue
         if isinstance(value, (int, float)):
             return int(value)
 
@@ -542,6 +544,8 @@ def _extract_nwc_onchain_balance_sat(balance_result: Any) -> int | None:
     )
     for key in msat_keys:
         value = balance_result.get(key)
+        if isinstance(value, bool):
+            continue
         if isinstance(value, (int, float)):
             return int(value) // _MSATS_PER_SAT
 
