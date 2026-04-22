@@ -1118,7 +1118,6 @@ async def _safe_get_json(
             if response.status >= 400:
                 if call_name and debug_calls is not None:
                     raw_text = await response.text()
-                if call_name and debug_calls is not None:
                     _record_debug_call(
                         debug_calls,
                         name=call_name,
@@ -1152,7 +1151,7 @@ async def _safe_get_json(
                         except ValueError:
                             result = stripped
                 else:
-                    result = _parse_json_text(raw_text)
+                    result = None
         if call_name and debug_calls is not None:
             _record_debug_call(
                 debug_calls,
