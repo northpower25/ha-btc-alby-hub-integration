@@ -1132,7 +1132,7 @@ async def _safe_get_json(
             if "json" in content_type:
                 try:
                     result = json.loads(raw_text)
-                except ValueError:
+                except json.JSONDecodeError:
                     result = None
             else:
                 stripped = raw_text.strip()
@@ -1147,7 +1147,7 @@ async def _safe_get_json(
                 else:
                     try:
                         result = json.loads(raw_text)
-                    except ValueError:
+                    except json.JSONDecodeError:
                         result = None
         if call_name and debug_calls is not None:
             _record_debug_call(
