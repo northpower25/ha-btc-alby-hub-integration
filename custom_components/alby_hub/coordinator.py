@@ -888,9 +888,12 @@ def _coerce_int(value: Any) -> int | None:
         if not stripped:
             return None
         try:
-            return int(float(stripped))
+            return int(stripped)
         except ValueError:
-            return None
+            try:
+                return int(float(stripped))
+            except ValueError:
+                return None
     return None
 
 
@@ -981,18 +984,9 @@ def _find_first_numeric(payload: dict[str, Any], keys: tuple[str, ...]) -> int |
     for container in _collect_dict_candidates(payload):
         for key in keys:
             raw = container.get(key)
-            if isinstance(raw, bool):
-                continue
-            if isinstance(raw, (int, float)):
-                return int(raw)
-            if isinstance(raw, str):
-                stripped = raw.strip()
-                if not stripped:
-                    continue
-                try:
-                    return int(float(stripped))
-                except ValueError:
-                    continue
+            converted = _coerce_int(raw)
+            if converted is not None:
+                return converted
     return None
 
 
