@@ -446,6 +446,7 @@ class AlbyHubPanel extends HTMLElement {
     this._cameraFallbackActive = false;
     this._html5QrcodePromise = null;
     this._html5QrScanner = null;
+    this._html5QrFileCounter = 0;
     // Automation builder state
     this._autoForm = {
       direction: 'send',
@@ -1337,7 +1338,11 @@ class AlbyHubPanel extends HTMLElement {
 
     const file = fileOrBlob instanceof File
       ? fileOrBlob
-      : new File([fileOrBlob], `alby-hub-qr-${Date.now()}.png`, { type: fileOrBlob?.type || 'image/png' });
+      : new File(
+          [fileOrBlob],
+          `alby-hub-qr-${Date.now()}-${++this._html5QrFileCounter}.png`,
+          { type: fileOrBlob?.type || 'image/png' }
+        );
     const scanner = new Html5Qrcode(host);
     try {
       const decoded = await scanner.scanFile(file, true);
@@ -1376,7 +1381,11 @@ class AlbyHubPanel extends HTMLElement {
         this._cameraScanMsg = foundMsg;
         this._updateContent();
       },
-      () => {}
+      (scanErr) => {
+        if (typeof scanErr === 'string' && scanErr && !scanErr.toLowerCase().includes('not found')) {
+          console.debug('Alby Hub panel: html5-qrcode scan warning', scanErr);
+        }
+      }
     );
   }
 
