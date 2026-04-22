@@ -679,6 +679,7 @@ class AlbyHubPanel extends HTMLElement {
   // ── Content-only update ──────────────────────────────────────────────────────
 
   _updateContent() {
+    // Keep html5-qrcode DOM stable while scanner is active; content re-renders can interrupt scanning.
     if (this._cameraScanning && this._cameraFallbackActive && this._html5QrScanner) return;
     // Skip update if user is currently interacting with an input/select
     const focused = this.shadowRoot.querySelector(':focus');
@@ -1319,7 +1320,7 @@ class AlbyHubPanel extends HTMLElement {
           });
           if (this._hasHtml5QrcodeLoaded()) return window.Html5Qrcode;
         } catch (_) {
-          // try next CDN URL
+          console.debug('Alby Hub panel: failed to load html5-qrcode CDN', url);
         }
       }
       throw new Error('html5-qrcode unavailable');
@@ -1356,10 +1357,11 @@ class AlbyHubPanel extends HTMLElement {
       if (typeof decoded !== 'string') return null;
       const text = decoded.trim();
       return text.length > 0 ? text : null;
-    } catch (_) {
+    } catch (err) {
+      console.debug('Alby Hub panel: html5-qrcode scanFile failed', err);
       return null;
     } finally {
-      try { await scanner.clear(); } catch (_) {}
+      try { await scanner.clear(); } catch (err) { console.debug('Alby Hub panel: html5-qrcode clear failed', err); }
     }
   }
 
@@ -1400,8 +1402,8 @@ class AlbyHubPanel extends HTMLElement {
     const scanner = this._html5QrScanner;
     this._html5QrScanner = null;
     if (!scanner) return;
-    try { await scanner.stop(); } catch (_) {}
-    try { await scanner.clear(); } catch (_) {}
+    try { await scanner.stop(); } catch (err) { console.debug('Alby Hub panel: html5-qrcode stop failed', err); }
+    try { await scanner.clear(); } catch (err) { console.debug('Alby Hub panel: html5-qrcode clear failed', err); }
   }
 
   _sourceToCanvas(source) {
@@ -1822,6 +1824,7 @@ class AlbyHubPanel extends HTMLElement {
       this._cameraStream = null;
     }
     this._cameraFallbackActive = false;
+    // Intentional fire-and-forget: cleanup helper catches and logs scanner stop/clear errors.
     void this._stopHtml5QrScanner();
     this._cameraScanning = false;
     this._cameraScanMsg = '';
