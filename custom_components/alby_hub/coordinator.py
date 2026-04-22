@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import json
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -510,7 +511,27 @@ async def _fetch_bitcoin_price(
             session, candidate, currency, debug_calls
         )
         if price is not None:
+            _record_debug_call(
+                debug_calls,
+                name="price.selection",
+                status="ok",
+                request={"configured_provider": provider, "currency": currency},
+                response={
+                    "attempted_providers": provider_chain,
+                    "used_provider": candidate,
+                    "value": price,
+                },
+            )
             return price
+    _record_debug_call(
+        debug_calls,
+        name="price.selection",
+        status="error",
+        request={"configured_provider": provider, "currency": currency},
+        response={"attempted_providers": provider_chain, "used_provider": None},
+        error=f"no provider returned price for {currency}",
+        log_failure=True,
+    )
     _record_debug_call(
         debug_calls,
         name="price.final",
@@ -527,12 +548,24 @@ async def _fetch_network_stats(
     api_base: str | None,
     debug_calls: dict[str, dict[str, Any]],
 ) -> dict[str, int | float | None]:
+    attempted_providers: list[str] = []
     if provider == NETWORK_PROVIDER_CUSTOM_NODE and api_base:
+        attempted_providers.append(NETWORK_PROVIDER_CUSTOM_NODE)
         custom_base = api_base.rstrip("/")
         stats = await _fetch_network_stats_from_base(
             session, custom_base, "network.custom", debug_calls
         )
         if stats["bitcoin_block_height"] is not None:
+            _record_debug_call(
+                debug_calls,
+                name="network.selection",
+                status="ok",
+                request={"configured_provider": provider, "api_base": api_base},
+                response={
+                    "attempted_providers": attempted_providers,
+                    "used_provider": NETWORK_PROVIDER_CUSTOM_NODE,
+                },
+            )
             return stats
         _record_debug_call(
             debug_calls,
@@ -547,15 +580,46 @@ async def _fetch_network_stats(
         )
 
     if provider in (NETWORK_PROVIDER_MEMPOOL, NETWORK_PROVIDER_CUSTOM_NODE):
+        attempted_providers.append(NETWORK_PROVIDER_MEMPOOL)
         mempool_stats = await _fetch_network_stats_from_base(
             session, _DEFAULT_MEMPOOL_API, "network.mempool", debug_calls
         )
         if mempool_stats["bitcoin_block_height"] is not None:
+            _record_debug_call(
+                debug_calls,
+                name="network.selection",
+                status="ok",
+                request={"configured_provider": provider, "api_base": api_base},
+                response={
+                    "attempted_providers": attempted_providers,
+                    "used_provider": NETWORK_PROVIDER_MEMPOOL,
+                },
+            )
             return mempool_stats
 
+    attempted_providers.append("blockchain_com")
     blockchain_stats = await _fetch_network_stats_from_blockchain(session, debug_calls)
     if blockchain_stats["bitcoin_block_height"] is not None:
+        _record_debug_call(
+            debug_calls,
+            name="network.selection",
+            status="ok",
+            request={"configured_provider": provider, "api_base": api_base},
+            response={
+                "attempted_providers": attempted_providers,
+                "used_provider": "blockchain_com",
+            },
+        )
         return blockchain_stats
+    _record_debug_call(
+        debug_calls,
+        name="network.selection",
+        status="error",
+        request={"configured_provider": provider, "api_base": api_base},
+        response={"attempted_providers": attempted_providers, "used_provider": None},
+        error="no network provider returned block height",
+        log_failure=True,
+    )
     _record_debug_call(
         debug_calls,
         name="network.final",
@@ -1050,6 +1114,7 @@ async def _safe_get_json(
             timeout=ClientTimeout(total=_API_REQUEST_TIMEOUT_SECONDS),
             headers=headers,
         ) as response:
+            raw_text = await response.text()
             if response.status >= 400:
                 if call_name and debug_calls is not None:
                     _record_debug_call(
@@ -1057,6 +1122,7 @@ async def _safe_get_json(
                         name=call_name,
                         status="error",
                         request={"url": url},
+                        raw_response=raw_text if raw_text else "empty",
                         error=f"http_status_{response.status}",
                         log_failure=True,
                     )
@@ -1064,20 +1130,23 @@ async def _safe_get_json(
                 return None
             content_type = response.headers.get("Content-Type", "").lower()
             if "json" in content_type:
-                result = await response.json(content_type=None)
+                try:
+                    result = json.loads(raw_text)
+                except ValueError:
+                    result = None
             else:
-                raw_text = (await response.text()).strip()
-                if raw_text:
+                stripped = raw_text.strip()
+                if stripped:
                     try:
-                        result = int(raw_text)
+                        result = int(stripped)
                     except ValueError:
                         try:
-                            result = float(raw_text)
+                            result = float(stripped)
                         except ValueError:
-                            result = raw_text
+                            result = stripped
                 else:
                     try:
-                        result = await response.json(content_type=None)
+                        result = json.loads(raw_text)
                     except ValueError:
                         result = None
         if call_name and debug_calls is not None:
@@ -1086,6 +1155,7 @@ async def _safe_get_json(
                 name=call_name,
                 status="ok" if result is not None else "error",
                 request={"url": url},
+                raw_response=raw_text if raw_text else "empty",
                 response=result if result is not None else "empty",
                 error=None if result is not None else "empty response",
             )
@@ -1135,6 +1205,7 @@ def _record_debug_call(
     name: str,
     status: str,
     request: Any = None,
+    raw_response: Any = None,
     response: Any = None,
     error: str | None = None,
     log_failure: bool = False,
@@ -1142,6 +1213,8 @@ def _record_debug_call(
     entry: dict[str, Any] = {"status": status}
     if request is not None:
         entry["request"] = _to_debug_payload(request)
+    if raw_response is not None:
+        entry["raw_response"] = _to_debug_payload(raw_response)
     if response is not None:
         entry["response"] = _to_debug_payload(response)
     if error:
