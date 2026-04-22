@@ -1,5 +1,7 @@
 # Alby Hub Integration – Handbook (EN)
 
+> **As of:** April 2026 · Home Assistant ≥ 2026.1 · Integration v1.1.0
+
 ## Integration vs. Add-on (important)
 
 - **This integration is required** to connect Alby Hub to Home Assistant and expose entities/services in HA.
@@ -125,28 +127,247 @@ Current entities:
 - **Bitcoin hashrate** (`sensor`) – in EH/s
 - **Blocks until halving** (`sensor`)
 - **Next halving estimate** (`sensor`) – timestamp
+- **Last invoice** (`sensor`) – BOLT11 string in attribute `bolt11`, including `amount_sat` and `memo`
+- **NWC budget total** (`sensor`) – total NWC spending budget in sat
+- **NWC budget used** (`sensor`) – already spent budget in sat
+- **NWC budget remaining** (`sensor`) – remaining budget in sat
+- **NWC budget renewal period** (`sensor`) – e.g. daily/weekly/monthly
 
-### Text entities (invoice workflow)
+### Number and select entities (invoice workflow)
+
+- **`number.alby_hub_invoice_amount`** – invoice amount (input for create_invoice)
+- **`select.alby_hub_invoice_amount_unit`** – unit: SAT / BTC / Fiat
+
+### Text entities (payment workflow)
 
 - **`text.alby_hub_invoice_input`** – paste or scan a BOLT11 invoice here before sending
-- **`text.alby_hub_last_invoice`** – displays the last created invoice (BOLT11 string)
+
+### Button entities
+
+- **`button.alby_hub_create_invoice`** – create invoice (calls create_invoice with the current number/select values)
 
 ## Services
 
-- `alby_hub.create_invoice` (expert mode, local API)
+### Payment services (expert mode, local API)
+
+- **`alby_hub.create_invoice`**
+  - Creates a BOLT11 invoice.
   - Amount can be given in **satoshis** (`amount_sat`), **BTC** (`amount_btc`),
     or **fiat** (`amount_fiat` + `fiat_currency` – uses the Bitcoin price sensor).
-  - The created invoice is saved to `text.alby_hub_last_invoice` for display.
+  - Optional fields: `memo` (description), `expiry_seconds` (expiry time).
+  - The created invoice is saved to `sensor.alby_hub_last_invoice` for display.
   - Returns `payment_request`, `amount_sat`, and `qr_url` as service response.
-- `alby_hub.send_payment` (expert mode, local API)
+- **`alby_hub.send_payment`**
+  - Sends a BOLT11 payment or a payment to a Lightning address (`user@domain.com`).
   - `payment_request` is optional: if omitted, the value from `text.alby_hub_invoice_input` is used.
+  - For Lightning address payments, additionally provide `amount_sat`, `amount_btc`, or `amount_fiat`+`fiat_currency`.
+  - Optional field: `memo` (payment purpose).
   - After successful payment, `text.alby_hub_invoice_input` is cleared automatically.
+- **`alby_hub.list_transactions`**
+  - Returns recent Lightning transactions (incoming and outgoing).
+  - Parameter: `limit` (default 50, max 500).
+
+### Recurring payments
+
+- **`alby_hub.schedule_payment`** – Creates a recurring payment (Lightning address or BOLT11).
+  - Required fields: `recipient`, `amount_sat`, `frequency` (daily/weekly/monthly/quarterly).
+  - Optional fields: `label`, `memo`, `hour`, `minute`, `day_of_week`, `day_of_month`, `start_date`, `end_date`.
+- **`alby_hub.list_scheduled_payments`** – Lists all configured recurring payment schedules.
+- **`alby_hub.update_scheduled_payment`** – Updates a recurring payment schedule (via `schedule_id`).
+- **`alby_hub.delete_scheduled_payment`** – Deletes a recurring payment schedule (via `schedule_id`).
+- **`alby_hub.run_scheduled_payment_now`** – Executes a schedule immediately.
+
+## Automations with Alby Hub
+
+The integration exposes entities and services that you can use directly in Home Assistant automations. The panel (tabs **Receive** and **Send**) includes ready-to-use YAML examples with a copy button, plus an automation generator.
+
+### Direction 1 – Payment received → control entity
+
+**When useful:** You want HA to automatically do something when a payment arrives (e.g. open a door, send a notification, turn on a light).
+
+**How it works:** The sensor `sensor.alby_hub_lightning_balance` changes its value when the balance increases (= payment received). Use this as the trigger in your automation.
+
+**Example 1 – Notification on incoming payment:**
+
+```yaml
+alias: "Alby Hub – Payment received, send notification"
+description: >
+  Sends a notification when the Lightning balance increases
+  (= a payment was received).
+trigger:
+  - platform: state
+    entity_id: sensor.alby_hub_lightning_balance
+condition:
+  - condition: template
+    value_template: >
+      {{ trigger.to_state.state | int(0) >
+         trigger.from_state.state | int(0) }}
+action:
+  - service: notify.notify
+    data:
+      message: >
+        ⚡ Payment received!
+        New balance: {{ states('sensor.alby_hub_lightning_balance') }} sat
+mode: single
+```
+
+**How to use this example:**
+1. Open **Settings → Automations → + Create Automation**.
+2. Click ⋮ (three dots, top right) → **Edit in YAML**.
+3. Paste the YAML (replace the existing content).
+4. Replace `notify.notify` with your actual notification service (e.g. `notify.mobile_app_my_phone`).
+5. Save – done.
+
+---
+
+**Example 2 – Turn on a switch when a payment is received:**
+
+```yaml
+alias: "Alby Hub – Payment received, grant access"
+description: >
+  Turns switch.example_access on when a payment is received.
+  Replace 'switch.example_access' with your target entity.
+trigger:
+  - platform: state
+    entity_id: sensor.alby_hub_lightning_balance
+condition:
+  - condition: template
+    value_template: >
+      {{ trigger.to_state.state | int(0) >
+         trigger.from_state.state | int(0) }}
+action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.example_access
+mode: single
+```
+
+**Adapt:** Replace `switch.example_access` with the entity you want to control (e.g. `switch.front_door`, `light.entrance`, `input_boolean.payment_confirmed`).
+
+---
+
+### Direction 2 – Entity / sensor → trigger payment
+
+**When useful:** You want to automatically send a Lightning payment when a certain condition is met (e.g. a button is pressed, a sensor value crosses a threshold, or a scheduled billing should occur).
+
+**Prerequisite:** Expert mode + local API active; service `alby_hub.send_payment` available.
+
+**Example 3 – Switch turned on → send Lightning payment:**
+
+```yaml
+alias: "Alby Hub – Switch → trigger payment"
+description: >
+  Triggers a Lightning payment when switch.payment_trigger is turned on.
+  Replace recipient address, amount, and switch ID.
+trigger:
+  - platform: state
+    entity_id: switch.payment_trigger
+    to: "on"
+action:
+  - service: alby_hub.send_payment
+    data:
+      payment_request: "recipient@lightning.address"
+      amount_sat: 1000
+      memo: "Automatic payment from Home Assistant"
+mode: single
+```
+
+**Adapt:**
+- `switch.payment_trigger` → entity ID of your trigger (any HA entity)
+- `recipient@lightning.address` → Lightning address of the recipient
+- `amount_sat: 1000` → amount in satoshis
+
+---
+
+**Example 4 – Sensor threshold exceeded → send Lightning payment:**
+
+```yaml
+alias: "Alby Hub – Threshold exceeded → payment"
+description: >
+  Triggers a payment when sensor.example_sensor exceeds the value 100.
+  Replace sensor ID, threshold, recipient, and amount.
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.example_sensor
+    above: 100
+action:
+  - service: alby_hub.send_payment
+    data:
+      payment_request: "recipient@lightning.address"
+      amount_sat: 5000
+      memo: "Billing {{ now().strftime('%Y-%m-%d') }}"
+mode: single
+```
+
+**Adapt:**
+- `sensor.example_sensor` → sensor ID (e.g. `sensor.energy_meter`, `sensor.temperature_outside`)
+- `above: 100` → your threshold (also `below:` is possible)
+- `amount_sat: 5000` → amount in satoshis
+
+---
+
+### Automation generator in the panel
+
+The Alby Hub panel (**Send** and **Receive** tabs) includes an **Automation Generator**:
+
+1. Choose a direction (trigger payment or react to payment).
+2. Enter entity IDs, threshold, recipient, and amount.
+3. Click **⚡ Generate YAML**.
+4. Copy the generated YAML using **📋 Copy**.
+5. In HA: **Settings → Automations → + Create Automation → ⋮ → Edit in YAML** → paste → save.
+
+You can further edit the generated automation in the HA editor at any time.
+
+---
+
+## Camera & QR code scanning
+
+### Option 1 – Device camera (browser)
+
+In the Alby Hub panel (tab **Send**) you can use a device camera to scan QR codes:
+
+1. Click **📱 Start device camera** in the "Scan QR code" section.
+2. Allow the browser to access the camera.
+3. Hold the QR code of the invoice up to the camera.
+4. The detected BOLT11 code is automatically transferred to the payment field.
+5. Click **➤ Send Payment**.
+
+**Note:** This feature uses the browser's native BarcodeDetector API (available in Chrome/Edge ≥ 83 and the HA Companion App on Android). In Firefox or Safari, the file upload option is shown instead.
+
+### Option 2 – Upload image / photo
+
+A universal alternative is available for all browsers and devices:
+
+1. Click **🖼 Choose image**.
+2. Select a photo of the QR code (on mobile, the camera app opens directly).
+3. The QR code is automatically extracted from the image and filled into the payment field.
+
+### Option 3 – HA camera entity scan
+
+If you have a surveillance camera (e.g. doorbell, access control) integrated in Home Assistant, you can use its snapshot for QR code scanning:
+
+1. Select the desired camera from the "HA camera entity" dropdown.
+2. Click **📷 Scan snapshot**.
+3. A current snapshot of the camera is retrieved and checked for QR codes.
+4. If a BOLT11 code is detected, it is transferred to the payment field.
+
+**Use case:** QR code is held up to a door camera → integration reads the code → payment is triggered.
+
+### Option 4 – HA Companion App
+
+In the official Home Assistant Companion App (Android/iOS) you can also scan QR codes directly via the **Lovelace dashboard** (not the custom panel):
+
+1. Open the Alby Hub dashboard in the Companion App.
+2. Tap the camera icon next to the `text.alby_hub_invoice_input` field.
+3. Scan the QR code.
+4. The value is written directly to the text entity.
+5. Call `alby_hub.send_payment` (no parameters needed).
 
 ## Lightning receive workflow
 
 1. Call `alby_hub.create_invoice` with the desired amount (sat / BTC / fiat).
-2. The BOLT11 invoice is stored in `text.alby_hub_last_invoice`.
-3. Open the Alby Hub dashboard → Receive view to see the invoice text and a QR code link.
+2. The BOLT11 invoice is stored in `sensor.alby_hub_last_invoice` (attribute `bolt11`).
+3. Open the Alby Hub panel → Receive tab to see the invoice text and QR code.
 4. Share the invoice string or let the payer scan the QR code.
 
 Alternatively, share your Lightning address (`sensor.alby_hub_lightning_address`) directly for
@@ -155,26 +376,8 @@ push payments without creating an invoice.
 ## Lightning send workflow
 
 1. Get a BOLT11 invoice from the payee (via their QR code or copy).
-2. Paste it into `text.alby_hub_invoice_input` from the Alby Hub dashboard → Send view,
-   or scan the QR code with the Home Assistant Companion App camera.
-3. Call `alby_hub.send_payment` (no parameters needed if you pasted into the entity).
-
-## Language / Display language
-
-Home Assistant automatically shows all entities and the config flow in the language configured
-under **Profile → Language** in Home Assistant. No additional setup is needed.
-Translation files exist for: English (`en`), German (`de`).
-
-## Dashboard
-
-After setup, an **Alby Hub** dashboard is automatically created with three views:
-
-- **Receive** – Lightning address, last invoice with QR code link, balance
-- **Send** – Invoice input entity, instructions, send button
-- **Network** – Bitcoin price, block height, hashrate, halving countdown
+2. Paste it into `text.alby_hub_invoice_input` from the Alby Hub panel → Send tab,
+   or scan the QR code (device camera, HA camera entity, file upload, or Companion App – see "Camera & QR code scanning").
+3. Call `alby_hub.send_payment` (no parameters needed if you filled the entity).
 
 ## Troubleshooting
-
-- Verify URI format and completeness.
-- Verify permissions/scopes in Alby Hub.
-- Check Home Assistant logs for integration errors.

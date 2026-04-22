@@ -138,6 +138,56 @@ views:
           Lightning address not available.
           {% endif %}
 
+      # Automation examples – Receive
+      - type: markdown
+        title: 🤖 Automation Examples (Receive)
+        content: |
+          **Tip:** Copy a YAML example below, then go to **Settings → Automations → + Create Automation → ⋮ → Edit in YAML**, paste and adapt entity IDs.
+
+          ---
+
+          **Example A – Payment received → send notification:**
+          ```yaml
+          alias: "Alby Hub – Payment received, notify"
+          trigger:
+            - platform: state
+              entity_id: sensor.YOUR_CONNECTION_NAME_lightning_balance
+          condition:
+            - condition: template
+              value_template: >
+                {{ trigger.to_state.state | int(0) >
+                   trigger.from_state.state | int(0) }}
+          action:
+            - service: notify.notify
+              data:
+                message: >
+                  ⚡ Payment received!
+                  New balance: {{ states('sensor.YOUR_CONNECTION_NAME_lightning_balance') }} sat
+          mode: single
+          ```
+          *(Replace `YOUR_CONNECTION_NAME` with your actual sensor name slug.)*
+
+          ---
+
+          **Example B – Payment received → turn on a switch:**
+          ```yaml
+          alias: "Alby Hub – Payment received, grant access"
+          trigger:
+            - platform: state
+              entity_id: sensor.YOUR_CONNECTION_NAME_lightning_balance
+          condition:
+            - condition: template
+              value_template: >
+                {{ trigger.to_state.state | int(0) >
+                   trigger.from_state.state | int(0) }}
+          action:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.YOUR_SWITCH
+          mode: single
+          ```
+          *(Replace `switch.YOUR_SWITCH` with your target entity.)*
+
       # Balance
       - type: horizontal-stack
         cards:
@@ -180,6 +230,50 @@ views:
         tap_action:
           action: call-service
           service: alby_hub.send_payment
+
+      # Automation examples – Send
+      - type: markdown
+        title: 🤖 Automation Examples (Send)
+        content: |
+          **Tip:** Copy a YAML example below, then go to **Settings → Automations → + Create Automation → ⋮ → Edit in YAML**, paste and adapt entity IDs.
+
+          ---
+
+          **Example A – Switch turned on → trigger Lightning payment:**
+          ```yaml
+          alias: "Alby Hub – Switch → payment"
+          trigger:
+            - platform: state
+              entity_id: switch.YOUR_SWITCH
+              to: "on"
+          action:
+            - service: alby_hub.send_payment
+              data:
+                payment_request: "recipient@lightning.address"
+                amount_sat: 1000
+                memo: "Auto payment from HA"
+          mode: single
+          ```
+          *(Replace `switch.YOUR_SWITCH`, the Lightning address, and `amount_sat`.)*
+
+          ---
+
+          **Example B – Sensor threshold exceeded → trigger Lightning payment:**
+          ```yaml
+          alias: "Alby Hub – Threshold → payment"
+          trigger:
+            - platform: numeric_state
+              entity_id: sensor.YOUR_SENSOR
+              above: 100
+          action:
+            - service: alby_hub.send_payment
+              data:
+                payment_request: "recipient@lightning.address"
+                amount_sat: 5000
+                memo: "Billing {{ now().strftime('%Y-%m-%d') }}"
+          mode: single
+          ```
+          *(Replace `sensor.YOUR_SENSOR` and `above: 100` with your values.)*
 
       # Balance
       - type: horizontal-stack
