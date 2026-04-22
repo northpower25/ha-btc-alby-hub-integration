@@ -125,6 +125,10 @@ const TRANSLATIONS = {
       startDate: 'Startdatum',
       endDate: 'Enddatum (leer = kein Ende)',
       createBtn: '+ Auftrag erstellen',
+      updateBtn: '💾 Auftrag speichern',
+      cancelEditBtn: 'Abbrechen',
+      editBtn: '✏️ Bearbeiten',
+      runNowBtn: '▶ Jetzt ausführen',
       deleteBtn: '🗑 Löschen',
       colLabel: 'Bezeichnung', colRecipient: 'Empfänger', colAmount: 'Betrag', colFreq: 'Intervall', colNext: 'Nächste Ausführung', colLastRun: 'Letzte Ausführung',
       never: 'Noch nicht ausgeführt',
@@ -238,6 +242,10 @@ const TRANSLATIONS = {
       startDate: 'Start date',
       endDate: 'End date (empty = no end)',
       createBtn: '+ Create schedule',
+      updateBtn: '💾 Save schedule',
+      cancelEditBtn: 'Cancel',
+      editBtn: '✏️ Edit',
+      runNowBtn: '▶ Run now',
       deleteBtn: '🗑 Delete',
       colLabel: 'Label', colRecipient: 'Recipient', colAmount: 'Amount', colFreq: 'Frequency', colNext: 'Next run', colLastRun: 'Last run',
       never: 'Never run',
@@ -318,6 +326,7 @@ class AlbyHubPanel extends HTMLElement {
     // Scheduled payments tab state
     this._schedules = null;        // null = not loaded
     this._schedLoading = false;
+    this._schedEditId = null;
     // Scheduled form state
     this._schedForm = {
       recipient: '', amount: '', label: '', memo: '',
@@ -546,10 +555,20 @@ class AlbyHubPanel extends HTMLElement {
     if (focused && (focused.tagName === 'INPUT' || focused.tagName === 'SELECT' || focused.tagName === 'TEXTAREA')) {
       return;
     }
+    const scrollSnapshots = Array.from(this.shadowRoot.querySelectorAll('.tx-scroll')).map((el) => ({
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
+    }));
     const content = this.shadowRoot.querySelector('#content');
     if (!content || !this._activePrefix) return;
     content.innerHTML = this._renderTab(this._activeTab, this._activePrefix);
     this._attachContentListeners();
+    Array.from(this.shadowRoot.querySelectorAll('.tx-scroll')).forEach((el, idx) => {
+      const snap = scrollSnapshots[idx];
+      if (!snap) return;
+      el.scrollLeft = snap.scrollLeft;
+      el.scrollTop = snap.scrollTop;
+    });
     this._lastUpdate = Date.now();
   }
 
@@ -949,6 +968,8 @@ class AlbyHubPanel extends HTMLElement {
     // ── Create form ──────────────────────────────────────────────────────────
     const showDayOfWeek  = f.frequency === 'weekly';
     const showDayOfMonth = f.frequency === 'monthly' || f.frequency === 'quarterly';
+    const isEditing = Boolean(this._schedEditId);
+    const submitLabel = isEditing ? t('updateBtn') : t('createBtn');
 
     const createForm = `<div class="card">
       <div class="card-title">${t('newTitle')}</div>
@@ -1008,25 +1029,45 @@ class AlbyHubPanel extends HTMLElement {
           <input type="date" class="inp" id="sched-end" value="${this._esc(f.end_date)}">
         </div>
       </div>
-      <button class="btn" id="sched-create-btn" data-prefix="${this._esc(p)}">${t('createBtn')}</button>
+      <button class="btn" id="sched-create-btn" data-prefix="${this._esc(p)}">${submitLabel}</button>
+      ${isEditing ? `<button class="filter-btn" id="sched-cancel-edit-btn" style="margin-top:8px;width:100%">${t('cancelEditBtn')}</button>` : ''}
     </div>`;
 
     // ── Schedule list ────────────────────────────────────────────────────────
     const schedules = this._schedules || [];
+    // Each header entry: { label, style? }
+    const scheduleHeaders = [
+      { label: t('colLabel') },
+      { label: t('colRecipient') },
+      { label: t('colAmount'), style: 'text-align:right' },
+      { label: t('colFreq') },
+      { label: t('colNext') },
+      { label: t('colLastRun') },
+    ];
+    // One extra column is reserved for row action buttons (edit/run/delete).
+    const scheduleColumnCount = scheduleHeaders.length + 1;
     const schedRows = schedules.length === 0
-      ? `<tr><td colspan="6" class="muted" style="text-align:center;padding:16px">${t('noSchedules')}</td></tr>`
+      ? `<tr><td colspan="${scheduleColumnCount}" class="muted" style="text-align:center;padding:16px">${t('noSchedules')}</td></tr>`
       : schedules.map((s) => {
           const lastRun = s.last_run
             ? new Date(s.last_run).toLocaleString()
             : t('never');
+          const nextRun = s.next_run
+            ? new Date(s.next_run).toLocaleString()
+            : '—';
           const freqLabel = ({daily: t('freqDaily'), weekly: t('freqWeekly'), monthly: t('freqMonthly'), quarterly: t('freqQuarterly')})[s.frequency] || s.frequency;
           return `<tr>
             <td>${this._esc(s.label || '—')}</td>
             <td class="small">${this._esc(s.recipient.length > 30 ? s.recipient.slice(0, 28) + '…' : s.recipient)}</td>
             <td style="text-align:right">${s.amount_sat.toLocaleString()}</td>
             <td>${freqLabel}</td>
+            <td class="small muted">${this._esc(nextRun)}</td>
             <td class="small muted">${this._esc(lastRun)}</td>
-            <td><button class="sched-del-btn small-btn" data-id="${this._esc(s.id)}">${t('deleteBtn')}</button></td>
+            <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <button class="sched-edit-btn small-btn" data-id="${this._esc(s.id)}">${t('editBtn')}</button>
+              <button class="sched-run-btn small-btn" data-id="${this._esc(s.id)}">${t('runNowBtn')}</button>
+              <button class="sched-del-btn small-btn" data-id="${this._esc(s.id)}">${t('deleteBtn')}</button>
+            </td>
           </tr>`;
         }).join('');
 
@@ -1039,11 +1080,7 @@ class AlbyHubPanel extends HTMLElement {
         <table class="tx-table">
           <thead>
             <tr>
-              <th>${t('colLabel')}</th>
-              <th>${t('colRecipient')}</th>
-              <th style="text-align:right">${t('colAmount')}</th>
-              <th>${t('colFreq')}</th>
-              <th>${t('colLastRun')}</th>
+              ${scheduleHeaders.map((h) => `<th${h.style ? ` style="${h.style}"` : ''}>${h.label}</th>`).join('')}
               <th aria-label="${this._t('scheduled.deleteBtn')}"></th>
             </tr>
           </thead>
@@ -1379,7 +1416,7 @@ class AlbyHubPanel extends HTMLElement {
     bindSchedField('sched-start',     'start_date');
     bindSchedField('sched-end',       'end_date');
 
-    // Create schedule button
+    // Create/update schedule button
     root.querySelectorAll('#sched-create-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const f = this._schedForm;
@@ -1400,10 +1437,13 @@ class AlbyHubPanel extends HTMLElement {
           day_of_month: parseInt(f.day_of_month, 10),
         };
         if (f.start_date) serviceData.start_date = f.start_date;
-        if (f.end_date)   serviceData.end_date   = f.end_date;
+        if (f.end_date) serviceData.end_date = f.end_date;
 
         btn.disabled = true;
-        this._hass.callService('alby_hub', 'schedule_payment', serviceData)
+        const isEditing = Boolean(this._schedEditId);
+        if (isEditing) serviceData.schedule_id = this._schedEditId;
+        if (isEditing && !f.end_date) serviceData.end_date = null;
+        this._hass.callService('alby_hub', isEditing ? 'update_scheduled_payment' : 'schedule_payment', serviceData)
           .then(() => {
             // Reset form and reload list
             this._schedForm = {
@@ -1412,14 +1452,70 @@ class AlbyHubPanel extends HTMLElement {
               day_of_week: '0', day_of_month: '1',
               start_date: this._todayIso(), end_date: '',
             };
+            this._schedEditId = null;
             this._schedules = null;
             this._schedLoading = false;
             this._updateContent();
           })
           .catch((err) => {
-            console.warn('Alby Hub panel: schedule_payment failed', err);
+            console.warn('Alby Hub panel: schedule create/update failed', err);
           })
           .finally(() => { btn.disabled = false; });
+      });
+    });
+
+    root.querySelectorAll('#sched-cancel-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._schedEditId = null;
+        this._schedForm = {
+          recipient: '', amount: '', label: '', memo: '',
+          frequency: 'monthly', hour: '8', minute: '0',
+          day_of_week: '0', day_of_month: '1',
+          start_date: this._todayIso(), end_date: '',
+        };
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.sched-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const schedId = btn.dataset.id;
+        if (!schedId || !Array.isArray(this._schedules)) return;
+        const schedule = this._schedules.find((s) => s.id === schedId);
+        if (!schedule) return;
+        this._schedEditId = schedId;
+        this._schedForm = {
+          recipient: String(schedule.recipient || ''),
+          amount: String(schedule.amount_sat || ''),
+          label: String(schedule.label || ''),
+          memo: String(schedule.memo || ''),
+          frequency: String(schedule.frequency || 'monthly'),
+          hour: String(schedule.hour ?? '8'),
+          minute: String(schedule.minute ?? '0'),
+          day_of_week: String(schedule.day_of_week ?? '0'),
+          day_of_month: String(schedule.day_of_month ?? '1'),
+          start_date: String(schedule.start_date || this._todayIso()),
+          end_date: String(schedule.end_date || ''),
+        };
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.sched-run-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const schedId = btn.dataset.id;
+        if (!schedId) return;
+        btn.disabled = true;
+        this._hass.callService('alby_hub', 'run_scheduled_payment_now', { schedule_id: schedId })
+          .then(() => {
+            this._schedules = null;
+            this._schedLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => {
+            console.warn('Alby Hub panel: run_scheduled_payment_now failed', err);
+            btn.disabled = false;
+          });
       });
     });
 
@@ -1431,6 +1527,9 @@ class AlbyHubPanel extends HTMLElement {
         btn.disabled = true;
         this._hass.callService('alby_hub', 'delete_scheduled_payment', { schedule_id: schedId })
           .then(() => {
+            if (this._schedEditId === schedId) {
+              this._schedEditId = null;
+            }
             this._schedules = null;
             this._schedLoading = false;
             this._updateContent();

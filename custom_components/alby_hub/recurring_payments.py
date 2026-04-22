@@ -42,7 +42,9 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_CONFIG_ENTRY_ID,
     DOMAIN,
+    SERVICE_SEND_PAYMENT,
     STORAGE_KEY_SCHEDULED_PAYMENTS,
     STORAGE_VERSION_SCHEDULED_PAYMENTS,
 )
@@ -122,11 +124,14 @@ class RecurringPaymentScheduler:
 
     def list_schedules(self, entry_id: str | None = None) -> list[dict[str, Any]]:
         """Return all (or entry-filtered) schedules as safe copies."""
-        result = [
-            dict(s)
-            for s in self._schedules
-            if entry_id is None or s.get("entry_id") == entry_id
-        ]
+        result: list[dict[str, Any]] = []
+        for schedule in self._schedules:
+            if entry_id is not None and schedule.get("entry_id") != entry_id:
+                continue
+            item = dict(schedule)
+            next_run = _next_fire_time(schedule)
+            item["next_run"] = next_run.isoformat() if next_run is not None else None
+            result.append(item)
         return result
 
     async def async_delete(self, schedule_id: str) -> bool:
@@ -156,6 +161,41 @@ class RecurringPaymentScheduler:
                 await self._save()
                 return True
         return False
+
+    async def async_update(
+        self, schedule_id: str, updates: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Update a schedule and re-arm timer if needed."""
+        for schedule in self._schedules:
+            if schedule["id"] != schedule_id:
+                continue
+            for key, value in updates.items():
+                if key not in {"schedule_id", ATTR_CONFIG_ENTRY_ID}:
+                    schedule[key] = value
+            _validate_schedule(schedule)
+            if schedule.get("enabled", True):
+                self._arm(schedule)
+            else:
+                cancel = self._cancel_callbacks.pop(schedule_id, None)
+                if cancel:
+                    cancel()
+            await self._save()
+            updated = dict(schedule)
+            next_run = _next_fire_time(schedule)
+            updated["next_run"] = next_run.isoformat() if next_run is not None else None
+            return updated
+        return None
+
+    async def async_run_now(self, schedule_id: str) -> dict[str, Any] | None:
+        """Execute a schedule immediately and re-arm."""
+        schedule = next((s for s in self._schedules if s["id"] == schedule_id), None)
+        if schedule is None:
+            return None
+        await self._execute_and_rearm(schedule_id)
+        updated = dict(schedule)
+        next_run = _next_fire_time(schedule)
+        updated["next_run"] = next_run.isoformat() if next_run is not None else None
+        return updated
 
     # ── scheduling internals ───────────────────────────────────────────────────
 
@@ -226,26 +266,26 @@ class RecurringPaymentScheduler:
 
     async def _send_payment(self, schedule: dict[str, Any]) -> None:
         """Dispatch the actual payment using the active runtime for entry_id."""
-        entry_id = schedule.get("entry_id")
-        runtimes = self._hass.data.get(DOMAIN, {})
-        if not runtimes:
-            raise RuntimeError("No Alby Hub runtimes loaded")
-
-        runtime = runtimes.get(entry_id) if entry_id else next(iter(runtimes.values()), None)
-        if runtime is None:
-            raise RuntimeError(f"Runtime not found for entry_id={entry_id}")
-
-        from .nwc_client import async_nwc_request  # noqa: PLC0415
-
-        result = await async_nwc_request(
-            runtime.session,
-            runtime.nwc_info,
-            "pay_invoice",
-            {"invoice": schedule["recipient"]},
+        recipient = schedule.get("recipient")
+        amount_sat = schedule.get("amount_sat")
+        if not isinstance(recipient, str) or not recipient.strip():
+            raise RuntimeError("Scheduled payment is missing a valid recipient")
+        if not isinstance(amount_sat, int) or amount_sat < 1:
+            raise RuntimeError("Scheduled payment is missing a valid amount_sat")
+        service_data: dict[str, Any] = {
+            "payment_request": recipient,
+            "amount_sat": amount_sat,
+        }
+        if schedule.get("memo"):
+            service_data["memo"] = schedule["memo"]
+        if schedule.get("entry_id"):
+            service_data[ATTR_CONFIG_ENTRY_ID] = schedule["entry_id"]
+        await self._hass.services.async_call(
+            DOMAIN,
+            SERVICE_SEND_PAYMENT,
+            service_data,
+            blocking=True,
         )
-        if result is None or result.get("error"):
-            err_detail = result.get("error") if result else "no response"
-            raise RuntimeError(f"pay_invoice failed: {err_detail}")
 
     # ── persistence ────────────────────────────────────────────────────────────
 

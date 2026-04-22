@@ -35,6 +35,7 @@ _HALVING_INTERVAL_BLOCKS = 210000
 _MINUTES_PER_BLOCK = 10
 _MSATS_PER_SAT = 1000  # millisatoshis per satoshi
 _DEFAULT_MEMPOOL_API = "https://mempool.space"
+_BLOCKCHAIN_STATS_API = "https://api.blockchain.info/stats"
 
 
 class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -70,12 +71,10 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._network_provider = network_provider
         self._network_api_base = network_api_base
         self._entry_name = entry_name
-        self._manual_lightning_address = manual_lightning_address
+        self._manual_lightning_address = _first_valid_lightning_address(manual_lightning_address)
 
     async def _async_update_data(self) -> dict[str, Any]:
         lightning_address = _first_valid_lightning_address(
-            # _first_valid_lightning_address returns the first non-empty value in argument order.
-            # Manual value should therefore override URI-discovered lud16 when provided by user.
             self._manual_lightning_address,
             self._nwc_info.lud16,
         )
@@ -84,7 +83,6 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "entry_name": self._entry_name,
             "wallet_pubkey": self._nwc_info.wallet_pubkey,
             "relay": self._nwc_info.relay,
-            # Prefer NWC-URI lud16; fall back to the manually configured address
             "lightning_address": lightning_address,
             "connected": self._mode != MODE_EXPERT,
             "balance_lightning": None,
@@ -121,6 +119,19 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 data["version"] = info.get("version")
                 data["alias"] = info.get("alias") or info.get("name")
 
+                # Extract lightning address from local API info when not already known
+                if _is_missing_lightning_address(data.get("lightning_address")):
+                    api_address = _first_valid_lightning_address(
+                        info.get("lightning_address"),
+                        info.get("lud16"),
+                        info.get("lnaddress"),
+                        info.get("ln_addr"),
+                    )
+                    if not _is_missing_lightning_address(api_address):
+                        data["lightning_address"] = str(api_address).strip()
+                    elif self._manual_lightning_address:
+                        data["lightning_address"] = self._manual_lightning_address
+
                 lightning = balance.get("lightning") if isinstance(balance, dict) else None
                 onchain = balance.get("onchain") if isinstance(balance, dict) else None
                 data["balance_lightning"] = _read_sat_value(lightning)
@@ -135,6 +146,12 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             # Cloud / NWC-only mode: fetch balance and info via NWC protocol
             await self._fetch_nwc_data(data)
+
+        if _is_missing_lightning_address(data.get("lightning_address")):
+            data["lightning_address"] = _first_valid_lightning_address(
+                self._manual_lightning_address,
+                self._nwc_info.lud16,
+            )
 
         data["bitcoin_price"] = await _fetch_bitcoin_price(
             self._session, self._price_provider, self._price_currency
@@ -176,9 +193,14 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if version:
                     data["version"] = str(version)
                 if _is_missing_lightning_address(data.get("lightning_address")):
-                    lud16 = info_result.get("lud16") or info_result.get("lightning_address")
-                    if not _is_missing_lightning_address(lud16):
-                        data["lightning_address"] = str(lud16).strip()
+                    address_candidate = _first_valid_lightning_address(
+                        info_result.get("lud16"),
+                        info_result.get("lightning_address"),
+                        info_result.get("lnaddress"),
+                        info_result.get("ln_addr"),
+                    )
+                    if not _is_missing_lightning_address(address_candidate):
+                        data["lightning_address"] = str(address_candidate).strip()
                     elif self._manual_lightning_address:
                         data["lightning_address"] = self._manual_lightning_address
         except Exception as err:
@@ -280,9 +302,6 @@ async def _fetch_bitcoin_price(
 async def _fetch_network_stats(
     session: ClientSession, provider: str, api_base: str | None
 ) -> dict[str, int | float | None]:
-    if provider not in (NETWORK_PROVIDER_MEMPOOL, NETWORK_PROVIDER_CUSTOM_NODE):
-        return _empty_network_payload()
-
     if provider == NETWORK_PROVIDER_CUSTOM_NODE and api_base:
         custom_base = api_base.rstrip("/")
         stats = await _fetch_network_stats_from_base(session, custom_base)
@@ -293,7 +312,15 @@ async def _fetch_network_stats(
             _DEFAULT_MEMPOOL_API,
         )
 
-    return await _fetch_network_stats_from_base(session, _DEFAULT_MEMPOOL_API)
+    if provider in (NETWORK_PROVIDER_MEMPOOL, NETWORK_PROVIDER_CUSTOM_NODE):
+        mempool_stats = await _fetch_network_stats_from_base(session, _DEFAULT_MEMPOOL_API)
+        if mempool_stats["bitcoin_block_height"] is not None:
+            return mempool_stats
+
+    blockchain_stats = await _fetch_network_stats_from_blockchain(session)
+    if blockchain_stats["bitcoin_block_height"] is not None:
+        return blockchain_stats
+    return _empty_network_payload()
 
 
 def _empty_network_payload() -> dict[str, None | float]:
@@ -395,6 +422,38 @@ async def _fetch_network_stats_from_base(
     }
 
 
+async def _fetch_network_stats_from_blockchain(
+    session: ClientSession,
+) -> dict[str, int | float | None]:
+    data = await _safe_get_json(session, _BLOCKCHAIN_STATS_API)
+    if not isinstance(data, dict):
+        return _empty_network_payload()
+
+    block_height = data.get("n_blocks_total")
+    if not isinstance(block_height, int):
+        return _empty_network_payload()
+
+    raw_hashrate = data.get("hash_rate")
+    hashrate = None
+    if isinstance(raw_hashrate, (int, float)):
+        # Blockchain.info reports TH/s; 1 EH/s = 1,000,000 TH/s.
+        hashrate = round(float(raw_hashrate) / 1_000_000, 2)
+
+    minutes_per_block = data.get("minutes_between_blocks")
+    if not isinstance(minutes_per_block, (int, float)) or float(minutes_per_block) <= 0:
+        minutes_per_block = _MINUTES_PER_BLOCK
+
+    next_halving_height = _calculate_next_halving_height(block_height)
+    blocks_until_halving = max(next_halving_height - block_height, 0)
+
+    return {
+        "bitcoin_block_height": block_height,
+        "bitcoin_hashrate": hashrate,
+        "blocks_until_halving": blocks_until_halving,
+        "minutes_per_block": float(minutes_per_block),
+    }
+
+
 def _extract_nwc_balance_sat(balance_result: Any) -> int | None:
     if not isinstance(balance_result, dict):
         return None
@@ -429,8 +488,16 @@ def _first_valid_lightning_address(*values: Any) -> str | None:
 
 
 async def _safe_get_json(session: ClientSession, url: str) -> Any:
+    headers = {
+        "Accept": "application/json,text/plain,*/*",
+        "User-Agent": "HomeAssistant AlbyHub Integration",
+    }
     try:
-        async with session.get(url, timeout=ClientTimeout(total=_API_REQUEST_TIMEOUT_SECONDS)) as response:
+        async with session.get(
+            url,
+            timeout=ClientTimeout(total=_API_REQUEST_TIMEOUT_SECONDS),
+            headers=headers,
+        ) as response:
             if response.status >= 400:
                 _LOGGER.debug("HTTP %s fetching %s", response.status, url)
                 return None
@@ -442,7 +509,10 @@ async def _safe_get_json(session: ClientSession, url: str) -> Any:
                 try:
                     return int(raw_text)
                 except ValueError:
-                    pass
+                    try:
+                        return float(raw_text)
+                    except ValueError:
+                        pass
             try:
                 return await response.json(content_type=None)
             except ValueError:
