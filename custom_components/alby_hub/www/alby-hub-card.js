@@ -1336,13 +1336,11 @@ class AlbyHubPanel extends HTMLElement {
     const host = this.shadowRoot?.querySelector('#html5qr-reader');
     if (!host) return null;
 
+    this._html5QrFileCounter += 1;
+    const generatedFileName = `alby-hub-qr-${Date.now()}-${this._html5QrFileCounter}.png`;
     const file = fileOrBlob instanceof File
       ? fileOrBlob
-      : new File(
-          [fileOrBlob],
-          `alby-hub-qr-${Date.now()}-${++this._html5QrFileCounter}.png`,
-          { type: fileOrBlob?.type || 'image/png' }
-        );
+      : new File([fileOrBlob], generatedFileName, { type: fileOrBlob?.type || 'image/png' });
     const scanner = new Html5Qrcode(host);
     try {
       const decoded = await scanner.scanFile(file, true);
