@@ -31,6 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 _BALANCE_KEYS: tuple[str, ...] = ("balance", "sat", "sats", "total")
 _HASHES_PER_EXAHASH = 1_000_000_000_000_000_000
 _API_REQUEST_TIMEOUT_SECONDS = 5
+_DEBUG_PAYLOAD_MAX_LENGTH = 1200
 _HALVING_INTERVAL_BLOCKS = 210000
 _MINUTES_PER_BLOCK = 10
 _MSATS_PER_SAT = 1000  # millisatoshis per satoshi
@@ -1112,7 +1113,7 @@ def _record_debug_call(
         _LOGGER.warning("API debug [%s] failed: %s", name, reason)
 
 
-def _to_debug_payload(value: Any, max_length: int = 1200) -> str:
+def _to_debug_payload(value: Any, max_length: int = _DEBUG_PAYLOAD_MAX_LENGTH) -> str:
     if isinstance(value, (dict, list, tuple, int, float, bool)) or value is None:
         rendered = repr(value)
     else:
