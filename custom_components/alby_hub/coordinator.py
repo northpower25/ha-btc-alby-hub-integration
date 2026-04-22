@@ -72,6 +72,12 @@ _RENEWAL_KEYS: tuple[str, ...] = (
     "budget_renewal",
     "budget_period",
 )
+_RENEWAL_TIMESTAMP_KEYS: tuple[str, ...] = (
+    "renews_at",
+    "renew_at",
+    "next_renewal",
+    "next_reset",
+)
 _NETWORK_HEIGHT_KEYS: tuple[str, ...] = (
     "block_height",
     "blockheight",
@@ -722,7 +728,8 @@ async def _fetch_network_stats_from_base(
         debug_calls=debug_calls,
     )
 
-    if not isinstance(height_data, int):
+    height = _coerce_int(height_data)
+    if height is None or height <= 0:
         _record_debug_call(
             debug_calls,
             name=source_name,
@@ -740,18 +747,18 @@ async def _fetch_network_stats_from_base(
     hashrate = None
     minutes_per_block = _MINUTES_PER_BLOCK
     if isinstance(hashrate_data, dict):
-        current = hashrate_data.get("currentHashrate")
-        if isinstance(current, (int, float)):
-            hashrate = round(float(current) / _HASHES_PER_EXAHASH, 2)
-        avg_block_time_seconds = hashrate_data.get("avgBlockTime")
-        if isinstance(avg_block_time_seconds, (int, float)) and avg_block_time_seconds > 0:
-            minutes_per_block = float(avg_block_time_seconds) / 60
+        current = _coerce_float(hashrate_data.get("currentHashrate"))
+        if current is not None:
+            hashrate = round(current / _HASHES_PER_EXAHASH, 2)
+        avg_block_time_seconds = _coerce_float(hashrate_data.get("avgBlockTime"))
+        if avg_block_time_seconds is not None and avg_block_time_seconds > 0:
+            minutes_per_block = avg_block_time_seconds / 60
 
-    next_halving_height = _calculate_next_halving_height(height_data)
-    blocks_until_halving = max(next_halving_height - height_data, 0)
+    next_halving_height = _calculate_next_halving_height(height)
+    blocks_until_halving = max(next_halving_height - height, 0)
 
     return {
-        "bitcoin_block_height": height_data,
+        "bitcoin_block_height": height,
         "bitcoin_hashrate": hashrate,
         "blocks_until_halving": blocks_until_halving,
         "minutes_per_block": minutes_per_block,
@@ -816,15 +823,15 @@ def _extract_nwc_balance_sat(balance_result: Any) -> int | None:
 
     msat_keys = ("balance", "balance_msat", "msats", "msat", "total_msat")
     for key in msat_keys:
-        value = balance_result.get(key)
-        if isinstance(value, (int, float)):
-            return int(value) // _MSATS_PER_SAT
+        value = _coerce_int(balance_result.get(key))
+        if value is not None:
+            return value // _MSATS_PER_SAT
 
     sat_keys = ("balance_sat", "sat", "sats", "total")
     for key in sat_keys:
-        value = balance_result.get(key)
-        if isinstance(value, (int, float)):
-            return int(value)
+        value = _coerce_int(balance_result.get(key))
+        if value is not None:
+            return value
 
     return None
 
@@ -849,8 +856,9 @@ def _extract_nwc_onchain_balance_sat(balance_result: Any) -> int | None:
                 return nested
         if isinstance(value, bool):
             continue
-        if isinstance(value, (int, float)):
-            return int(value)
+        converted = _coerce_int(value)
+        if converted is not None:
+            return converted
 
     msat_keys = (
         "onchain_balance_msat",
@@ -861,9 +869,44 @@ def _extract_nwc_onchain_balance_sat(balance_result: Any) -> int | None:
         value = balance_result.get(key)
         if isinstance(value, bool):
             continue
-        if isinstance(value, (int, float)):
-            return int(value) // _MSATS_PER_SAT
+        converted = _coerce_int(value)
+        if converted is not None:
+            return converted // _MSATS_PER_SAT
 
+    return None
+
+
+def _coerce_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return None
+        try:
+            return int(float(stripped))
+        except ValueError:
+            return None
+    return None
+
+
+def _coerce_float(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return None
+        try:
+            return float(stripped)
+        except ValueError:
+            return None
     return None
 
 
@@ -918,6 +961,7 @@ def _apply_budget_from_payload(data: dict[str, Any], payload: Any) -> None:
         total_sat = _find_first_numeric(payload, _NUMERIC_BUDGET_TOTAL_SAT_KEYS)
 
     renewal = _find_first_text(payload, _RENEWAL_KEYS)
+    renewal_at = _find_first_numeric(payload, _RENEWAL_TIMESTAMP_KEYS)
 
     if isinstance(used_sat, int) and used_sat >= 0:
         data["nwc_budget_used"] = used_sat
@@ -929,6 +973,8 @@ def _apply_budget_from_payload(data: dict[str, Any], payload: Any) -> None:
         )
     if renewal:
         data["nwc_budget_renewal"] = renewal
+    elif isinstance(renewal_at, int) and renewal_at > 0:
+        data["nwc_budget_renewal"] = datetime.fromtimestamp(renewal_at, UTC).isoformat()
 
 
 def _find_first_numeric(payload: dict[str, Any], keys: tuple[str, ...]) -> int | None:
