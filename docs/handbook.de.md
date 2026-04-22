@@ -334,7 +334,7 @@ Im Alby-Hub-Panel (Reiter **Senden**) kannst du eine Gerätekamera für den QR-C
 4. Der erkannte BOLT11-Code wird automatisch in das Zahlungsfeld übertragen.
 5. Klicke auf **➤ Zahlung senden**.
 
-**Hinweis:** Diese Funktion nutzt die Browser-eigene BarcodeDetector-API (verfügbar in Chrome/Edge ≥ 83 und der HA Companion App auf Android). In Firefox oder Safari wird stattdessen der Datei-Upload angeboten.
+**Hinweis:** Diese Funktion nutzt die Browser-eigene BarcodeDetector-API (verfügbar in Chrome/Edge ≥ 83 und der HA Companion App auf Android). Das Panel enthält zusätzlich einen Chrome/Edge-Kompatibilitäts-Fallback über Video-Frames. In Firefox oder Safari wird stattdessen der Datei-Upload angeboten.
 
 ### Möglichkeit 2 – Bild / Foto hochladen
 

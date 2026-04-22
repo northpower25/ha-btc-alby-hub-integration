@@ -28,6 +28,7 @@ MVP-Implementierung mit:
 - Basis-Entitäten für Verbindung, Balances, Bitcoin-Preis und Netzwerkdaten
 - Basis-Services für Invoice-Erstellung und Payment (lokale API, Expert-Modus)
 - Automatische Erstellung eines Alby-Hub-Dashboards mit vorgeschlagenen Karten für Empfang/Senden und Markt-/Netzwerkdaten
+- JS-basiertes Alby-Hub-Panel mit QR-Scan im Senden-Reiter inkl. Chrome/Edge-Kamera-Kompatibilitäts-Fallback
 
 ## Installation (HACS) – Kurzanleitung
 
