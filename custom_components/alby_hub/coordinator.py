@@ -43,18 +43,23 @@ _NUMERIC_BUDGET_TOTAL_MSAT_KEYS: tuple[str, ...] = (
     "budget_msat",
     "limit_msat",
     "max_budget_msat",
+    # NIP-47 get_budget response: "total_budget" / "budget" are in millisatoshis
+    "total_budget",
+    "budget",
 )
 _NUMERIC_BUDGET_USED_MSAT_KEYS: tuple[str, ...] = (
     "used_budget_msat",
     "used_msat",
     "spent_msat",
+    # NIP-47 get_budget response: "used_budget", "used", "spent" are in millisatoshis
+    "used_budget",
+    "used",
+    "spent",
 )
 _NUMERIC_BUDGET_TOTAL_SAT_KEYS: tuple[str, ...] = (
     "total_budget_sat",
     "budget_sat",
     "limit_sat",
-    "total_budget",
-    "budget",
     "limit",
     "max_budget",
 )
@@ -62,9 +67,6 @@ _NUMERIC_BUDGET_USED_SAT_KEYS: tuple[str, ...] = (
     "used_budget_sat",
     "used_sat",
     "spent_sat",
-    "used_budget",
-    "used",
-    "spent",
 )
 _RENEWAL_KEYS: tuple[str, ...] = (
     "renewal_period",
@@ -1149,7 +1151,8 @@ async def _safe_get_json(
                         try:
                             result = float(stripped)
                         except ValueError:
-                            result = stripped
+                            parsed = _parse_json_text(stripped)
+                            result = parsed if parsed is not None else stripped
                 else:
                     result = None
         if call_name and debug_calls is not None:

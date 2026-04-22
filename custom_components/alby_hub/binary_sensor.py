@@ -34,4 +34,5 @@ class AlbyHubConnectionBinarySensor(AlbyHubCoordinatorEntity, BinarySensorEntity
     @property
     def is_on(self) -> bool:
         """Return True if hub is reachable."""
-        return bool(self.coordinator.data.get("connected"))
+        data = self.coordinator.data
+        return bool(data.get("connected")) if data is not None else False
