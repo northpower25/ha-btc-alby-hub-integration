@@ -210,7 +210,7 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data.update({
             key: value
             for key, value in network_stats.items()
-            if value is not None or data.get(key) is None
+            if value is not None
         })
 
         return data
@@ -302,6 +302,8 @@ class AlbyHubDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 def _read_sat_value(value: Any) -> int | None:
     """Read satoshi-like values from known Alby API balance shapes."""
+    if isinstance(value, bool):
+        return None
     if isinstance(value, int):
         return value
     if isinstance(value, float):
@@ -309,6 +311,8 @@ def _read_sat_value(value: Any) -> int | None:
     if isinstance(value, dict):
         for key in _BALANCE_KEYS:
             nested = value.get(key)
+            if isinstance(nested, bool):
+                continue
             if isinstance(nested, (int, float)):
                 return int(nested)
     return None
