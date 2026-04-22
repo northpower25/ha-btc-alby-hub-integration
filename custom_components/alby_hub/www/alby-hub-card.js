@@ -1264,9 +1264,11 @@ class AlbyHubPanel extends HTMLElement {
       }
       return new BarcodeDetector({ formats: ['qr_code'] });
     } catch (_) {
+      // Older browser builds may reject the format option; retry without it.
       try {
         return new BarcodeDetector();
       } catch (_) {
+        // No usable detector in this runtime.
         return null;
       }
     }
@@ -1291,12 +1293,15 @@ class AlbyHubPanel extends HTMLElement {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ctx = source instanceof HTMLVideoElement
+      ? canvas.getContext('2d', { willReadFrequently: true })
+      : canvas.getContext('2d');
     if (!ctx) return null;
     try {
       ctx.drawImage(source, 0, 0, width, height);
       return canvas;
     } catch (_) {
+      // Drawing can fail on invalid/unready sources.
       return null;
     }
   }
@@ -1323,6 +1328,7 @@ class AlbyHubPanel extends HTMLElement {
     try {
       return await detectValue(canvas);
     } catch (_) {
+      // Detection can still fail for edge browser/runtime combinations.
       return null;
     }
   }
