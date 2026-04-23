@@ -113,7 +113,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     def __init__(self) -> None:
-        """Initialise flow state."""
+        """Initialize flow state."""
         super().__init__()
         self._pending_data: dict = {}
         self._pending_title: str = ""
@@ -323,7 +323,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Alby Hub (gear icon reconfiguration)."""
 
     def __init__(self) -> None:
-        """Initialise flow state."""
+        """Initialize flow state."""
         super().__init__()
         self._pending_data: dict = {}
         self._generated_nsec: str = ""
