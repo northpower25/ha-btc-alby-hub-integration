@@ -20,6 +20,11 @@
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
           "network_api_base": "Network API base URL (for own node / mempool API)",
+          "nostr_enabled": "Enable built-in Nostr bot/client",
+          "nostr_relay": "Nostr relay URL for bot/client messaging",
+          "nostr_bot_nsec": "Bot private key (NSEC or 64-char hex)",
+          "nostr_allowed_npubs": "Allowed npubs whitelist (one per line or comma-separated)",
+          "nostr_webhook_secret": "Webhook secret (X-Alby-Nostr-Secret)",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },
@@ -36,6 +41,11 @@
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
           "network_api_base": "Network API base URL (for own node / mempool API)",
+          "nostr_enabled": "Enable built-in Nostr bot/client",
+          "nostr_relay": "Nostr relay URL for bot/client messaging",
+          "nostr_bot_nsec": "Bot private key (NSEC or 64-char hex)",
+          "nostr_allowed_npubs": "Allowed npubs whitelist (one per line or comma-separated)",
+          "nostr_webhook_secret": "Webhook secret (X-Alby-Nostr-Secret)",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       }
@@ -61,6 +71,11 @@
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
           "network_api_base": "Network API base URL (for own node / mempool API)",
+          "nostr_enabled": "Enable built-in Nostr bot/client",
+          "nostr_relay": "Nostr relay URL for bot/client messaging",
+          "nostr_bot_nsec": "Bot private key (NSEC or 64-char hex)",
+          "nostr_allowed_npubs": "Allowed npubs whitelist (one per line or comma-separated)",
+          "nostr_webhook_secret": "Webhook secret (X-Alby-Nostr-Secret)",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },
@@ -77,6 +92,11 @@
           "price_currency": "Price currency (e.g. EUR, USD)",
           "network_provider": "Bitcoin network data provider",
           "network_api_base": "Network API base URL (for own node / mempool API)",
+          "nostr_enabled": "Enable built-in Nostr bot/client",
+          "nostr_relay": "Nostr relay URL for bot/client messaging",
+          "nostr_bot_nsec": "Bot private key (NSEC or 64-char hex)",
+          "nostr_allowed_npubs": "Allowed npubs whitelist (one per line or comma-separated)",
+          "nostr_webhook_secret": "Webhook secret (X-Alby-Nostr-Secret)",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       }

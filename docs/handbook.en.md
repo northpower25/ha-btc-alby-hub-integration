@@ -9,6 +9,27 @@
 - For cloud/NWC-only use of this integration, the add-on is not strictly required.
 - For local expert features (local API/relay), the add-on can be required.
 
+## Nostr basics (short)
+
+- **Nostr is decentralized:** there is no single provider controlling all communication.
+- **Centralized bot/messenger providers** usually bind users to one operator and infrastructure.
+- With Nostr, identity and transport are open standards (keys + relays), giving users more client and infrastructure choice.
+
+Why this matters here:
+
+- **NWC (Nostr Wallet Connect)** already uses Nostr as the communication layer to Alby Hub.
+- The built-in Nostr bot/client in this integration extends this model with secure webhook-based command routing.
+
+## Nostr apps for smartphones (examples)
+
+Examples (non-exhaustive):
+
+- **iOS:** Damus, Primal
+- **Android:** Amethyst, Primal
+- **iOS/Android (depending on current releases):** additional clients such as Nos
+
+Always verify key handling, backup strategy, and trust model before production use.
+
 ## Alignment with official Alby Hub guides
 
 Official sources:

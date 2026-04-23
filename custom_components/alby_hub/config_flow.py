@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from urllib.parse import urlparse
 
 import voluptuous as vol
@@ -21,6 +22,11 @@ from .const import (
     CONF_MODE,
     CONF_NETWORK_API_BASE,
     CONF_NETWORK_PROVIDER,
+    CONF_NOSTR_ALLOWED_NPUBS,
+    CONF_NOSTR_BOT_NSEC,
+    CONF_NOSTR_ENABLED,
+    CONF_NOSTR_RELAY,
+    CONF_NOSTR_WEBHOOK_SECRET,
     CONF_NWC_URI,
     CONF_PREFER_LOCAL_RELAY,
     CONF_PRICE_CURRENCY,
@@ -29,6 +35,7 @@ from .const import (
     CONF_SETUP_WARNINGS,
     DEFAULT_CONNECTION_NAME,
     DEFAULT_NETWORK_PROVIDER,
+    DEFAULT_NOSTR_RELAY,
     DEFAULT_HUB_URL,
     DEFAULT_PRICE_CURRENCY,
     DEFAULT_PRICE_PROVIDER,
@@ -153,6 +160,14 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors["base"] = "warning_ack_required"
                     placeholders["warnings"] = "\n".join(warnings)
                 else:
+                    nostr_data = _normalize_nostr_config(user_input, errors)
+                    if nostr_data is None:
+                        return self.async_show_form(
+                            step_id="cloud",
+                            data_schema=_cloud_schema(user_input),
+                            errors=errors,
+                            description_placeholders=placeholders,
+                        )
                     await self.async_set_unique_id(f"{nwc_info.wallet_pubkey}:{nwc_info.relay}")
                     self._abort_if_unique_id_configured()
                     connection_name = (
@@ -171,6 +186,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
                             CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
                             CONF_SETUP_WARNINGS: warnings,
+                            **nostr_data,
                         },
                     )
 
@@ -212,6 +228,14 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors["base"] = "warning_ack_required"
                     placeholders["warnings"] = "\n".join(warnings)
                 else:
+                    nostr_data = _normalize_nostr_config(user_input, errors)
+                    if nostr_data is None:
+                        return self.async_show_form(
+                            step_id="expert",
+                            data_schema=_expert_schema(user_input),
+                            errors=errors,
+                            description_placeholders=placeholders,
+                        )
                     await self.async_set_unique_id(f"{nwc_info.wallet_pubkey}:{hub_url}")
                     self._abort_if_unique_id_configured()
                     connection_name = (
@@ -230,6 +254,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
                         CONF_SETUP_WARNINGS: warnings,
                         CONF_PREFER_LOCAL_RELAY: user_input[CONF_PREFER_LOCAL_RELAY],
+                        **nostr_data,
                     }
                     if relay_override:
                         data[CONF_RELAY_OVERRIDE] = relay_override
@@ -272,6 +297,14 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                     errors["base"] = "warning_ack_required"
                     placeholders["warnings"] = "\n".join(warnings)
                 else:
+                    nostr_data = _normalize_nostr_config(user_input, errors)
+                    if nostr_data is None:
+                        return self.async_show_form(
+                            step_id="cloud",
+                            data_schema=_cloud_schema(_merged_entry_data(self.config_entry)),
+                            errors=errors,
+                            description_placeholders=placeholders,
+                        )
                     return self.async_create_entry(
                         title="",
                         data={
@@ -285,6 +318,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                             CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
                             CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
                             CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
+                            **nostr_data,
                         },
                     )
 
@@ -321,6 +355,14 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                     errors["base"] = "warning_ack_required"
                     placeholders["warnings"] = "\n".join(warnings)
                 else:
+                    nostr_data = _normalize_nostr_config(user_input, errors)
+                    if nostr_data is None:
+                        return self.async_show_form(
+                            step_id="expert",
+                            data_schema=_expert_schema(_merged_entry_data(self.config_entry)),
+                            errors=errors,
+                            description_placeholders=placeholders,
+                        )
                     new_data: dict = {
                         CONF_NWC_URI: nwc_info.raw_uri,
                         CONF_CONNECTION_NAME: (
@@ -334,6 +376,7 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
                         CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
                         CONF_PREFER_LOCAL_RELAY: user_input[CONF_PREFER_LOCAL_RELAY],
+                        **nostr_data,
                     }
                     if relay_override:
                         new_data[CONF_RELAY_OVERRIDE] = relay_override
@@ -366,6 +409,11 @@ def _cloud_schema(user_input) -> vol.Schema:
     default_network_provider = DEFAULT_NETWORK_PROVIDER
     default_network_api_base = ""
     default_lightning_address = ""
+    default_nostr_enabled = False
+    default_nostr_relay = DEFAULT_NOSTR_RELAY
+    default_nostr_bot_nsec = ""
+    default_nostr_allowed_npubs = ""
+    default_nostr_webhook_secret = ""
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
         default_connection_name = user_input.get(CONF_CONNECTION_NAME, DEFAULT_CONNECTION_NAME)
@@ -375,6 +423,11 @@ def _cloud_schema(user_input) -> vol.Schema:
         default_network_provider = user_input.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER)
         default_network_api_base = user_input.get(CONF_NETWORK_API_BASE, "")
         default_lightning_address = user_input.get(CONF_LIGHTNING_ADDRESS, "") or ""
+        default_nostr_enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
+        default_nostr_relay = user_input.get(CONF_NOSTR_RELAY, DEFAULT_NOSTR_RELAY)
+        default_nostr_bot_nsec = user_input.get(CONF_NOSTR_BOT_NSEC, "")
+        default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
+        default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
 
     return vol.Schema(
         {
@@ -387,6 +440,15 @@ def _cloud_schema(user_input) -> vol.Schema:
             vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): _currency_selector(),
             vol.Optional(CONF_NETWORK_PROVIDER, default=default_network_provider): _network_provider_selector(),
             vol.Optional(CONF_NETWORK_API_BASE, default=default_network_api_base): str,
+            vol.Optional(CONF_NOSTR_ENABLED, default=default_nostr_enabled): bool,
+            vol.Optional(CONF_NOSTR_RELAY, default=default_nostr_relay): str,
+            vol.Optional(CONF_NOSTR_BOT_NSEC, default=default_nostr_bot_nsec): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+            ),
+            vol.Optional(CONF_NOSTR_ALLOWED_NPUBS, default=default_nostr_allowed_npubs): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+            vol.Optional(CONF_NOSTR_WEBHOOK_SECRET, default=default_nostr_webhook_secret): str,
             vol.Optional(CONF_ALLOW_CONTINUE_WITH_WARNING, default=default_warning): bool,
         }
     )
@@ -403,6 +465,11 @@ def _expert_schema(user_input) -> vol.Schema:
     default_network_provider = DEFAULT_NETWORK_PROVIDER
     default_network_api_base = ""
     default_lightning_address = ""
+    default_nostr_enabled = False
+    default_nostr_relay = DEFAULT_NOSTR_RELAY
+    default_nostr_bot_nsec = ""
+    default_nostr_allowed_npubs = ""
+    default_nostr_webhook_secret = ""
 
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
@@ -415,6 +482,11 @@ def _expert_schema(user_input) -> vol.Schema:
         default_network_provider = user_input.get(CONF_NETWORK_PROVIDER, DEFAULT_NETWORK_PROVIDER)
         default_network_api_base = user_input.get(CONF_NETWORK_API_BASE, "")
         default_lightning_address = user_input.get(CONF_LIGHTNING_ADDRESS, "") or ""
+        default_nostr_enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
+        default_nostr_relay = user_input.get(CONF_NOSTR_RELAY, DEFAULT_NOSTR_RELAY)
+        default_nostr_bot_nsec = user_input.get(CONF_NOSTR_BOT_NSEC, "")
+        default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
+        default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
 
     return vol.Schema(
         {
@@ -429,6 +501,15 @@ def _expert_schema(user_input) -> vol.Schema:
             vol.Optional(CONF_PRICE_CURRENCY, default=default_price_currency): _currency_selector(),
             vol.Optional(CONF_NETWORK_PROVIDER, default=default_network_provider): _network_provider_selector(),
             vol.Optional(CONF_NETWORK_API_BASE, default=default_network_api_base): str,
+            vol.Optional(CONF_NOSTR_ENABLED, default=default_nostr_enabled): bool,
+            vol.Optional(CONF_NOSTR_RELAY, default=default_nostr_relay): str,
+            vol.Optional(CONF_NOSTR_BOT_NSEC, default=default_nostr_bot_nsec): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+            ),
+            vol.Optional(CONF_NOSTR_ALLOWED_NPUBS, default=default_nostr_allowed_npubs): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+            vol.Optional(CONF_NOSTR_WEBHOOK_SECRET, default=default_nostr_webhook_secret): str,
             vol.Optional(CONF_ALLOW_CONTINUE_WITH_WARNING, default=default_warning): bool,
         }
     )
@@ -478,3 +559,31 @@ def _resolve_lightning_address(user_input: dict, nwc_info: NwcConnectionInfo) ->
         return manual
     parsed_lud16 = (nwc_info.lud16 or "").strip()
     return parsed_lud16 or None
+
+
+def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[str, str | bool] | None:
+    enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
+    relay = (user_input.get(CONF_NOSTR_RELAY, "") or "").strip()
+    bot_nsec = (user_input.get(CONF_NOSTR_BOT_NSEC, "") or "").strip()
+    allowed_npubs = (user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "") or "").strip()
+    webhook_secret = (user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "") or "").strip()
+
+    if enabled:
+        if not relay:
+            errors[CONF_NOSTR_RELAY] = "required"
+        if not bot_nsec:
+            errors[CONF_NOSTR_BOT_NSEC] = "required"
+        if not allowed_npubs:
+            errors[CONF_NOSTR_ALLOWED_NPUBS] = "required"
+        if errors:
+            return None
+        if not webhook_secret:
+            webhook_secret = secrets.token_urlsafe(24)
+
+    return {
+        CONF_NOSTR_ENABLED: enabled,
+        CONF_NOSTR_RELAY: relay,
+        CONF_NOSTR_BOT_NSEC: bot_nsec,
+        CONF_NOSTR_ALLOWED_NPUBS: allowed_npubs,
+        CONF_NOSTR_WEBHOOK_SECRET: webhook_secret,
+    }

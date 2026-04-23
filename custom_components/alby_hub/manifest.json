@@ -9,6 +9,8 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/northpower25/ha-btc-alby-hub-integration/issues",
   "homeassistant": "2026.1.0",
-  "requirements": [],
+  "requirements": [
+    "pynacl==1.5.0"
+  ],
   "version": "0.0.35"
 }

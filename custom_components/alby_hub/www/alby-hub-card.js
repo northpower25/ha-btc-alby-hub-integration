@@ -25,7 +25,7 @@ const STATIC_BASE_PATH = '/alby_hub_local';
 // ──────────────────────────────────────────────────────────────────────────────
 const TRANSLATIONS = {
   de: {
-    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk', activity: '📋 Aktivität', scheduled: '🔁 Geplant' },
+    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk', activity: '📋 Aktivität', scheduled: '🔁 Geplant', nostr: '🟣 Nostr' },
     noInstance: 'Keine Alby-Hub-Instanz gefunden',
     noInstanceHint: 'Konfiguriere die Alby-Hub-Integration unter <strong>Einstellungen → Geräte & Dienste</strong>.',
     overview: {
@@ -139,6 +139,26 @@ const TRANSLATIONS = {
       errAmountMin: 'Betrag muss mindestens 1 sat sein.',
       errRecipient: 'Bitte Empfänger angeben.',
     },
+    nostr: {
+      title: 'Nostr Bot/Client',
+      refresh: '↺ Aktualisieren',
+      noMessages: 'Noch keine Nostr-Nachrichten vorhanden.',
+      botCardTitle: 'Bot-Kommunikation (Whitelist-NPUBs)',
+      botNpub: 'Bot NPUB',
+      webhookUrl: 'Webhook URL',
+      targetNpub: 'Ziel NPUB',
+      targetNpubPlaceholder: 'npub1...',
+      message: 'Nachricht',
+      messagePlaceholder: 'Nachricht eingeben…',
+      sendBtn: '🔐 Als Bot senden (NIP-44)',
+      testCardTitle: 'Testfenster: mit eigenem NSEC anmelden',
+      testNsec: 'Eigenes NSEC',
+      testNsecPlaceholder: 'nsec1...',
+      sendTestBtn: '🧪 Testnachricht an Bot senden',
+      disabled: 'Nostr-Bot/Client ist in dieser Config nicht aktiviert.',
+      statusSent: 'gesendet',
+      statusReceived: 'empfangen',
+    },
     camera: {
       title: '📷 QR-Code scannen',
       selectEntity: 'HA Kamera-Entität (optional)',
@@ -195,7 +215,7 @@ const TRANSLATIONS = {
     unavailable: 'nicht verfügbar',
   },
   en: {
-    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network', activity: '📋 Activity', scheduled: '🔁 Scheduled' },
+    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network', activity: '📋 Activity', scheduled: '🔁 Scheduled', nostr: '🟣 Nostr' },
     noInstance: 'No Alby Hub instance found',
     noInstanceHint: 'Configure the Alby Hub integration under <strong>Settings → Devices &amp; Services</strong>.',
     overview: {
@@ -308,6 +328,26 @@ const TRANSLATIONS = {
       deleting: 'Deleting…',
       errAmountMin: 'Amount must be at least 1 sat.',
       errRecipient: 'Please specify a recipient.',
+    },
+    nostr: {
+      title: 'Nostr Bot/Client',
+      refresh: '↺ Refresh',
+      noMessages: 'No Nostr messages yet.',
+      botCardTitle: 'Bot communication (whitelist npubs)',
+      botNpub: 'Bot NPUB',
+      webhookUrl: 'Webhook URL',
+      targetNpub: 'Target NPUB',
+      targetNpubPlaceholder: 'npub1...',
+      message: 'Message',
+      messagePlaceholder: 'Enter message…',
+      sendBtn: '🔐 Send as bot (NIP-44)',
+      testCardTitle: 'Test window: sign in with your own NSEC',
+      testNsec: 'Your NSEC',
+      testNsecPlaceholder: 'nsec1...',
+      sendTestBtn: '🧪 Send test message to bot',
+      disabled: 'Nostr bot/client is not enabled for this config entry.',
+      statusSent: 'sent',
+      statusReceived: 'received',
     },
     camera: {
       title: '📷 Scan QR Code',
@@ -468,6 +508,16 @@ class AlbyHubPanel extends HTMLElement {
     };
     this._autoYaml = '';
     this._autoBuilderVisible = false;
+    // Nostr tab state
+    this._nostrMessages = null;
+    this._nostrLoading = false;
+    this._nostrEnabled = false;
+    this._nostrBotNpub = '';
+    this._nostrWebhookUrl = '';
+    this._pendingNostrTarget = '';
+    this._pendingNostrMsg = '';
+    this._pendingTestNsec = '';
+    this._pendingTestMsg = '';
   }
 
   connectedCallback() {
@@ -539,6 +589,7 @@ class AlbyHubPanel extends HTMLElement {
       { id: 'network',    label: t('tabs.network')    },
       { id: 'activity',   label: t('tabs.activity')   },
       { id: 'scheduled',  label: t('tabs.scheduled')  },
+      { id: 'nostr',      label: t('tabs.nostr')      },
     ];
   }
 
@@ -757,6 +808,7 @@ class AlbyHubPanel extends HTMLElement {
       case 'network':    return this._tabNetwork(p);
       case 'activity':   return this._tabActivity(p);
       case 'scheduled':  return this._tabScheduled(p);
+      case 'nostr':      return this._tabNostr(p);
       default:           return '';
     }
   }
@@ -1273,6 +1325,87 @@ class AlbyHubPanel extends HTMLElement {
     return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(400px,1fr))">
       ${createForm}
       ${listCard}
+    </div>`;
+  }
+
+  // ── Tab: Nostr ────────────────────────────────────────────────────────────────
+
+  _tabNostr(p) {
+    const t = (k) => this._t(`nostr.${k}`);
+    if (this._nostrMessages === null && !this._nostrLoading) {
+      this._loadNostrMessages(p);
+      return `<div class="cards-grid"><div class="card"><p class="muted">${this._t('activity.loading')}</p></div></div>`;
+    }
+
+    if (!this._nostrEnabled) {
+      return `<div class="cards-grid"><div class="card"><div class="card-title">${t('title')}</div><p class="muted">${t('disabled')}</p></div></div>`;
+    }
+
+    const messages = Array.isArray(this._nostrMessages) ? this._nostrMessages : [];
+    const rows = messages.length === 0
+      ? `<tr><td colspan="6" class="muted" style="text-align:center;padding:16px">${t('noMessages')}</td></tr>`
+      : messages.map((m) => {
+          const ts = m.ts ? new Date(m.ts).toLocaleString() : '—';
+          return `<tr>
+            <td>${this._esc(m.direction || '—')}</td>
+            <td class="small">${this._esc(m.sender || '—')}</td>
+            <td class="small">${this._esc(m.recipient || '—')}</td>
+            <td>${this._esc(m.message || '—')}</td>
+            <td>${this._esc(m.status || '—')}</td>
+            <td class="small muted">${this._esc(ts)}</td>
+          </tr>`;
+        }).join('');
+
+    return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(420px,1fr))">
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;gap:8px">
+          ${t('botCardTitle')}
+          <button class="filter-btn" style="margin-left:auto" data-action="refresh-nostr">${t('refresh')}</button>
+        </div>
+        ${this._row('🆔', t('botNpub'), this._esc(this._nostrBotNpub || '—'), false, true)}
+        ${this._row('🔗', t('webhookUrl'), this._esc(this._nostrWebhookUrl || '—'), false, true)}
+        <div class="field">
+          <label>${t('targetNpub')}</label>
+          <input type="text" class="inp mono" id="nostr-target" placeholder="${t('targetNpubPlaceholder')}" value="${this._esc(this._pendingNostrTarget)}">
+        </div>
+        <div class="field">
+          <label>${t('message')}</label>
+          <textarea class="inp" id="nostr-message" rows="3" placeholder="${t('messagePlaceholder')}">${this._esc(this._pendingNostrMsg)}</textarea>
+        </div>
+        <button class="btn" id="nostr-send-btn">${t('sendBtn')}</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">${t('testCardTitle')}</div>
+        <div class="field">
+          <label>${t('testNsec')}</label>
+          <input type="password" class="inp mono" id="nostr-test-nsec" placeholder="${t('testNsecPlaceholder')}" value="${this._esc(this._pendingTestNsec)}">
+        </div>
+        <div class="field">
+          <label>${t('message')}</label>
+          <textarea class="inp" id="nostr-test-message" rows="3" placeholder="${t('messagePlaceholder')}">${this._esc(this._pendingTestMsg)}</textarea>
+        </div>
+        <button class="btn" id="nostr-test-send-btn">${t('sendTestBtn')}</button>
+      </div>
+
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-title">${t('title')}</div>
+        <div class="tx-scroll">
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th>Direction</th>
+                <th>Sender</th>
+                <th>Recipient</th>
+                <th>Message</th>
+                <th>Status</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -1940,6 +2073,32 @@ class AlbyHubPanel extends HTMLElement {
       });
   }
 
+  _loadNostrMessages(p) {
+    if (this._nostrLoading) return;
+    this._nostrLoading = true;
+    const serviceData = {};
+    const entry = this._resolveEntryId(p);
+    if (entry) serviceData.config_entry_id = entry;
+    this._hass.callService('alby_hub', 'nostr_list_messages', serviceData, undefined, true, true)
+      .then((resp) => {
+        const data = resp?.response ?? resp;
+        this._nostrEnabled = Boolean(data?.enabled);
+        this._nostrBotNpub = String(data?.bot_npub || '');
+        this._nostrWebhookUrl = String(data?.webhook_url || '');
+        this._nostrMessages = Array.isArray(data?.messages) ? data.messages : [];
+        this._nostrLoading = false;
+        this._updateContent();
+      })
+      .catch(() => {
+        this._nostrEnabled = false;
+        this._nostrBotNpub = '';
+        this._nostrWebhookUrl = '';
+        this._nostrMessages = [];
+        this._nostrLoading = false;
+        this._updateContent();
+      });
+  }
+
   /** Resolve a config entry ID from a known entity prefix (best-effort). */
   _resolveEntryId(_prefix) {
     // The panel doesn't have direct access to config entry IDs from hass.states;
@@ -2004,6 +2163,10 @@ class AlbyHubPanel extends HTMLElement {
         if (this._activeTab === 'scheduled' && prevTab !== 'scheduled') {
           this._schedules = null;
           this._schedLoading = false;
+        }
+        if (this._activeTab === 'nostr' && prevTab !== 'nostr') {
+          this._nostrMessages = null;
+          this._nostrLoading = false;
         }
         this._render();
         this._autoStartDeviceCameraIfNeeded();
@@ -2177,6 +2340,79 @@ class AlbyHubPanel extends HTMLElement {
           this._lastUpdate = 0;
           this._updateContent();
         }).catch(() => {});
+      });
+    });
+
+    // ── Nostr tab listeners ──────────────────────────────────────────────────
+
+    root.querySelectorAll('[data-action="refresh-nostr"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._nostrMessages = null;
+        this._nostrLoading = false;
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('#nostr-target').forEach((el) => {
+      el.addEventListener('input', () => { this._pendingNostrTarget = el.value; });
+      el.addEventListener('change', () => { this._pendingNostrTarget = el.value; });
+    });
+    root.querySelectorAll('#nostr-message').forEach((el) => {
+      el.addEventListener('input', () => { this._pendingNostrMsg = el.value; });
+      el.addEventListener('change', () => { this._pendingNostrMsg = el.value; });
+    });
+    root.querySelectorAll('#nostr-test-nsec').forEach((el) => {
+      el.addEventListener('input', () => { this._pendingTestNsec = el.value; });
+      el.addEventListener('change', () => { this._pendingTestNsec = el.value; });
+    });
+    root.querySelectorAll('#nostr-test-message').forEach((el) => {
+      el.addEventListener('input', () => { this._pendingTestMsg = el.value; });
+      el.addEventListener('change', () => { this._pendingTestMsg = el.value; });
+    });
+
+    root.querySelectorAll('#nostr-send-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = (this._pendingNostrTarget || '').trim();
+        const message = (this._pendingNostrMsg || '').trim();
+        if (!target || !message) return;
+        this._hass.callService(
+          'alby_hub',
+          'nostr_send_bot_message',
+          { target_npub: target, message },
+          undefined,
+          true,
+          true
+        ).then(() => {
+          this._pendingNostrMsg = '';
+          this._nostrMessages = null;
+          this._nostrLoading = false;
+          this._updateContent();
+        }).catch((err) => {
+          console.warn('Alby Hub panel: nostr_send_bot_message failed', err);
+        });
+      });
+    });
+
+    root.querySelectorAll('#nostr-test-send-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const nsec = (this._pendingTestNsec || '').trim();
+        const message = (this._pendingTestMsg || '').trim();
+        if (!nsec || !message) return;
+        this._hass.callService(
+          'alby_hub',
+          'nostr_send_test_message',
+          { nsec, message },
+          undefined,
+          true,
+          true
+        ).then(() => {
+          this._pendingTestMsg = '';
+          this._nostrMessages = null;
+          this._nostrLoading = false;
+          this._updateContent();
+        }).catch((err) => {
+          console.warn('Alby Hub panel: nostr_send_test_message failed', err);
+        });
       });
     });
 

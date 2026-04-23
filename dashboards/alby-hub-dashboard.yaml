@@ -370,3 +370,22 @@ views:
           {% else %}
           *Halving data not available.*
           {% endif %}
+
+  # ── Nostr ─────────────────────────────────────────────────────────────────
+  - title: Nostr
+    path: nostr
+    icon: mdi:message-lock
+    cards:
+      - type: markdown
+        title: Built-in Nostr Bot/Client
+        content: |
+          Use the built-in **Alby Hub panel** (`/alby-hub-panel`) and open the **🟣 Nostr** tab.
+
+          There you get:
+          - bot communication log
+          - encrypted bot message sending to whitelisted npubs
+          - separate test window to log in with your own **NSEC** and send test messages to the bot
+
+          The integration also exposes a webhook endpoint per config entry:
+          `/api/alby_hub/nostr_webhook/{entry_id}`
+          (secured by `X-Alby-Nostr-Secret` header).
