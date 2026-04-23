@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
+import dataclasses
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import json
@@ -116,7 +117,7 @@ class AlbyHubNostrBotManager:
         )
 
     def list_messages(self, limit: int = 100) -> list[dict[str, Any]]:
-        return [m.__dict__ for m in list(self._messages)[: max(1, min(limit, _MAX_MESSAGES))]]
+        return [dataclasses.asdict(m) for m in list(self._messages)[: max(1, min(limit, _MAX_MESSAGES))]]
 
     async def async_send_bot_message(self, target_npub: str, message: str) -> str:
         if not self.relay_url:
