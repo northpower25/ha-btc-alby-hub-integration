@@ -1371,6 +1371,7 @@ class AlbyHubPanel extends HTMLElement {
     const Html5Qrcode = await this._loadHtml5Qrcode();
     const host = this.shadowRoot?.querySelector('#html5qr-reader');
     if (!host) return null;
+    const hostId = this._ensureHtml5ReaderHostId(host);
 
     const mimeType = fileOrBlob?.type || 'image/png';
     const extByType = {
@@ -1385,8 +1386,6 @@ class AlbyHubPanel extends HTMLElement {
     const file = fileOrBlob instanceof File
       ? fileOrBlob
       : new File([fileOrBlob], generatedFileName, { type: mimeType });
-    if (!host.id) host.id = 'html5qr-reader';
-    const hostId = host.id;
     const scanner = new Html5Qrcode(hostId);
     try {
       const showScanPreview = true;
@@ -1412,8 +1411,7 @@ class AlbyHubPanel extends HTMLElement {
 
     const host = this.shadowRoot?.querySelector('#html5qr-reader');
     if (!host) throw new Error('QR host missing');
-    if (!host.id) host.id = 'html5qr-reader';
-    const hostId = host.id;
+    const hostId = this._ensureHtml5ReaderHostId(host);
     const scanner = new Html5Qrcode(hostId);
     this._html5QrScanner = scanner;
 
@@ -1445,6 +1443,11 @@ class AlbyHubPanel extends HTMLElement {
     try { await scanner.clear(); } catch (err) { console.debug('Alby Hub panel: html5-qrcode clear failed', err); }
   }
 
+  _ensureHtml5ReaderHostId(host) {
+    if (!host.id) host.id = 'html5qr-reader';
+    return host.id;
+  }
+
   _openDeviceCameraPopup(t) {
     try {
       const popupUrl = `${window.location.origin}${STATIC_BASE_PATH}/qr-popup.html?v=${encodeURIComponent(ALBY_HUB_VERSION)}`;
@@ -1465,6 +1468,7 @@ class AlbyHubPanel extends HTMLElement {
     } catch (_) {
       return false;
     }
+    return false;
   }
 
   _isCameraRestrictionError(err) {

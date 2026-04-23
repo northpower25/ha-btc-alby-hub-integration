@@ -65,7 +65,9 @@
         await stopScanner();
         window.close();
       },
-      () => {}
+      () => {
+        // Ignore per-frame decode misses; success callback handles valid scans.
+      }
     );
     running = true;
     setStatus('Scanning…');
