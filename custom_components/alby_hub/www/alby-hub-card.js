@@ -18,6 +18,7 @@
 
 const ALBY_HUB_VERSION = '1.1.0';
 const PANEL_ELEMENT_NAME = 'alby-hub-panel';
+const STATIC_BASE_PATH = '/alby_hub_local';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Translations (DE / EN)
@@ -152,6 +153,7 @@ const TRANSLATIONS = {
       notFound: '❌ Kein QR-Code erkannt. Bitte erneut versuchen.',
       error: '⚠️ Scan-Fehler',
       noBarcodeApiHint: '⚠️ Browser-QR-API nicht verfügbar. Fallback-Scanner wird beim Start automatisch geladen.',
+      popupFallbackOpened: '⚠️ Gerätekamera konnte im Panel nicht gestartet werden. Separates Scanner-Fenster wurde geöffnet.',
       companionHint: '💡 HA Companion App (Android/iOS): QR-Code direkt im Lovelace-Dashboard über das Kamera-Symbol scannen.',
     },
     autoExamples: {
@@ -321,6 +323,7 @@ const TRANSLATIONS = {
       notFound: '❌ No QR code found. Please try again.',
       error: '⚠️ Scan error',
       noBarcodeApiHint: '⚠️ Browser QR API is unavailable. A fallback scanner will load automatically when scanning starts.',
+      popupFallbackOpened: '⚠️ Device camera could not start inside the panel. A separate scanner window was opened.',
       companionHint: '💡 HA Companion App (Android/iOS): scan QR codes in the Lovelace dashboard via the camera icon.',
     },
     autoExamples: {
@@ -448,6 +451,8 @@ class AlbyHubPanel extends HTMLElement {
     this._html5QrScanner = null;
     this._html5QrFileCounter = 0;
     this._cameraAutoStartAttempted = false;
+    this._cameraPopupWindow = null;
+    this._popupMessageHandler = null;
     // Automation builder state
     this._autoForm = {
       direction: 'send',
@@ -473,10 +478,39 @@ class AlbyHubPanel extends HTMLElement {
       }
     };
     document.addEventListener('visibilitychange', this._visibilityHandler);
+    if (!this._popupMessageHandler) {
+      this._popupMessageHandler = (event) => {
+        if (event.origin !== window.location.origin) return;
+        const payload = event?.data;
+        if (!payload || payload.source !== 'alby_hub_qr_popup') return;
+        const t = (k) => this._t(`camera.${k}`);
+        if (payload.type === 'qr_result') {
+          const qrValue = String(payload.value || '').trim();
+          if (!qrValue) return;
+          this._pendingPayInput = qrValue;
+          this._cameraScanMsg = t('found') + ': ' + qrValue.slice(0, 40) + (qrValue.length > 40 ? '…' : '');
+          this._updateContent();
+          return;
+        }
+        if (payload.type === 'qr_error') {
+          this._cameraScanMsg = t('error') + ': ' + String(payload.message || '').slice(0, 80);
+          this._updateContent();
+        }
+      };
+      window.addEventListener('message', this._popupMessageHandler);
+    }
   }
 
   disconnectedCallback() {
     this._stopCameraStream();
+    if (this._popupMessageHandler) {
+      window.removeEventListener('message', this._popupMessageHandler);
+      this._popupMessageHandler = null;
+    }
+    if (this._cameraPopupWindow && !this._cameraPopupWindow.closed) {
+      this._cameraPopupWindow.close();
+    }
+    this._cameraPopupWindow = null;
     if (this._visibilityHandler) {
       document.removeEventListener('visibilitychange', this._visibilityHandler);
       this._visibilityHandler = null;
@@ -1337,6 +1371,7 @@ class AlbyHubPanel extends HTMLElement {
     const Html5Qrcode = await this._loadHtml5Qrcode();
     const host = this.shadowRoot?.querySelector('#html5qr-reader');
     if (!host) return null;
+    const hostId = this._ensureHtml5ReaderHostId(host);
 
     const mimeType = fileOrBlob?.type || 'image/png';
     const extByType = {
@@ -1351,7 +1386,7 @@ class AlbyHubPanel extends HTMLElement {
     const file = fileOrBlob instanceof File
       ? fileOrBlob
       : new File([fileOrBlob], generatedFileName, { type: mimeType });
-    const scanner = new Html5Qrcode(host);
+    const scanner = new Html5Qrcode(hostId);
     try {
       const showScanPreview = true;
       const decoded = await scanner.scanFile(file, showScanPreview);
@@ -1376,7 +1411,8 @@ class AlbyHubPanel extends HTMLElement {
 
     const host = this.shadowRoot?.querySelector('#html5qr-reader');
     if (!host) throw new Error('QR host missing');
-    const scanner = new Html5Qrcode(host);
+    const hostId = this._ensureHtml5ReaderHostId(host);
+    const scanner = new Html5Qrcode(hostId);
     this._html5QrScanner = scanner;
 
     await scanner.start(
@@ -1407,6 +1443,46 @@ class AlbyHubPanel extends HTMLElement {
     try { await scanner.clear(); } catch (err) { console.debug('Alby Hub panel: html5-qrcode clear failed', err); }
   }
 
+  _ensureHtml5ReaderHostId(host) {
+    if (!host.id) host.id = 'html5qr-reader';
+    return host.id;
+  }
+
+  _openDeviceCameraPopup(t) {
+    try {
+      const popupUrl = `${window.location.origin}${STATIC_BASE_PATH}/qr-popup.html?v=${encodeURIComponent(ALBY_HUB_VERSION)}`;
+      const width = Math.min(Math.max(Math.floor(window.screen.width * 0.9), 360), 520);
+      const height = Math.min(Math.max(Math.floor(window.screen.height * 0.9), 540), 900);
+      const left = Math.max(Math.floor((window.screen.width - width) / 2), 0);
+      const top = Math.max(Math.floor((window.screen.height - height) / 2), 0);
+      const popup = window.open(
+        popupUrl,
+        'alby_hub_qr_scanner',
+        `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+      );
+      if (!popup) return false;
+      this._cameraPopupWindow = popup;
+      this._cameraScanMsg = t('popupFallbackOpened');
+      this._updateContent();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  _shouldOpenPopupForCameraError(err) {
+    const msg = String(err || '').toLowerCase();
+    return msg.includes('permission')
+      || msg.includes('notallowederror')
+      || msg.includes('securityerror')
+      || msg.includes('permission policy')
+      || msg.includes('permissions policy')
+      || msg.includes('could not start video source')
+      || msg.includes('notfounderror')
+      || msg.includes('requested device not found')
+      || msg.includes('device not found');
+  }
+
   async _startDeviceCameraScan() {
     const t = (k) => this._t(`camera.${k}`);
     const detector = await this._createQrDetector();
@@ -1418,7 +1494,9 @@ class AlbyHubPanel extends HTMLElement {
       } catch (err) {
         this._cameraFallbackActive = false;
         this._cameraScanning = false;
-        this._cameraScanMsg = t('error') + ': ' + String(err).slice(0, 80);
+        if (!this._openDeviceCameraPopup(t)) {
+          this._cameraScanMsg = t('error') + ': ' + String(err).slice(0, 80);
+        }
         this._updateContent();
       }
       return;
@@ -1453,7 +1531,9 @@ class AlbyHubPanel extends HTMLElement {
       requestAnimationFrame(scanLoop);
     } catch (err) {
       this._cameraScanning = false;
-      this._cameraScanMsg = this._t('camera.error') + ': ' + String(err).slice(0, 80);
+      if (!this._shouldOpenPopupForCameraError(err) || !this._openDeviceCameraPopup(t)) {
+        this._cameraScanMsg = this._t('camera.error') + ': ' + String(err).slice(0, 80);
+      }
       this._updateContent();
     }
   }
