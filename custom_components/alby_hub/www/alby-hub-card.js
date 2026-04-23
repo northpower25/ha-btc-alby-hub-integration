@@ -447,6 +447,7 @@ class AlbyHubPanel extends HTMLElement {
     this._html5QrcodePromise = null;
     this._html5QrScanner = null;
     this._html5QrFileCounter = 0;
+    this._cameraAutoStartAttempted = false;
     // Automation builder state
     this._autoForm = {
       direction: 'send',
@@ -1406,6 +1407,64 @@ class AlbyHubPanel extends HTMLElement {
     try { await scanner.clear(); } catch (err) { console.debug('Alby Hub panel: html5-qrcode clear failed', err); }
   }
 
+  async _startDeviceCameraScan() {
+    const t = (k) => this._t(`camera.${k}`);
+    const detector = await this._createQrDetector();
+    if (!detector) {
+      this._cameraScanMsg = t('noBarcodeApiHint');
+      this._updateContent();
+      try {
+        await this._startDeviceCameraWithHtml5Fallback(t);
+      } catch (err) {
+        this._cameraFallbackActive = false;
+        this._cameraScanning = false;
+        this._cameraScanMsg = t('error') + ': ' + String(err).slice(0, 80);
+        this._updateContent();
+      }
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      this._cameraStream = stream;
+      this._cameraScanning = true;
+      this._cameraScanMsg = t('scanning');
+      this._updateContent();
+
+      const video = this.shadowRoot.querySelector('#camera-video');
+      if (video) { video.srcObject = stream; video.play().catch(() => {}); }
+
+      const scanLoop = async () => {
+        if (!this._cameraScanning || !this._cameraStream) return;
+        const vid = this.shadowRoot.querySelector('#camera-video');
+        if (!vid || vid.readyState < 2) { requestAnimationFrame(scanLoop); return; }
+        try {
+          const qrValue = await this._detectQrWithDetector(vid, detector);
+          if (qrValue) {
+            this._pendingPayInput = qrValue;
+            this._cameraStream = stream; // ensure _stopCameraStream can stop it
+            const foundMsg = t('found') + ': ' + qrValue.slice(0, 40) + (qrValue.length > 40 ? '…' : '');
+            this._stopCameraStream();
+            this._cameraScanMsg = foundMsg;
+            this._updateContent();
+            return;
+          }
+        } catch (_) { /* keep scanning */ }
+        if (this._cameraScanning) requestAnimationFrame(scanLoop);
+      };
+      requestAnimationFrame(scanLoop);
+    } catch (err) {
+      this._cameraScanning = false;
+      this._cameraScanMsg = this._t('camera.error') + ': ' + String(err).slice(0, 80);
+      this._updateContent();
+    }
+  }
+
+  _autoStartDeviceCameraIfNeeded() {
+    if (this._activeTab !== 'send' || this._cameraScanning || this._cameraAutoStartAttempted) return;
+    this._cameraAutoStartAttempted = true;
+    void this._startDeviceCameraScan();
+  }
+
   _sourceToCanvas(source) {
     if (source instanceof HTMLCanvasElement) {
       return source.width > 1 && source.height > 1 ? source : null;
@@ -1862,6 +1921,7 @@ class AlbyHubPanel extends HTMLElement {
           this._schedLoading = false;
         }
         this._render();
+        this._autoStartDeviceCameraIfNeeded();
       });
     });
 
@@ -2266,55 +2326,7 @@ class AlbyHubPanel extends HTMLElement {
           this._updateContent();
           return;
         }
-        const t = (k) => this._t(`camera.${k}`);
-        const detector = await this._createQrDetector();
-        if (!detector) {
-          this._cameraScanMsg = t('noBarcodeApiHint');
-          this._updateContent();
-          try {
-            await this._startDeviceCameraWithHtml5Fallback(t);
-          } catch (err) {
-            this._cameraFallbackActive = false;
-            this._cameraScanning = false;
-            this._cameraScanMsg = t('error') + ': ' + String(err).slice(0, 80);
-            this._updateContent();
-          }
-          return;
-        }
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-          this._cameraStream = stream;
-          this._cameraScanning = true;
-          this._cameraScanMsg = t('scanning');
-          this._updateContent();
-
-          const video = this.shadowRoot.querySelector('#camera-video');
-          if (video) { video.srcObject = stream; video.play().catch(() => {}); }
-
-          const scanLoop = async () => {
-            if (!this._cameraScanning || !this._cameraStream) return;
-            const vid = this.shadowRoot.querySelector('#camera-video');
-            if (!vid || vid.readyState < 2) { requestAnimationFrame(scanLoop); return; }
-            try {
-              const qrValue = await this._detectQrWithDetector(vid, detector);
-              if (qrValue) {
-                this._pendingPayInput = qrValue;
-                this._cameraStream = stream; // ensure _stopCameraStream can stop it
-                const foundMsg = t('found') + ': ' + qrValue.slice(0, 40) + (qrValue.length > 40 ? '…' : '');
-                this._stopCameraStream();
-                this._cameraScanMsg = foundMsg;
-                this._updateContent();
-                return;
-              }
-            } catch (_) { /* keep scanning */ }
-            if (this._cameraScanning) requestAnimationFrame(scanLoop);
-          };
-          requestAnimationFrame(scanLoop);
-        } catch (err) {
-          this._cameraScanning = false;
-          this._cameraScanMsg = this._t('camera.error') + ': ' + String(err).slice(0, 80);
-          this._updateContent();
-        }
+        await this._startDeviceCameraScan();
       });
     });
 
@@ -2407,6 +2419,7 @@ class AlbyHubPanel extends HTMLElement {
       });
     });
 
+    this._autoStartDeviceCameraIfNeeded();
   }
 
   // ── CSS ──────────────────────────────────────────────────────────────────────
