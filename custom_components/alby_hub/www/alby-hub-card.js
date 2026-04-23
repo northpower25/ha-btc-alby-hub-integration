@@ -1385,7 +1385,8 @@ class AlbyHubPanel extends HTMLElement {
     const file = fileOrBlob instanceof File
       ? fileOrBlob
       : new File([fileOrBlob], generatedFileName, { type: mimeType });
-    const hostId = host.id || 'html5qr-reader';
+    if (!host.id) host.id = 'html5qr-reader';
+    const hostId = host.id;
     const scanner = new Html5Qrcode(hostId);
     try {
       const showScanPreview = true;
@@ -1411,7 +1412,8 @@ class AlbyHubPanel extends HTMLElement {
 
     const host = this.shadowRoot?.querySelector('#html5qr-reader');
     if (!host) throw new Error('QR host missing');
-    const hostId = host.id || 'html5qr-reader';
+    if (!host.id) host.id = 'html5qr-reader';
+    const hostId = host.id;
     const scanner = new Html5Qrcode(hostId);
     this._html5QrScanner = scanner;
 
@@ -1446,7 +1448,15 @@ class AlbyHubPanel extends HTMLElement {
   _openDeviceCameraPopup(t) {
     try {
       const popupUrl = `${window.location.origin}${STATIC_BASE_PATH}/qr-popup.html?v=${encodeURIComponent(ALBY_HUB_VERSION)}`;
-      const popup = window.open(popupUrl, 'alby_hub_qr_scanner', 'popup=yes,width=480,height=760,resizable=yes,scrollbars=yes');
+      const width = Math.min(Math.max(Math.floor(window.screen.width * 0.9), 360), 520);
+      const height = Math.min(Math.max(Math.floor(window.screen.height * 0.9), 540), 900);
+      const left = Math.max(Math.floor((window.screen.width - width) / 2), 0);
+      const top = Math.max(Math.floor((window.screen.height - height) / 2), 0);
+      const popup = window.open(
+        popupUrl,
+        'alby_hub_qr_scanner',
+        `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+      );
       if (!popup) return false;
       this._cameraPopupWindow = popup;
       this._cameraScanMsg = t('popupFallbackOpened');
@@ -1465,7 +1475,9 @@ class AlbyHubPanel extends HTMLElement {
       || msg.includes('permission policy')
       || msg.includes('permissions policy')
       || msg.includes('could not start video source')
-      || msg.includes('not found');
+      || msg.includes('notfounderror')
+      || msg.includes('requested device not found')
+      || msg.includes('device not found');
   }
 
   async _startDeviceCameraScan() {

@@ -86,6 +86,8 @@
   });
 
   void start().catch((err) => {
-    void failWith(String(err).slice(0, 120));
+    const msg = String(err || '');
+    const trimmed = msg.length > 120 ? `${msg.slice(0, 120)}…` : msg;
+    void failWith(trimmed);
   });
 })();
