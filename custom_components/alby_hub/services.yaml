@@ -344,7 +344,7 @@ run_scheduled_payment_now:
       selector:
         text:
 nostr_send_bot_message:
-  name: Nostr bot: send encrypted message
+  name: "Nostr bot: send encrypted message"
   description: >
     Sends a NIP-44 encrypted direct message from the configured bot key to a whitelisted npub.
   fields:
@@ -364,7 +364,7 @@ nostr_send_bot_message:
       selector:
         text:
 nostr_send_test_message:
-  name: Nostr test: send message via custom nsec
+  name: "Nostr test: send message via custom nsec"
   description: >
     Sends a NIP-44 encrypted test direct message from the provided nsec to the configured bot npub.
   fields:
@@ -384,7 +384,7 @@ nostr_send_test_message:
       selector:
         text:
 nostr_list_messages:
-  name: Nostr bot: list messages/status
+  name: "Nostr bot: list messages/status"
   description: >
     Returns current Nostr bot status and recent inbound/outbound webhook and DM messages.
   fields:
