@@ -112,6 +112,14 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        """Initialize flow state."""
+        super().__init__()
+        self._pending_data: dict = {}
+        self._pending_title: str = ""
+        self._generated_nsec: str = ""
+        self._generated_npub: str = ""
+
     @staticmethod
     @callback
     def async_get_options_flow(
@@ -176,21 +184,30 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         user_input.get(CONF_CONNECTION_NAME, "").strip()
                         or DEFAULT_CONNECTION_NAME
                     )
-                    return self.async_create_entry(
-                        title=connection_name,
-                        data={
-                            CONF_MODE: MODE_CLOUD,
-                            CONF_NWC_URI: nwc_info.raw_uri,
-                            CONF_CONNECTION_NAME: connection_name,
-                            CONF_LIGHTNING_ADDRESS: _resolve_lightning_address(user_input, nwc_info),
-                            CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
-                            CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
-                            CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
-                            CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
-                            CONF_SETUP_WARNINGS: warnings,
-                            **nostr_data,
-                        },
-                    )
+                    entry_data = {
+                        CONF_MODE: MODE_CLOUD,
+                        CONF_NWC_URI: nwc_info.raw_uri,
+                        CONF_CONNECTION_NAME: connection_name,
+                        CONF_LIGHTNING_ADDRESS: _resolve_lightning_address(user_input, nwc_info),
+                        CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
+                        CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
+                        CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
+                        CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
+                        CONF_SETUP_WARNINGS: warnings,
+                        **nostr_data,
+                    }
+                    nostr_enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
+                    bot_nsec_input = (user_input.get(CONF_NOSTR_BOT_NSEC, "") or "").strip()
+                    if nostr_enabled and not bot_nsec_input:
+                        generated_nsec, generated_npub = _generate_nostr_bot_keys()
+                        entry_data[CONF_NOSTR_BOT_NSEC] = generated_nsec
+                        entry_data[CONF_NOSTR_BOT_NPUB] = generated_npub
+                        self._pending_data = entry_data
+                        self._pending_title = connection_name
+                        self._generated_nsec = generated_nsec
+                        self._generated_npub = generated_npub
+                        return await self.async_step_nostr_keygen()
+                    return self.async_create_entry(title=connection_name, data=entry_data)
 
         return self.async_show_form(
             step_id="cloud",
@@ -244,7 +261,7 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         user_input.get(CONF_CONNECTION_NAME, "").strip()
                         or DEFAULT_CONNECTION_NAME
                     )
-                    data = {
+                    entry_data = {
                         CONF_MODE: MODE_EXPERT,
                         CONF_NWC_URI: nwc_info.raw_uri,
                         CONF_CONNECTION_NAME: connection_name,
@@ -259,8 +276,19 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         **nostr_data,
                     }
                     if relay_override:
-                        data[CONF_RELAY_OVERRIDE] = relay_override
-                    return self.async_create_entry(title=connection_name, data=data)
+                        entry_data[CONF_RELAY_OVERRIDE] = relay_override
+                    nostr_enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
+                    bot_nsec_input = (user_input.get(CONF_NOSTR_BOT_NSEC, "") or "").strip()
+                    if nostr_enabled and not bot_nsec_input:
+                        generated_nsec, generated_npub = _generate_nostr_bot_keys()
+                        entry_data[CONF_NOSTR_BOT_NSEC] = generated_nsec
+                        entry_data[CONF_NOSTR_BOT_NPUB] = generated_npub
+                        self._pending_data = entry_data
+                        self._pending_title = connection_name
+                        self._generated_nsec = generated_nsec
+                        self._generated_npub = generated_npub
+                        return await self.async_step_nostr_keygen()
+                    return self.async_create_entry(title=connection_name, data=entry_data)
 
         return self.async_show_form(
             step_id="expert",
@@ -269,9 +297,37 @@ class AlbyHubConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders=placeholders,
         )
 
+    async def async_step_nostr_keygen(self, user_input=None):
+        """Display generated Nostr bot keys and require the user to confirm they are saved."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if user_input.get("keys_saved"):
+                return self.async_create_entry(
+                    title=self._pending_title,
+                    data=self._pending_data,
+                )
+            errors["keys_saved"] = "keys_not_saved"
+
+        return self.async_show_form(
+            step_id="nostr_keygen",
+            data_schema=vol.Schema({vol.Required("keys_saved", default=False): bool}),
+            errors=errors,
+            description_placeholders={
+                "npub": self._generated_npub,
+                "nsec": self._generated_nsec,
+            },
+        )
+
 
 class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Alby Hub (gear icon reconfiguration)."""
+
+    def __init__(self) -> None:
+        """Initialize flow state."""
+        super().__init__()
+        self._pending_data: dict = {}
+        self._generated_nsec: str = ""
+        self._generated_npub: str = ""
 
     async def async_step_init(self, user_input=None):
         """Route to the correct options step based on current mode."""
@@ -307,22 +363,30 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                             errors=errors,
                             description_placeholders=placeholders,
                         )
-                    return self.async_create_entry(
-                        title="",
-                        data={
-                            CONF_NWC_URI: nwc_info.raw_uri,
-                            CONF_CONNECTION_NAME: (
-                                user_input.get(CONF_CONNECTION_NAME, "").strip()
-                                or DEFAULT_CONNECTION_NAME
-                            ),
-                            CONF_LIGHTNING_ADDRESS: _resolve_lightning_address(user_input, nwc_info),
-                            CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
-                            CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
-                            CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
-                            CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
-                            **nostr_data,
-                        },
-                    )
+                    new_data = {
+                        CONF_NWC_URI: nwc_info.raw_uri,
+                        CONF_CONNECTION_NAME: (
+                            user_input.get(CONF_CONNECTION_NAME, "").strip()
+                            or DEFAULT_CONNECTION_NAME
+                        ),
+                        CONF_LIGHTNING_ADDRESS: _resolve_lightning_address(user_input, nwc_info),
+                        CONF_PRICE_PROVIDER: user_input[CONF_PRICE_PROVIDER],
+                        CONF_PRICE_CURRENCY: user_input[CONF_PRICE_CURRENCY],
+                        CONF_NETWORK_PROVIDER: user_input[CONF_NETWORK_PROVIDER],
+                        CONF_NETWORK_API_BASE: user_input.get(CONF_NETWORK_API_BASE),
+                        **nostr_data,
+                    }
+                    nostr_enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
+                    bot_nsec_input = (user_input.get(CONF_NOSTR_BOT_NSEC, "") or "").strip()
+                    if nostr_enabled and not bot_nsec_input:
+                        generated_nsec, generated_npub = _generate_nostr_bot_keys()
+                        new_data[CONF_NOSTR_BOT_NSEC] = generated_nsec
+                        new_data[CONF_NOSTR_BOT_NPUB] = generated_npub
+                        self._pending_data = new_data
+                        self._generated_nsec = generated_nsec
+                        self._generated_npub = generated_npub
+                        return await self.async_step_nostr_keygen()
+                    return self.async_create_entry(title="", data=new_data)
 
         return self.async_show_form(
             step_id="cloud",
@@ -382,6 +446,16 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
                     }
                     if relay_override:
                         new_data[CONF_RELAY_OVERRIDE] = relay_override
+                    nostr_enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
+                    bot_nsec_input = (user_input.get(CONF_NOSTR_BOT_NSEC, "") or "").strip()
+                    if nostr_enabled and not bot_nsec_input:
+                        generated_nsec, generated_npub = _generate_nostr_bot_keys()
+                        new_data[CONF_NOSTR_BOT_NSEC] = generated_nsec
+                        new_data[CONF_NOSTR_BOT_NPUB] = generated_npub
+                        self._pending_data = new_data
+                        self._generated_nsec = generated_nsec
+                        self._generated_npub = generated_npub
+                        return await self.async_step_nostr_keygen()
                     return self.async_create_entry(title="", data=new_data)
 
         return self.async_show_form(
@@ -389,6 +463,24 @@ class AlbyHubOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=_expert_schema(_merged_entry_data(self.config_entry)),
             errors=errors,
             description_placeholders=placeholders,
+        )
+
+    async def async_step_nostr_keygen(self, user_input=None):
+        """Display generated Nostr bot keys and require the user to confirm they are saved."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if user_input.get("keys_saved"):
+                return self.async_create_entry(title="", data=self._pending_data)
+            errors["keys_saved"] = "keys_not_saved"
+
+        return self.async_show_form(
+            step_id="nostr_keygen",
+            data_schema=vol.Schema({vol.Required("keys_saved", default=False): bool}),
+            errors=errors,
+            description_placeholders={
+                "npub": self._generated_npub,
+                "nsec": self._generated_nsec,
+            },
         )
 
 
@@ -432,11 +524,9 @@ def _cloud_schema(user_input) -> vol.Schema:
         default_nostr_bot_npub = user_input.get(CONF_NOSTR_BOT_NPUB, "")
         default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
         default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
-    default_nostr_bot_nsec, default_nostr_bot_npub = _ensure_bot_keys(
-        enabled=default_nostr_enabled,
-        bot_nsec=str(default_nostr_bot_nsec),
-        bot_npub=str(default_nostr_bot_npub),
-    )
+    # Derive NPUB from NSEC if NSEC is present but NPUB is missing (user provided own NSEC)
+    if default_nostr_bot_nsec and not default_nostr_bot_npub:
+        default_nostr_bot_npub = _derive_npub_from_nsec(str(default_nostr_bot_nsec))
 
     return vol.Schema(
         {
@@ -499,11 +589,9 @@ def _expert_schema(user_input) -> vol.Schema:
         default_nostr_bot_npub = user_input.get(CONF_NOSTR_BOT_NPUB, "")
         default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
         default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
-    default_nostr_bot_nsec, default_nostr_bot_npub = _ensure_bot_keys(
-        enabled=default_nostr_enabled,
-        bot_nsec=str(default_nostr_bot_nsec),
-        bot_npub=str(default_nostr_bot_npub),
-    )
+    # Derive NPUB from NSEC if NSEC is present but NPUB is missing (user provided own NSEC)
+    if default_nostr_bot_nsec and not default_nostr_bot_npub:
+        default_nostr_bot_npub = _derive_npub_from_nsec(str(default_nostr_bot_nsec))
 
     return vol.Schema(
         {
@@ -588,11 +676,9 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
     webhook_secret = (user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "") or "").strip()
 
     if enabled:
-        bot_nsec, bot_npub = _ensure_bot_keys(
-            enabled=True,
-            bot_nsec=bot_nsec,
-            bot_npub=bot_npub,
-        )
+        # Derive NPUB from NSEC when user provides their own NSEC without NPUB
+        if bot_nsec and not bot_npub:
+            bot_npub = _derive_npub_from_nsec(bot_nsec)
         if not relay:
             errors[CONF_NOSTR_RELAY] = "required"
         if not allowed_npubs:

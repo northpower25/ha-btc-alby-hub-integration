@@ -97,7 +97,8 @@ Hinweis aus Alby-Sicht: Ein Alby Account ist häufig empfehlenswert (z. B. Light
    - **Expert-Modus** (optional mit lokaler API/Relay).
 5. NWC-Verbindungs-URI aus Alby Hub einfügen.
 6. Optional Nostr-Bot aktivieren:
-   - Wenn noch kein Bot-`NSEC`/`NPUB` vorhanden ist, Feld **Bot-Privatschlüssel** leer lassen (wird automatisch erzeugt).
+   - Wenn noch kein Bot-`NSEC`/`NPUB` vorhanden ist, Feld **Bot-Privatschlüssel** leer lassen.
+   - Im nächsten Schritt (**Nostr-Bot-Identität speichern**) werden `npub` und `nsec` angezeigt – jetzt sicher kopieren und speichern (Passwort-Manager, Papier-Backup). Der `nsec` wird danach **nicht** mehr angezeigt.
    - Den eigenen Client-`NPUB` (für die Whitelist) in deiner Nostr-App kopieren/eintragen.
    - Für lokales Relay/Schlüssel-Setup auf HA OS kann das Add-on helfen: https://github.com/northpower25/ha-btc-alby-hub-addon
 7. Verbindung prüfen und alle Warnungen sorgfältig prüfen, bevor du fortfährst.
