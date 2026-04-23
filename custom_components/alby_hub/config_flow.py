@@ -681,7 +681,10 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
             bot_npub = _derive_npub_from_nsec(bot_nsec)
         if not relay:
             errors[CONF_NOSTR_RELAY] = "required"
-        if not allowed_npubs:
+        # Only require allowed_npubs when the user has provided their own key.
+        # When bot_nsec is empty, the caller redirects to the keygen step first;
+        # the user can fill in allowed_npubs via the options flow afterwards.
+        if bot_nsec and not allowed_npubs:
             errors[CONF_NOSTR_ALLOWED_NPUBS] = "required"
         if errors:
             return None
