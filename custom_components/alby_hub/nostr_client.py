@@ -22,6 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 _B32_ALPHABET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 _B32_ALPHABET_MAP = {c: i for i, c in enumerate(_B32_ALPHABET)}
 _WEBSOCKET_TIMEOUT_SECONDS = 15
+# Extra time budget for AUTH round-trip (challenge → signed auth → re-send event → OK)
+_EVENT_PUBLISH_TIMEOUT_SECONDS = 10
 
 
 def parse_key_to_hex(value: str, expected_hrp: str) -> str:
@@ -159,7 +161,7 @@ async def _ws_publish_event(
     event_id = event["id"]
     async with session.ws_connect(relay_url, timeout=timeout) as ws:
         await ws.send_str(json.dumps(["EVENT", event]))
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + _EVENT_PUBLISH_TIMEOUT_SECONDS
         auth_sent = False
         while True:
             remaining = deadline - time.monotonic()
@@ -192,7 +194,7 @@ async def _ws_publish_event(
                 await ws.send_str(json.dumps(["EVENT", event]))
             elif msg_type == "OK" and len(data) >= 3 and data[1] == event_id:
                 if data[2] is True:
-                    return  # Success
+                    return  # Event accepted; stop waiting for more messages
                 raise ValueError(
                     f"Relay rejected event: {data[3] if len(data) >= 4 else 'unknown'}"
                 )
