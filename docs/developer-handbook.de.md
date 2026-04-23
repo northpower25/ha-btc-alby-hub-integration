@@ -74,6 +74,8 @@ Vor jeder Code-Änderung:
       Kein Workaround für HA < 2026.1 einbauen.
 - [ ] Betrifft die Änderung Konfigurationsdaten, NWC-URIs, Secrets oder Verbindungsdaten?
       → Migration dokumentieren, kein stilles Überschreiben vorhandener Daten.
+- [ ] Betrifft die Änderung Nostr-Bot-Felder im Config-Flow?
+      → `nostr_bot_nsec` darf leer sein (Auto-Generierung), `nostr_bot_npub` wird daraus abgeleitet; Übersetzungen und Handbücher synchron halten.
 - [ ] Betrifft die Änderung Services (create_invoice, send_payment)?
       → Validierungslogik + Fehlerbehandlung vollständig prüfen.
 - [ ] Betrifft die Änderung die Coordinator-Logik oder Update-Intervalle?

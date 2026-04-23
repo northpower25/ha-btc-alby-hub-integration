@@ -11,7 +11,7 @@
       },
       "cloud": {
         "title": "Cloud-Modus (NWC)",
-        "description": "Füge den NWC-Connection-String aus Alby Hub ein. Warnung: Beta-Software kann fehlschlagen oder unerwartet reagieren und zu finanziellen Verlusten führen. Nicht mit großen Beträgen testen. Mehr erfahren: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.de.md",
+        "description": "Füge den NWC-Connection-String aus Alby Hub ein. Wenn du noch keinen NSEC/NPUB für den Bot hast, lasse 'Bot-Privatschlüssel' leer – das Setup erzeugt beide Bot-Keys automatisch. Hinweise zu eigenem NPUB und lokalem Relay findest du unter: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.de.md und https://github.com/northpower25/ha-btc-alby-hub-addon. Warnung: Beta-Software kann fehlschlagen oder unerwartet reagieren und zu finanziellen Verlusten führen. Nicht mit großen Beträgen testen.",
         "data": {
           "nwc_uri": "NWC-Connection-String",
           "connection_name": "Verbindungsname",
@@ -22,15 +22,16 @@
           "network_api_base": "Basis-URL der Netzwerk-API (eigene Node / Mempool-API)",
           "nostr_enabled": "Eingebauten Nostr-Bot/Client aktivieren",
           "nostr_relay": "Nostr-Relay-URL für Bot/Client-Nachrichten",
-          "nostr_bot_nsec": "Bot-Privatschlüssel (NSEC oder 64-stelliges Hex)",
-          "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (eine pro Zeile oder komma-getrennt)",
+          "nostr_bot_nsec": "Bot-Privatschlüssel (NSEC oder 64-stelliges Hex, leer = automatisch erzeugen)",
+          "nostr_bot_npub": "Bot-Öffentlicher Schlüssel (NPUB, automatisch aus NSEC abgeleitet)",
+          "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (deine App-NPUB(s), eine pro Zeile oder komma-getrennt)",
           "nostr_webhook_secret": "Webhook-Secret (X-Alby-Nostr-Secret)",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       },
       "expert": {
         "title": "Expert-Modus",
-        "description": "Nutze die lokale Hub-URL und priorisiere optional das Relay ws://<host>:3334. Warnung: Beta-Software kann fehlschlagen oder unerwartet reagieren und zu finanziellen Verlusten führen. Nicht mit großen Beträgen testen.",
+        "description": "Nutze die lokale Hub-URL und priorisiere optional das Relay ws://<host>:3334. Wenn du noch keinen NSEC/NPUB für den Bot hast, lasse 'Bot-Privatschlüssel' leer – das Setup erzeugt beide Bot-Keys automatisch. Hinweise zu eigenem NPUB und lokalem Relay findest du unter: https://github.com/northpower25/ha-btc-alby-hub-integration/tree/HEAD/docs/handbook.de.md und https://github.com/northpower25/ha-btc-alby-hub-addon. Warnung: Beta-Software kann fehlschlagen oder unerwartet reagieren und zu finanziellen Verlusten führen. Nicht mit großen Beträgen testen.",
         "data": {
           "nwc_uri": "NWC-Connection-String",
           "connection_name": "Verbindungsname",
@@ -43,8 +44,9 @@
           "network_api_base": "Basis-URL der Netzwerk-API (eigene Node / Mempool-API)",
           "nostr_enabled": "Eingebauten Nostr-Bot/Client aktivieren",
           "nostr_relay": "Nostr-Relay-URL für Bot/Client-Nachrichten",
-          "nostr_bot_nsec": "Bot-Privatschlüssel (NSEC oder 64-stelliges Hex)",
-          "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (eine pro Zeile oder komma-getrennt)",
+          "nostr_bot_nsec": "Bot-Privatschlüssel (NSEC oder 64-stelliges Hex, leer = automatisch erzeugen)",
+          "nostr_bot_npub": "Bot-Öffentlicher Schlüssel (NPUB, automatisch aus NSEC abgeleitet)",
+          "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (deine App-NPUB(s), eine pro Zeile oder komma-getrennt)",
           "nostr_webhook_secret": "Webhook-Secret (X-Alby-Nostr-Secret)",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
@@ -62,7 +64,7 @@
     "step": {
       "cloud": {
         "title": "Cloud-Modus-Einstellungen ändern",
-        "description": "NWC-Connection-String, Preisanbieter, Währung oder Netzwerkanbieter anpassen.",
+        "description": "NWC-Connection-String, Preisanbieter, Währung oder Netzwerkanbieter anpassen. Wenn Bot-NSEC leer ist, erzeugt das Setup automatisch Bot-NSEC/NPUB. Hinweise zu eigenem NPUB und lokalem Relay stehen in den Setup-Links zu Handbuch und Add-on-Repo.",
         "data": {
           "nwc_uri": "NWC-Connection-String",
           "connection_name": "Verbindungsname",
@@ -73,15 +75,16 @@
           "network_api_base": "Basis-URL der Netzwerk-API (eigene Node / Mempool-API)",
           "nostr_enabled": "Eingebauten Nostr-Bot/Client aktivieren",
           "nostr_relay": "Nostr-Relay-URL für Bot/Client-Nachrichten",
-          "nostr_bot_nsec": "Bot-Privatschlüssel (NSEC oder 64-stelliges Hex)",
-          "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (eine pro Zeile oder komma-getrennt)",
+          "nostr_bot_nsec": "Bot-Privatschlüssel (NSEC oder 64-stelliges Hex, leer = automatisch erzeugen)",
+          "nostr_bot_npub": "Bot-Öffentlicher Schlüssel (NPUB, automatisch aus NSEC abgeleitet)",
+          "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (deine App-NPUB(s), eine pro Zeile oder komma-getrennt)",
           "nostr_webhook_secret": "Webhook-Secret (X-Alby-Nostr-Secret)",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       },
       "expert": {
         "title": "Expert-Modus-Einstellungen ändern",
-        "description": "NWC-Verbindung, lokale Hub-URL, Relay, Preisanbieter, Währung oder Netzwerkanbieter anpassen.",
+        "description": "NWC-Verbindung, lokale Hub-URL, Relay, Preisanbieter, Währung oder Netzwerkanbieter anpassen. Wenn Bot-NSEC leer ist, erzeugt das Setup automatisch Bot-NSEC/NPUB. Hinweise zu eigenem NPUB und lokalem Relay stehen in den Setup-Links zu Handbuch und Add-on-Repo.",
         "data": {
           "nwc_uri": "NWC-Connection-String",
           "connection_name": "Verbindungsname",
@@ -94,8 +97,9 @@
           "network_api_base": "Basis-URL der Netzwerk-API (eigene Node / Mempool-API)",
           "nostr_enabled": "Eingebauten Nostr-Bot/Client aktivieren",
           "nostr_relay": "Nostr-Relay-URL für Bot/Client-Nachrichten",
-          "nostr_bot_nsec": "Bot-Privatschlüssel (NSEC oder 64-stelliges Hex)",
-          "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (eine pro Zeile oder komma-getrennt)",
+          "nostr_bot_nsec": "Bot-Privatschlüssel (NSEC oder 64-stelliges Hex, leer = automatisch erzeugen)",
+          "nostr_bot_npub": "Bot-Öffentlicher Schlüssel (NPUB, automatisch aus NSEC abgeleitet)",
+          "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (deine App-NPUB(s), eine pro Zeile oder komma-getrennt)",
           "nostr_webhook_secret": "Webhook-Secret (X-Alby-Nostr-Secret)",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }

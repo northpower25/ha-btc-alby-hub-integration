@@ -96,9 +96,13 @@ Alby-side note: An Alby account is often recommended (for example lightning addr
    - **Cloud mode** (NWC-based), or
    - **Expert mode** (optional local API/relay).
 5. Paste the NWC connection URI from Alby Hub.
-6. Run the connection check and carefully review all warnings before proceeding.
-7. Save the configuration.
-8. Verify entities and status in Home Assistant.
+6. Optionally enable the Nostr bot:
+   - If you do not yet have bot `NSEC`/`NPUB`, leave **Bot private key** empty (it is auto-generated).
+   - Copy/paste your own client `NPUB` (whitelist) from your Nostr app.
+   - For local relay/key setup on HA OS, the add-on can help: https://github.com/northpower25/ha-btc-alby-hub-addon
+7. Run the connection check and carefully review all warnings before proceeding.
+8. Save the configuration.
+9. Verify entities and status in Home Assistant.
 
 ## Beta, safety, and responsibility notice
 

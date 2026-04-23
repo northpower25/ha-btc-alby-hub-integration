@@ -96,9 +96,13 @@ Hinweis aus Alby-Sicht: Ein Alby Account ist häufig empfehlenswert (z. B. Light
    - **Cloud-Modus** (NWC-basiert), oder
    - **Expert-Modus** (optional mit lokaler API/Relay).
 5. NWC-Verbindungs-URI aus Alby Hub einfügen.
-6. Verbindung prüfen und alle Warnungen sorgfältig prüfen, bevor du fortfährst.
-7. Konfiguration speichern.
-8. Danach Entitäten und Status in Home Assistant prüfen.
+6. Optional Nostr-Bot aktivieren:
+   - Wenn noch kein Bot-`NSEC`/`NPUB` vorhanden ist, Feld **Bot-Privatschlüssel** leer lassen (wird automatisch erzeugt).
+   - Den eigenen Client-`NPUB` (für die Whitelist) in deiner Nostr-App kopieren/eintragen.
+   - Für lokales Relay/Schlüssel-Setup auf HA OS kann das Add-on helfen: https://github.com/northpower25/ha-btc-alby-hub-addon
+7. Verbindung prüfen und alle Warnungen sorgfältig prüfen, bevor du fortfährst.
+8. Konfiguration speichern.
+9. Danach Entitäten und Status in Home Assistant prüfen.
 
 ## Beta-, Sicherheits- und Haftungshinweis
 
