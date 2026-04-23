@@ -20,6 +20,7 @@ CONF_SETUP_WARNINGS = "setup_warnings"
 CONF_NOSTR_ENABLED = "nostr_enabled"
 CONF_NOSTR_RELAY = "nostr_relay"
 CONF_NOSTR_BOT_NSEC = "nostr_bot_nsec"
+CONF_NOSTR_BOT_NPUB = "nostr_bot_npub"
 CONF_NOSTR_ALLOWED_NPUBS = "nostr_allowed_npubs"
 CONF_NOSTR_WEBHOOK_SECRET = "nostr_webhook_secret"
 

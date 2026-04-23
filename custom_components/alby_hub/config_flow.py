@@ -23,6 +23,7 @@ from .const import (
     CONF_NETWORK_API_BASE,
     CONF_NETWORK_PROVIDER,
     CONF_NOSTR_ALLOWED_NPUBS,
+    CONF_NOSTR_BOT_NPUB,
     CONF_NOSTR_BOT_NSEC,
     CONF_NOSTR_ENABLED,
     CONF_NOSTR_RELAY,
@@ -55,6 +56,7 @@ from .const import (
     RELAY_PROXY_PORT,
 )
 from .nwc import NwcConnectionInfo, ScopeValidationResult, parse_nwc_connection_uri, validate_scopes
+from .nostr_client import npub_from_nsec, nsec_from_hex
 
 
 def _currency_selector() -> selector.SelectSelector:
@@ -412,6 +414,7 @@ def _cloud_schema(user_input) -> vol.Schema:
     default_nostr_enabled = False
     default_nostr_relay = DEFAULT_NOSTR_RELAY
     default_nostr_bot_nsec = ""
+    default_nostr_bot_npub = ""
     default_nostr_allowed_npubs = ""
     default_nostr_webhook_secret = ""
     if user_input:
@@ -426,8 +429,14 @@ def _cloud_schema(user_input) -> vol.Schema:
         default_nostr_enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
         default_nostr_relay = user_input.get(CONF_NOSTR_RELAY, DEFAULT_NOSTR_RELAY)
         default_nostr_bot_nsec = user_input.get(CONF_NOSTR_BOT_NSEC, "")
+        default_nostr_bot_npub = user_input.get(CONF_NOSTR_BOT_NPUB, "")
         default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
         default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
+    default_nostr_bot_nsec, default_nostr_bot_npub = _ensure_bot_keys(
+        enabled=default_nostr_enabled,
+        bot_nsec=str(default_nostr_bot_nsec),
+        bot_npub=str(default_nostr_bot_npub),
+    )
 
     return vol.Schema(
         {
@@ -445,6 +454,7 @@ def _cloud_schema(user_input) -> vol.Schema:
             vol.Optional(CONF_NOSTR_BOT_NSEC, default=default_nostr_bot_nsec): selector.TextSelector(
                 selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
             ),
+            vol.Optional(CONF_NOSTR_BOT_NPUB, default=default_nostr_bot_npub): str,
             vol.Optional(CONF_NOSTR_ALLOWED_NPUBS, default=default_nostr_allowed_npubs): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
@@ -468,6 +478,7 @@ def _expert_schema(user_input) -> vol.Schema:
     default_nostr_enabled = False
     default_nostr_relay = DEFAULT_NOSTR_RELAY
     default_nostr_bot_nsec = ""
+    default_nostr_bot_npub = ""
     default_nostr_allowed_npubs = ""
     default_nostr_webhook_secret = ""
 
@@ -485,8 +496,14 @@ def _expert_schema(user_input) -> vol.Schema:
         default_nostr_enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
         default_nostr_relay = user_input.get(CONF_NOSTR_RELAY, DEFAULT_NOSTR_RELAY)
         default_nostr_bot_nsec = user_input.get(CONF_NOSTR_BOT_NSEC, "")
+        default_nostr_bot_npub = user_input.get(CONF_NOSTR_BOT_NPUB, "")
         default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
         default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
+    default_nostr_bot_nsec, default_nostr_bot_npub = _ensure_bot_keys(
+        enabled=default_nostr_enabled,
+        bot_nsec=str(default_nostr_bot_nsec),
+        bot_npub=str(default_nostr_bot_npub),
+    )
 
     return vol.Schema(
         {
@@ -506,6 +523,7 @@ def _expert_schema(user_input) -> vol.Schema:
             vol.Optional(CONF_NOSTR_BOT_NSEC, default=default_nostr_bot_nsec): selector.TextSelector(
                 selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
             ),
+            vol.Optional(CONF_NOSTR_BOT_NPUB, default=default_nostr_bot_npub): str,
             vol.Optional(CONF_NOSTR_ALLOWED_NPUBS, default=default_nostr_allowed_npubs): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
@@ -565,14 +583,18 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
     enabled = bool(user_input.get(CONF_NOSTR_ENABLED, False))
     relay = (user_input.get(CONF_NOSTR_RELAY, "") or "").strip()
     bot_nsec = (user_input.get(CONF_NOSTR_BOT_NSEC, "") or "").strip()
+    bot_npub = (user_input.get(CONF_NOSTR_BOT_NPUB, "") or "").strip()
     allowed_npubs = (user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "") or "").strip()
     webhook_secret = (user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "") or "").strip()
 
     if enabled:
+        bot_nsec, bot_npub = _ensure_bot_keys(
+            enabled=True,
+            bot_nsec=bot_nsec,
+            bot_npub=bot_npub,
+        )
         if not relay:
             errors[CONF_NOSTR_RELAY] = "required"
-        if not bot_nsec:
-            errors[CONF_NOSTR_BOT_NSEC] = "required"
         if not allowed_npubs:
             errors[CONF_NOSTR_ALLOWED_NPUBS] = "required"
         if errors:
@@ -586,6 +608,30 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
         CONF_NOSTR_ENABLED: enabled,
         CONF_NOSTR_RELAY: relay,
         CONF_NOSTR_BOT_NSEC: bot_nsec,
+        CONF_NOSTR_BOT_NPUB: bot_npub,
         CONF_NOSTR_ALLOWED_NPUBS: allowed_npubs,
         CONF_NOSTR_WEBHOOK_SECRET: webhook_secret,
     }
+
+
+def _derive_npub_from_nsec(bot_nsec: str) -> str:
+    try:
+        return npub_from_nsec(bot_nsec)
+    except ValueError:
+        return ""
+
+
+def _generate_nostr_bot_keys() -> tuple[str, str]:
+    bot_nsec = nsec_from_hex(secrets.token_hex(32))
+    bot_npub = npub_from_nsec(bot_nsec)
+    return bot_nsec, bot_npub
+
+
+def _ensure_bot_keys(enabled: bool, bot_nsec: str, bot_npub: str) -> tuple[str, str]:
+    if not enabled:
+        return bot_nsec, bot_npub
+    if not bot_nsec:
+        return _generate_nostr_bot_keys()
+    if not bot_npub:
+        return bot_nsec, _derive_npub_from_nsec(bot_nsec)
+    return bot_nsec, bot_npub

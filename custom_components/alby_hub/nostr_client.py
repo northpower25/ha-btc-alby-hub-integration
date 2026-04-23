@@ -45,6 +45,12 @@ def npub_from_nsec(nsec_or_hex: str) -> str:
     return _bech32_encode("npub", bytes.fromhex(pub_hex))
 
 
+def nsec_from_hex(private_key_hex: str) -> str:
+    """Convert a 64-char private key hex value to NSEC bech32 format."""
+    priv_hex = parse_key_to_hex(private_key_hex, "nsec")
+    return _bech32_encode("nsec", bytes.fromhex(priv_hex))
+
+
 async def async_send_nip44_dm(
     session: ClientSession,
     relay_url: str,
