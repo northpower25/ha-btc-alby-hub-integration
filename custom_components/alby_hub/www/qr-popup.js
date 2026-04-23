@@ -15,15 +15,16 @@
     if (!window.opener || window.opener.closed) return;
     try {
       window.opener.postMessage({ source: SOURCE, ...payload }, window.location.origin);
-    } catch (_) {
+    } catch (err) {
+      void err;
       // no-op
     }
   };
 
   const stopScanner = async () => {
     if (!scanner) return;
-    try { if (running) await scanner.stop(); } catch (_) { /* no-op */ }
-    try { await scanner.clear(); } catch (_) { /* no-op */ }
+    try { if (running) await scanner.stop(); } catch (err) { void err; /* no-op */ }
+    try { await scanner.clear(); } catch (err) { void err; /* no-op */ }
     running = false;
     scanner = null;
   };

@@ -1468,10 +1468,9 @@ class AlbyHubPanel extends HTMLElement {
     } catch (_) {
       return false;
     }
-    return false;
   }
 
-  _isCameraRestrictionError(err) {
+  _shouldOpenPopupForCameraError(err) {
     const msg = String(err || '').toLowerCase();
     return msg.includes('permission')
       || msg.includes('notallowederror')
@@ -1532,7 +1531,7 @@ class AlbyHubPanel extends HTMLElement {
       requestAnimationFrame(scanLoop);
     } catch (err) {
       this._cameraScanning = false;
-      if (!this._isCameraRestrictionError(err) || !this._openDeviceCameraPopup(t)) {
+      if (!this._shouldOpenPopupForCameraError(err) || !this._openDeviceCameraPopup(t)) {
         this._cameraScanMsg = this._t('camera.error') + ': ' + String(err).slice(0, 80);
       }
       this._updateContent();
