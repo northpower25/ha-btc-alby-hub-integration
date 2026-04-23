@@ -432,10 +432,11 @@ def _cloud_schema(user_input) -> vol.Schema:
         default_nostr_bot_npub = user_input.get(CONF_NOSTR_BOT_NPUB, "")
         default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
         default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
-    if default_nostr_enabled and not default_nostr_bot_nsec:
-        default_nostr_bot_nsec, default_nostr_bot_npub = _generate_nostr_bot_keys()
-    elif default_nostr_bot_nsec and not default_nostr_bot_npub:
-        default_nostr_bot_npub = _derive_npub_from_nsec(default_nostr_bot_nsec)
+    default_nostr_bot_nsec, default_nostr_bot_npub = _ensure_bot_keys(
+        enabled=default_nostr_enabled,
+        bot_nsec=str(default_nostr_bot_nsec),
+        bot_npub=str(default_nostr_bot_npub),
+    )
 
     return vol.Schema(
         {
@@ -498,10 +499,11 @@ def _expert_schema(user_input) -> vol.Schema:
         default_nostr_bot_npub = user_input.get(CONF_NOSTR_BOT_NPUB, "")
         default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
         default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
-    if default_nostr_enabled and not default_nostr_bot_nsec:
-        default_nostr_bot_nsec, default_nostr_bot_npub = _generate_nostr_bot_keys()
-    elif default_nostr_bot_nsec and not default_nostr_bot_npub:
-        default_nostr_bot_npub = _derive_npub_from_nsec(default_nostr_bot_nsec)
+    default_nostr_bot_nsec, default_nostr_bot_npub = _ensure_bot_keys(
+        enabled=default_nostr_enabled,
+        bot_nsec=str(default_nostr_bot_nsec),
+        bot_npub=str(default_nostr_bot_npub),
+    )
 
     return vol.Schema(
         {
@@ -586,12 +588,13 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
     webhook_secret = (user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "") or "").strip()
 
     if enabled:
+        bot_nsec, bot_npub = _ensure_bot_keys(
+            enabled=True,
+            bot_nsec=bot_nsec,
+            bot_npub=bot_npub,
+        )
         if not relay:
             errors[CONF_NOSTR_RELAY] = "required"
-        if not bot_nsec:
-            bot_nsec, bot_npub = _generate_nostr_bot_keys()
-        elif not bot_npub:
-            bot_npub = _derive_npub_from_nsec(bot_nsec)
         if not allowed_npubs:
             errors[CONF_NOSTR_ALLOWED_NPUBS] = "required"
         if errors:
@@ -621,4 +624,14 @@ def _derive_npub_from_nsec(bot_nsec: str) -> str:
 def _generate_nostr_bot_keys() -> tuple[str, str]:
     bot_nsec = nsec_from_hex(secrets.token_hex(32))
     bot_npub = npub_from_nsec(bot_nsec)
+    return bot_nsec, bot_npub
+
+
+def _ensure_bot_keys(enabled: bool, bot_nsec: str, bot_npub: str) -> tuple[str, str]:
+    if not enabled:
+        return bot_nsec, bot_npub
+    if not bot_nsec:
+        return _generate_nostr_bot_keys()
+    if not bot_npub:
+        return bot_nsec, _derive_npub_from_nsec(bot_nsec)
     return bot_nsec, bot_npub
