@@ -153,7 +153,6 @@ class AlbyHubNostrBotManager:
             self._bot_npub,
             message,
         )
-        sender = "custom_nsec"
         try:
             sender = npub_from_nsec(test_nsec)
         except ValueError:

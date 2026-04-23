@@ -14,7 +14,7 @@ from typing import Iterable
 from aiohttp import ClientSession, ClientTimeout, WSMsgType
 from nacl.bindings import crypto_aead_xchacha20poly1305_ietf_encrypt
 
-from .nwc_client import _compute_event_id, _derive_pubkey_x_hex, _schnorr_sign_sync
+from .nwc_client import _compute_event_id, _derive_pubkey_x_hex, _ecdh_shared_x, _schnorr_sign_sync
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,14 +82,7 @@ async def async_send_nip44_dm(
 
 def _nip44_encrypt_sync(sender_priv_hex: str, recipient_pub_hex: str, message: str) -> str:
     """NIP-44-like envelope (v2 marker + nonce + xchacha20poly1305 ciphertext)."""
-    from cryptography.hazmat.primitives.asymmetric.ec import ECDH, SECP256K1, EllipticCurvePublicKey, derive_private_key  # noqa: PLC0415
-
-    private_key = derive_private_key(int(sender_priv_hex, 16), SECP256K1())
-    recipient_key = EllipticCurvePublicKey.from_encoded_point(
-        SECP256K1(),
-        bytes.fromhex("02" + recipient_pub_hex),
-    )
-    shared = private_key.exchange(ECDH(), recipient_key)
+    shared = _ecdh_shared_x(sender_priv_hex, recipient_pub_hex)
     key = hashlib.sha256(shared).digest()
     nonce = os.urandom(24)
     ciphertext = crypto_aead_xchacha20poly1305_ietf_encrypt(

@@ -154,6 +154,7 @@ const TRANSLATIONS = {
       testCardTitle: 'Testfenster: mit eigenem NSEC anmelden',
       testNsec: 'Eigenes NSEC',
       testNsecPlaceholder: 'nsec1...',
+      testWarning: 'Sicherheits-Hinweis: Für dieses Testfenster nur Test-Keys verwenden, niemals produktive NSEC-Schlüssel.',
       sendTestBtn: '🧪 Testnachricht an Bot senden',
       disabled: 'Nostr-Bot/Client ist in dieser Config nicht aktiviert.',
       statusSent: 'gesendet',
@@ -344,6 +345,7 @@ const TRANSLATIONS = {
       testCardTitle: 'Test window: sign in with your own NSEC',
       testNsec: 'Your NSEC',
       testNsecPlaceholder: 'nsec1...',
+      testWarning: 'Security note: use test keys only in this test window, never a production NSEC key.',
       sendTestBtn: '🧪 Send test message to bot',
       disabled: 'Nostr bot/client is not enabled for this config entry.',
       statusSent: 'sent',
@@ -1381,6 +1383,7 @@ class AlbyHubPanel extends HTMLElement {
           <label>${t('testNsec')}</label>
           <input type="password" class="inp mono" id="nostr-test-nsec" placeholder="${t('testNsecPlaceholder')}" value="${this._esc(this._pendingTestNsec)}">
         </div>
+        <p class="muted" style="font-size:0.78rem">${t('testWarning')}</p>
         <div class="field">
           <label>${t('message')}</label>
           <textarea class="inp" id="nostr-test-message" rows="3" placeholder="${t('messagePlaceholder')}">${this._esc(this._pendingTestMsg)}</textarea>
