@@ -1440,10 +1440,9 @@ class AlbyHubPanel extends HTMLElement {
         try {
           const qrValue = await this._detectQrWithDetector(vid, detector);
           if (qrValue) {
-            this._pendingPayInput = qrValue;
-            this._cameraStream = stream; // ensure _stopCameraStream can stop it
             const foundMsg = t('found') + ': ' + qrValue.slice(0, 40) + (qrValue.length > 40 ? '…' : '');
             this._stopCameraStream();
+            this._pendingPayInput = qrValue;
             this._cameraScanMsg = foundMsg;
             this._updateContent();
             return;
@@ -1460,7 +1459,10 @@ class AlbyHubPanel extends HTMLElement {
   }
 
   _autoStartDeviceCameraIfNeeded() {
-    if (this._activeTab !== 'send' || this._cameraScanning || this._cameraAutoStartAttempted) return;
+    if (this._activeTab !== 'send') return;
+    if (this._cameraScanning) return;
+    // One auto-start attempt per Send-tab entry; reset when leaving the tab.
+    if (this._cameraAutoStartAttempted) return;
     this._cameraAutoStartAttempted = true;
     void this._startDeviceCameraScan();
   }
@@ -1908,8 +1910,11 @@ class AlbyHubPanel extends HTMLElement {
         const prevTab = this._activeTab;
         this._activeTab = btn.dataset.tab;
         // Stop camera when leaving the Send tab
-        if (prevTab === 'send' && this._cameraStream) {
-          this._stopCameraStream();
+        if (prevTab === 'send' && this._activeTab !== 'send') {
+          if (this._cameraStream) {
+            this._stopCameraStream();
+          }
+          this._cameraAutoStartAttempted = false;
         }
         // Reset loaded data when navigating to async tabs so fresh data is loaded
         if (this._activeTab === 'activity' && prevTab !== 'activity') {
