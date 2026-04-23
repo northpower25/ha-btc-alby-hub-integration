@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 _B32_ALPHABET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 _B32_ALPHABET_MAP = {c: i for i, c in enumerate(_B32_ALPHABET)}
-_WS_TIMEOUT = 15
+_WEBSOCKET_TIMEOUT_SECONDS = 15
 
 
 def parse_key_to_hex(value: str, expected_hrp: str) -> str:
@@ -81,7 +81,7 @@ async def async_send_nip44_dm(
 
 
 def _nip44_encrypt_sync(sender_priv_hex: str, recipient_pub_hex: str, message: str) -> str:
-    """NIP-44-like envelope (v2 marker + nonce + xchacha20poly1305 ciphertext)."""
+    """Build NIP-44 v2 envelope payload (version marker + nonce + ciphertext)."""
     shared = _ecdh_shared_x(sender_priv_hex, recipient_pub_hex)
     key = hashlib.sha256(shared).digest()
     nonce = os.urandom(24)
@@ -96,7 +96,7 @@ def _nip44_encrypt_sync(sender_priv_hex: str, recipient_pub_hex: str, message: s
 
 
 async def _ws_publish_event(session: ClientSession, relay_url: str, event: dict) -> None:
-    timeout = ClientTimeout(total=_WS_TIMEOUT)
+    timeout = ClientTimeout(total=_WEBSOCKET_TIMEOUT_SECONDS)
     event_id = event["id"]
     async with session.ws_connect(relay_url, timeout=timeout) as ws:
         await ws.send_str(json.dumps(["EVENT", event]))

@@ -578,6 +578,8 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
         if errors:
             return None
         if not webhook_secret:
+            # 24 random bytes produce ~32 URL-safe chars and are sufficient entropy
+            # for bearer-style webhook shared-secret protection.
             webhook_secret = secrets.token_urlsafe(24)
 
     return {
