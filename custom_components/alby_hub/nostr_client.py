@@ -124,7 +124,9 @@ async def _ws_publish_event(session: ClientSession, relay_url: str, event: dict)
                 and data[1] == event_id
                 and data[2] is False
             ):
-                raise ValueError(f"relay_rejected:{data[3] if len(data) >= 4 else 'unknown'}")
+                raise ValueError(
+                    f"Relay rejected event: {data[3] if len(data) >= 4 else 'unknown'}"
+                )
 
 
 def _bech32_decode(value: str) -> tuple[str, bytes]:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from decimal import Decimal
@@ -9,7 +10,7 @@ from urllib.parse import quote
 
 import voluptuous as vol
 
-from aiohttp import ClientTimeout
+from aiohttp import ClientError, ClientTimeout
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -433,7 +434,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             event_id = await manager.async_send_bot_message(target_npub, message)
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
-        except Exception as err:  # noqa: BLE001
+        except (ClientError, asyncio.TimeoutError, RuntimeError) as err:
             raise HomeAssistantError(f"Nostr bot send failed: {err}") from err
         return {"ok": True, "event_id": event_id}
 
@@ -458,7 +459,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             event_id = await manager.async_send_test_message(nsec, message)
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
-        except Exception as err:  # noqa: BLE001
+        except (ClientError, asyncio.TimeoutError, RuntimeError) as err:
             raise HomeAssistantError(f"Nostr test send failed: {err}") from err
         return {"ok": True, "event_id": event_id}
 

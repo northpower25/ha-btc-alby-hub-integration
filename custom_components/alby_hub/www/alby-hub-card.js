@@ -159,6 +159,12 @@ const TRANSLATIONS = {
       disabled: 'Nostr-Bot/Client ist in dieser Config nicht aktiviert.',
       statusSent: 'gesendet',
       statusReceived: 'empfangen',
+      colDirection: 'Richtung',
+      colSender: 'Sender',
+      colRecipient: 'Empfänger',
+      colMessage: 'Nachricht',
+      colStatus: 'Status',
+      colTime: 'Zeit',
     },
     camera: {
       title: '📷 QR-Code scannen',
@@ -350,6 +356,12 @@ const TRANSLATIONS = {
       disabled: 'Nostr bot/client is not enabled for this config entry.',
       statusSent: 'sent',
       statusReceived: 'received',
+      colDirection: 'Direction',
+      colSender: 'Sender',
+      colRecipient: 'Recipient',
+      colMessage: 'Message',
+      colStatus: 'Status',
+      colTime: 'Time',
     },
     camera: {
       title: '📷 Scan QR Code',
@@ -1397,12 +1409,12 @@ class AlbyHubPanel extends HTMLElement {
           <table class="tx-table">
             <thead>
               <tr>
-                <th>Direction</th>
-                <th>Sender</th>
-                <th>Recipient</th>
-                <th>Message</th>
-                <th>Status</th>
-                <th>Time</th>
+                <th>${t('colDirection')}</th>
+                <th>${t('colSender')}</th>
+                <th>${t('colRecipient')}</th>
+                <th>${t('colMessage')}</th>
+                <th>${t('colStatus')}</th>
+                <th>${t('colTime')}</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
+import json
 import logging
 from typing import Any
 
@@ -219,7 +220,7 @@ class AlbyHubNostrWebhookView(HomeAssistantView):
 
         try:
             payload = await request.json()
-        except Exception:  # noqa: BLE001
+        except (json.JSONDecodeError, ValueError):
             return json_response({"ok": False, "error": "invalid_json"}, status=400)
         if not isinstance(payload, dict):
             return json_response({"ok": False, "error": "invalid_payload"}, status=400)
