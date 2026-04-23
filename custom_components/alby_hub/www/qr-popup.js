@@ -85,12 +85,12 @@
   });
 
   window.addEventListener('beforeunload', () => {
-    void stopScanner();
+    stopScanner().catch(() => {});
   });
 
   void start().catch((err) => {
     const msg = String(err || '');
     const trimmed = msg.length > 120 ? `${msg.slice(0, 120)}…` : msg;
-    void failWith(trimmed);
+    failWith(trimmed).catch(() => {});
   });
 })();
