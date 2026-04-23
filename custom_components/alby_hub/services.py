@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from decimal import Decimal
@@ -9,7 +10,7 @@ from urllib.parse import quote
 
 import voluptuous as vol
 
-from aiohttp import ClientTimeout
+from aiohttp import ClientError, ClientTimeout
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -23,6 +24,9 @@ from .const import (
     SERVICE_CREATE_INVOICE,
     SERVICE_DELETE_SCHEDULED_PAYMENT,
     SERVICE_LIST_SCHEDULED_PAYMENTS,
+    SERVICE_NOSTR_LIST_MESSAGES,
+    SERVICE_NOSTR_SEND_BOT_MESSAGE,
+    SERVICE_NOSTR_SEND_TEST_MESSAGE,
     SERVICE_RUN_SCHEDULED_PAYMENT_NOW,
     SERVICE_LIST_TRANSACTIONS,
     SERVICE_SCHEDULE_PAYMENT,
@@ -118,6 +122,29 @@ SERVICE_UPDATE_SCHEDULED_PAYMENT_SCHEMA = vol.Schema(
 SERVICE_RUN_SCHEDULED_PAYMENT_NOW_SCHEMA = vol.Schema(
     {
         vol.Required("schedule_id"): cv.string,
+    }
+)
+
+SERVICE_NOSTR_SEND_BOT_MESSAGE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+        vol.Required("target_npub"): cv.string,
+        vol.Required("message"): cv.string,
+    }
+)
+
+SERVICE_NOSTR_SEND_TEST_MESSAGE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+        vol.Required("nsec"): cv.string,
+        vol.Required("message"): cv.string,
+    }
+)
+
+SERVICE_NOSTR_LIST_MESSAGES_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+        vol.Optional("limit", default=100): vol.All(vol.Coerce(int), vol.Range(min=1, max=250)),
     }
 )
 
@@ -394,6 +421,85 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    async def handle_nostr_send_bot_message(call: ServiceCall) -> ServiceResponse:
+        runtime = _resolve_runtime(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
+        manager = runtime.nostr_bot_manager
+        if manager is None:
+            raise ServiceValidationError("Nostr bot/client is not enabled for this entry")
+        target_npub = call.data["target_npub"].strip()
+        message = call.data["message"].strip()
+        if not target_npub or not message:
+            raise ServiceValidationError("target_npub and message are required")
+        try:
+            event_id = await manager.async_send_bot_message(target_npub, message)
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+        except (ClientError, asyncio.TimeoutError, RuntimeError) as err:
+            raise HomeAssistantError(f"Nostr bot send failed: {err}") from err
+        return {"ok": True, "event_id": event_id}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_NOSTR_SEND_BOT_MESSAGE,
+        handle_nostr_send_bot_message,
+        schema=SERVICE_NOSTR_SEND_BOT_MESSAGE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_nostr_send_test_message(call: ServiceCall) -> ServiceResponse:
+        runtime = _resolve_runtime(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
+        manager = runtime.nostr_bot_manager
+        if manager is None:
+            raise ServiceValidationError("Nostr bot/client is not enabled for this entry")
+        nsec = call.data["nsec"].strip()
+        message = call.data["message"].strip()
+        if not nsec or not message:
+            raise ServiceValidationError("nsec and message are required")
+        try:
+            event_id = await manager.async_send_test_message(nsec, message)
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+        except (ClientError, asyncio.TimeoutError, RuntimeError) as err:
+            raise HomeAssistantError(f"Nostr test send failed: {err}") from err
+        return {"ok": True, "event_id": event_id}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_NOSTR_SEND_TEST_MESSAGE,
+        handle_nostr_send_test_message,
+        schema=SERVICE_NOSTR_SEND_TEST_MESSAGE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_nostr_list_messages(call: ServiceCall) -> ServiceResponse:
+        runtime = _resolve_runtime(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
+        manager = runtime.nostr_bot_manager
+        if manager is None:
+            return {
+                "enabled": False,
+                "messages": [],
+                "count": 0,
+                "bot_npub": "",
+                "webhook_url": "",
+            }
+        limit = int(call.data.get("limit", 100))
+        messages = manager.list_messages(limit=limit)
+        return {
+            "enabled": True,
+            "messages": messages,
+            "count": len(messages),
+            "bot_npub": manager.bot_npub,
+            "webhook_url": manager.webhook_url,
+        }
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_NOSTR_LIST_MESSAGES,
+        handle_nostr_list_messages,
+        schema=SERVICE_NOSTR_LIST_MESSAGES_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
 
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unload integration services when no entries remain."""
@@ -406,6 +512,9 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_DELETE_SCHEDULED_PAYMENT,
         SERVICE_UPDATE_SCHEDULED_PAYMENT,
         SERVICE_RUN_SCHEDULED_PAYMENT_NOW,
+        SERVICE_NOSTR_SEND_BOT_MESSAGE,
+        SERVICE_NOSTR_SEND_TEST_MESSAGE,
+        SERVICE_NOSTR_LIST_MESSAGES,
     ):
         hass.services.async_remove(DOMAIN, svc)
 

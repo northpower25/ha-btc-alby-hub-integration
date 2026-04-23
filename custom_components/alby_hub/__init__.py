@@ -20,6 +20,11 @@ from .const import (
     CONF_MODE,
     CONF_NETWORK_API_BASE,
     CONF_NETWORK_PROVIDER,
+    CONF_NOSTR_ALLOWED_NPUBS,
+    CONF_NOSTR_BOT_NSEC,
+    CONF_NOSTR_ENABLED,
+    CONF_NOSTR_RELAY,
+    CONF_NOSTR_WEBHOOK_SECRET,
     CONF_NWC_URI,
     CONF_PRICE_CURRENCY,
     CONF_PRICE_PROVIDER,
@@ -33,6 +38,7 @@ from .const import (
 )
 from .coordinator import AlbyHubDataUpdateCoordinator
 from .helpers import AlbyHubRuntime
+from .nostr_bot import AlbyHubNostrWebhookView, AlbyHubNostrBotManager
 from .nwc import parse_nwc_connection_uri
 from .recurring_payments import async_setup_scheduler, async_unload_scheduler
 from .services import async_setup_services, async_unload_services
@@ -68,6 +74,9 @@ _PANEL_ICON = "mdi:lightning-bolt"
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Alby Hub integration."""
     await _async_register_frontend(hass)
+    if not hass.data.get(f"{DOMAIN}_nostr_webhook_view_registered"):
+        hass.http.register_view(AlbyHubNostrWebhookView(hass))
+        hass.data[f"{DOMAIN}_nostr_webhook_view_registered"] = True
     return True
 
 
@@ -123,6 +132,7 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Alby Hub from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+    hass.data.setdefault(f"{DOMAIN}_nostr_managers", {})
 
     # Merge options over data so reconfiguration via the gear icon takes effect
     merged = dict(entry.data)
@@ -160,12 +170,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = AlbyHubRuntime(
+    runtime = AlbyHubRuntime(
         coordinator=coordinator,
         api_client=api_client,
         nwc_info=nwc_info,
         session=session,
     )
+    hass.data[DOMAIN][entry.entry_id] = runtime
+
+    if merged.get(CONF_NOSTR_ENABLED):
+        manager = AlbyHubNostrBotManager(
+            hass=hass,
+            entry_id=entry.entry_id,
+            relay_url=str(merged.get(CONF_NOSTR_RELAY, "")),
+            bot_nsec=str(merged.get(CONF_NOSTR_BOT_NSEC, "")),
+            allowed_npubs=str(merged.get(CONF_NOSTR_ALLOWED_NPUBS, "")),
+            webhook_secret=str(merged.get(CONF_NOSTR_WEBHOOK_SECRET, "")),
+        )
+        runtime.nostr_bot_manager = manager
+        hass.data[f"{DOMAIN}_nostr_managers"][entry.entry_id] = manager
 
     await async_setup_services(hass)
     await async_setup_scheduler(hass)
@@ -188,6 +211,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id, None)
+        hass.data.get(f"{DOMAIN}_nostr_managers", {}).pop(entry.entry_id, None)
 
     if not hass.data[DOMAIN]:
         await async_unload_services(hass)

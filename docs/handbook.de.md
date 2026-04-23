@@ -9,6 +9,27 @@
 - Bei reiner Cloud-/NWC-Nutzung der Integration ist das Add-on nicht zwingend notwendig.
 - Für lokale Expert-Funktionen (lokale API/Relay) kann das Add-on erforderlich sein.
 
+## Nostr-Grundlagen (kurz)
+
+- **Nostr ist dezentral:** Es gibt keinen einzelnen Anbieter, der alle Nachrichten kontrolliert.
+- **Zentralisierte Messenger/Bot-Plattformen** sind oft an einen Betreiber und dessen Infrastruktur gebunden.
+- Bei Nostr liegen Identität und Transport auf offenen Standards (Keys + Relays), dadurch ist man flexibler bei Clients und Infrastruktur.
+
+Bezug zu dieser Integration:
+
+- Auch **NWC (Nostr Wallet Connect)** nutzt Nostr als Kommunikationsbasis mit Alby Hub.
+- Der eingebaute Nostr-Bot/Client der Integration baut darauf auf und ergänzt eine webhook-basierte Steuerung.
+
+## Nostr-Apps für Smartphones (Beispiele)
+
+Je nach Plattform kannst du unterschiedliche Nostr-Apps nutzen (Auswahl, ohne Gewähr):
+
+- **iOS:** Damus, Primal
+- **Android:** Amethyst, Primal
+- **iOS/Android (je nach Release):** weitere Clients wie Nos
+
+Wichtig: Vor produktiver Nutzung immer Schlüsselhandling, Backup und App-Vertrauensmodell prüfen.
+
 ## Abgleich mit offiziellen Alby-Hub-Guides
 
 Offizielle Quellen:

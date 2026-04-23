@@ -10,3 +10,16 @@
 
 3. **App-Token/Session-Flow für lokale REST-Nutzung dokumentieren**  
    Für Expert-Modus-Services (Invoice/Payment) sollte der unterstützte Auth-Flow inkl. notwendigen Headern/Cookies stabil dokumentiert oder als Add-on-Hilfsendpoint bereitgestellt werden.
+
+---
+
+## Nostr Webhook Bot/Client (Integration)
+
+- [x] Nostr-Konfigurationsfelder im Setup-/Options-Flow ergänzt (Relay, Bot-NSEC, NPUB-Whitelist, Webhook-Secret, Aktivierung)
+- [x] Eigener Nostr-Reiter im eingebauten Dashboard-Panel ergänzt (Bot-Kommunikation + Testfenster mit NSEC-Eingabe)
+- [x] Neue Services ergänzt: Bot-Nachricht senden, Testnachricht senden, Nostr-Nachrichten/Status abrufen
+- [x] Gesicherter Webhook-Endpunkt für Steuerbefehle ergänzt (`/api/alby_hub/nostr_webhook/{entry_id}` + `X-Alby-Nostr-Secret`)
+- [x] Nachrichtenprotokoll für einsehbare Bot-Kommunikation (Dashboard) ergänzt
+- [ ] Optional: Vollständige NIP-44-Testvektoren und Interop-Tests gegen mehrere Nostr-Clients ergänzen
+- [ ] Optional: Bidirektionales Relay-Listening (nicht nur Webhook-Ingress) für Live-Empfang aus Relays ergänzen
+- [ ] Optional: Rollenbasierte ACL (admin/read-only je NPUB) erweitern

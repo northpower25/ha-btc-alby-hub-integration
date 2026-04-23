@@ -29,6 +29,7 @@ MVP-Implementierung mit:
 - Basis-Services für Invoice-Erstellung und Payment (lokale API, Expert-Modus)
 - Automatische Erstellung eines Alby-Hub-Dashboards mit vorgeschlagenen Karten für Empfang/Senden und Markt-/Netzwerkdaten
 - JS-basiertes Alby-Hub-Panel mit QR-Scan im Senden-Reiter inkl. Chrome/Edge-Kamera-Kompatibilitäts-Fallback
+- Nostr Webhook Bot/Client (Config-Flow konfigurierbar) mit NIP-44-DM-Versand, Whitelist-ACL, Webhook-Befehlsempfang und eigenem Nostr-Reiter im Panel
 
 ## Installation (HACS) – Kurzanleitung
 

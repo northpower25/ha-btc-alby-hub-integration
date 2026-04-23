@@ -343,3 +343,62 @@ run_scheduled_payment_now:
       description: Unique ID of the schedule to run now (UUID string).
       selector:
         text:
+nostr_send_bot_message:
+  name: Nostr bot: send encrypted message
+  description: >
+    Sends a NIP-44 encrypted direct message from the configured bot key to a whitelisted npub.
+  fields:
+    config_entry_id:
+      required: false
+      description: Optional config entry ID if multiple Alby Hub entries exist.
+      selector:
+        text:
+    target_npub:
+      required: true
+      description: Recipient npub (must be in whitelist).
+      selector:
+        text:
+    message:
+      required: true
+      description: Message text to send.
+      selector:
+        text:
+nostr_send_test_message:
+  name: Nostr test: send message via custom nsec
+  description: >
+    Sends a NIP-44 encrypted test direct message from the provided nsec to the configured bot npub.
+  fields:
+    config_entry_id:
+      required: false
+      description: Optional config entry ID if multiple Alby Hub entries exist.
+      selector:
+        text:
+    nsec:
+      required: true
+      description: Private key for test account (nsec or 64-char hex).
+      selector:
+        text:
+    message:
+      required: true
+      description: Message text to send.
+      selector:
+        text:
+nostr_list_messages:
+  name: Nostr bot: list messages/status
+  description: >
+    Returns current Nostr bot status and recent inbound/outbound webhook and DM messages.
+  fields:
+    config_entry_id:
+      required: false
+      description: Optional config entry ID if multiple Alby Hub entries exist.
+      selector:
+        text:
+    limit:
+      required: false
+      description: Maximum number of messages to return (default 100, max 250).
+      selector:
+        number:
+          min: 1
+          max: 250
+          mode: box
+          step: 1
