@@ -481,6 +481,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "count": 0,
                 "bot_npub": "",
                 "webhook_url": "",
+                "encryption_mode": "",
+                "relay_listener_active": False,
             }
         limit = int(call.data.get("limit", 100))
         messages = manager.list_messages(limit=limit)
@@ -490,6 +492,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             "count": len(messages),
             "bot_npub": manager.bot_npub,
             "webhook_url": manager.webhook_url,
+            "encryption_mode": manager.encryption_mode,
+            "relay_listener_active": runtime.nostr_relay_listener is not None,
         }
 
     hass.services.async_register(

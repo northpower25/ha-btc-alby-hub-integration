@@ -23,6 +23,7 @@ from .const import (
     CONF_NOSTR_ALLOWED_NPUBS,
     CONF_NOSTR_BOT_NSEC,
     CONF_NOSTR_ENABLED,
+    CONF_NOSTR_ENCRYPTION_MODE,
     CONF_NOSTR_RELAY,
     CONF_NOSTR_RELAYS,
     CONF_NOSTR_WEBHOOK_SECRET,
@@ -32,6 +33,7 @@ from .const import (
     CONF_RELAY_OVERRIDE,
     DEFAULT_CONNECTION_NAME,
     DEFAULT_NETWORK_PROVIDER,
+    DEFAULT_NOSTR_ENCRYPTION_MODE,
     DEFAULT_PRICE_CURRENCY,
     DEFAULT_PRICE_PROVIDER,
     DOMAIN,
@@ -40,6 +42,7 @@ from .const import (
 from .coordinator import AlbyHubDataUpdateCoordinator
 from .helpers import AlbyHubRuntime
 from .nostr_bot import AlbyHubNostrWebhookView, AlbyHubNostrBotManager
+from .nostr_relay_listener import NostrRelayListener
 from .nwc import parse_nwc_connection_uri
 from .recurring_payments import async_setup_scheduler, async_unload_scheduler
 from .services import async_setup_services, async_unload_services
@@ -187,6 +190,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         else:
             single = str(merged.get(CONF_NOSTR_RELAY, "")).strip()
             relay_urls = [single] if single else []
+        encryption_mode = str(
+            merged.get(CONF_NOSTR_ENCRYPTION_MODE, DEFAULT_NOSTR_ENCRYPTION_MODE)
+        )
         manager = AlbyHubNostrBotManager(
             hass=hass,
             entry_id=entry.entry_id,
@@ -194,9 +200,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             bot_nsec=str(merged.get(CONF_NOSTR_BOT_NSEC, "")),
             allowed_npubs=str(merged.get(CONF_NOSTR_ALLOWED_NPUBS, "")),
             webhook_secret=str(merged.get(CONF_NOSTR_WEBHOOK_SECRET, "")),
+            encryption_mode=encryption_mode,
         )
         runtime.nostr_bot_manager = manager
         hass.data[f"{DOMAIN}_nostr_managers"][entry.entry_id] = manager
+
+        # Start relay listener when the bot has a valid key and relay list
+        if manager.bot_nsec and relay_urls:
+            from .nostr_client import parse_key_to_hex, _derive_pubkey_x_hex  # noqa: PLC0415
+            try:
+                bot_priv_hex = parse_key_to_hex(manager.bot_nsec, "nsec")
+                bot_pub_hex = _derive_pubkey_x_hex(bot_priv_hex)
+                listener = NostrRelayListener(
+                    session=session,
+                    manager=manager,
+                    relay_urls=relay_urls,
+                    bot_priv_hex=bot_priv_hex,
+                    bot_pub_hex=bot_pub_hex,
+                )
+                await listener.async_start()
+                runtime.nostr_relay_listener = listener
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("Could not start Nostr relay listener: %s", err)
 
     await async_setup_services(hass)
     await async_setup_scheduler(hass)
@@ -216,6 +241,12 @@ async def _async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    # Stop Nostr relay listener before unloading platforms
+    runtime: AlbyHubRuntime | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if runtime is not None and runtime.nostr_relay_listener is not None:
+        await runtime.nostr_relay_listener.async_stop()
+        runtime.nostr_relay_listener = None
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id, None)

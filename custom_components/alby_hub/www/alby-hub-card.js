@@ -146,11 +146,20 @@ const TRANSLATIONS = {
       botCardTitle: 'Bot-Kommunikation (Whitelist-NPUBs)',
       botNpub: 'Bot NPUB',
       webhookUrl: 'Webhook URL',
+      encryptionMode: 'Verschlüsselungsmodus',
+      relayListener: 'Relay-Listener',
+      listenerActive: 'Aktiv (empfängt Nachrichten)',
+      listenerInactive: 'Inaktiv',
       targetNpub: 'Ziel NPUB',
       targetNpubPlaceholder: 'npub1...',
       message: 'Nachricht',
       messagePlaceholder: 'Nachricht eingeben…',
-      sendBtn: '🔐 Als Bot senden (NIP-44)',
+      sendBtn: '🔐 Als Bot senden',
+      sendBtnNip04: '🔐 Als Bot senden (NIP-04)',
+      sendBtnNip44: '🔒 Als Bot senden (NIP-44)',
+      sendBtnBoth: '🔐 Als Bot senden (NIP-04 + NIP-44)',
+      sendBtnPlaintext: '📢 Als Bot senden (⚠️ ÖFFENTLICH / unverschlüsselt)',
+      plaintextWarning: 'WARNUNG: Nachrichten werden unverschlüsselt als öffentliche kind:1-Events gesendet und sind für alle sichtbar!',
       testCardTitle: 'Testfenster: mit eigenem NSEC anmelden',
       testNsec: 'Eigenes NSEC',
       testNsecPlaceholder: 'nsec1...',
@@ -163,6 +172,7 @@ const TRANSLATIONS = {
       colSender: 'Sender',
       colRecipient: 'Empfänger',
       colMessage: 'Nachricht',
+      colSource: 'Quelle',
       colStatus: 'Status',
       colTime: 'Zeit',
     },
@@ -343,11 +353,20 @@ const TRANSLATIONS = {
       botCardTitle: 'Bot communication (whitelist npubs)',
       botNpub: 'Bot NPUB',
       webhookUrl: 'Webhook URL',
+      encryptionMode: 'Encryption mode',
+      relayListener: 'Relay listener',
+      listenerActive: 'Active (receiving messages)',
+      listenerInactive: 'Inactive',
       targetNpub: 'Target NPUB',
       targetNpubPlaceholder: 'npub1...',
       message: 'Message',
       messagePlaceholder: 'Enter message…',
-      sendBtn: '🔐 Send as bot (NIP-44)',
+      sendBtn: '🔐 Send as bot',
+      sendBtnNip04: '🔐 Send as bot (NIP-04)',
+      sendBtnNip44: '🔒 Send as bot (NIP-44)',
+      sendBtnBoth: '🔐 Send as bot (NIP-04 + NIP-44)',
+      sendBtnPlaintext: '📢 Send as bot (⚠️ PUBLIC / unencrypted)',
+      plaintextWarning: 'WARNING: Messages will be sent as unencrypted public kind:1 events and are visible to everyone!',
       testCardTitle: 'Test window: sign in with your own NSEC',
       testNsec: 'Your NSEC',
       testNsecPlaceholder: 'nsec1...',
@@ -360,6 +379,7 @@ const TRANSLATIONS = {
       colSender: 'Sender',
       colRecipient: 'Recipient',
       colMessage: 'Message',
+      colSource: 'Source',
       colStatus: 'Status',
       colTime: 'Time',
     },
@@ -528,6 +548,8 @@ class AlbyHubPanel extends HTMLElement {
     this._nostrEnabled = false;
     this._nostrBotNpub = '';
     this._nostrWebhookUrl = '';
+    this._nostrEncryptionMode = '';
+    this._nostrRelayListenerActive = false;
     this._pendingNostrTarget = '';
     this._pendingNostrMsg = '';
     this._pendingTestNsec = '';
@@ -1355,16 +1377,36 @@ class AlbyHubPanel extends HTMLElement {
       return `<div class="cards-grid"><div class="card"><div class="card-title">${t('title')}</div><p class="muted">${t('disabled')}</p></div></div>`;
     }
 
+    const isPlaintext = this._nostrEncryptionMode === 'plaintext';
+    const sendBtnLabel = isPlaintext
+      ? t('sendBtnPlaintext')
+      : (this._nostrEncryptionMode === 'nip44' ? t('sendBtnNip44')
+        : (this._nostrEncryptionMode === 'both' ? t('sendBtnBoth')
+          : t('sendBtnNip04')));
+
+    const plaintextWarning = isPlaintext
+      ? `<p style="color:#c0392b;font-weight:bold;font-size:0.85rem">⚠️ ${t('plaintextWarning')}</p>`
+      : '';
+
+    const encryptionModeLabel = this._nostrEncryptionMode
+      ? this._nostrEncryptionMode.toUpperCase()
+      : '—';
+    const listenerStatus = this._nostrRelayListenerActive
+      ? `<span style="color:#27ae60">● ${t('listenerActive')}</span>`
+      : `<span style="color:#e67e22">○ ${t('listenerInactive')}</span>`;
+
     const messages = Array.isArray(this._nostrMessages) ? this._nostrMessages : [];
     const rows = messages.length === 0
-      ? `<tr><td colspan="6" class="muted" style="text-align:center;padding:16px">${t('noMessages')}</td></tr>`
+      ? `<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">${t('noMessages')}</td></tr>`
       : messages.map((m) => {
           const ts = m.ts ? new Date(m.ts).toLocaleString() : '—';
+          const src = m.source || '—';
           return `<tr>
             <td>${this._esc(m.direction || '—')}</td>
             <td class="small">${this._esc(m.sender || '—')}</td>
             <td class="small">${this._esc(m.recipient || '—')}</td>
             <td>${this._esc(m.message || '—')}</td>
+            <td class="small">${this._esc(src)}</td>
             <td>${this._esc(m.status || '—')}</td>
             <td class="small muted">${this._esc(ts)}</td>
           </tr>`;
@@ -1378,6 +1420,9 @@ class AlbyHubPanel extends HTMLElement {
         </div>
         ${this._row('🆔', t('botNpub'), this._esc(this._nostrBotNpub || '—'), false, true)}
         ${this._row('🔗', t('webhookUrl'), this._esc(this._nostrWebhookUrl || '—'), false, true)}
+        ${this._row('🔐', t('encryptionMode'), encryptionModeLabel, false, false)}
+        ${this._row('📡', t('relayListener'), listenerStatus, true, false)}
+        ${plaintextWarning}
         <div class="field">
           <label>${t('targetNpub')}</label>
           <input type="text" class="inp mono" id="nostr-target" placeholder="${t('targetNpubPlaceholder')}" value="${this._esc(this._pendingNostrTarget)}">
@@ -1386,7 +1431,7 @@ class AlbyHubPanel extends HTMLElement {
           <label>${t('message')}</label>
           <textarea class="inp" id="nostr-message" rows="3" placeholder="${t('messagePlaceholder')}">${this._esc(this._pendingNostrMsg)}</textarea>
         </div>
-        <button class="btn" id="nostr-send-btn">${t('sendBtn')}</button>
+        <button class="btn" id="nostr-send-btn">${sendBtnLabel}</button>
       </div>
 
       <div class="card">
@@ -1413,6 +1458,7 @@ class AlbyHubPanel extends HTMLElement {
                 <th>${t('colSender')}</th>
                 <th>${t('colRecipient')}</th>
                 <th>${t('colMessage')}</th>
+                <th>${t('colSource')}</th>
                 <th>${t('colStatus')}</th>
                 <th>${t('colTime')}</th>
               </tr>
@@ -2101,6 +2147,8 @@ class AlbyHubPanel extends HTMLElement {
         this._nostrBotNpub = String(data?.bot_npub || '');
         this._nostrWebhookUrl = String(data?.webhook_url || '');
         this._nostrMessages = Array.isArray(data?.messages) ? data.messages : [];
+        this._nostrEncryptionMode = String(data?.encryption_mode || '');
+        this._nostrRelayListenerActive = Boolean(data?.relay_listener_active);
         this._nostrLoading = false;
         this._updateContent();
       })
@@ -2109,6 +2157,8 @@ class AlbyHubPanel extends HTMLElement {
         this._nostrBotNpub = '';
         this._nostrWebhookUrl = '';
         this._nostrMessages = [];
+        this._nostrEncryptionMode = '';
+        this._nostrRelayListenerActive = false;
         this._nostrLoading = false;
         this._updateContent();
       });
@@ -2182,6 +2232,8 @@ class AlbyHubPanel extends HTMLElement {
         if (this._activeTab === 'nostr' && prevTab !== 'nostr') {
           this._nostrMessages = null;
           this._nostrLoading = false;
+          this._nostrEncryptionMode = '';
+          this._nostrRelayListenerActive = false;
         }
         this._render();
         this._autoStartDeviceCameraIfNeeded();
@@ -2364,6 +2416,8 @@ class AlbyHubPanel extends HTMLElement {
       btn.addEventListener('click', () => {
         this._nostrMessages = null;
         this._nostrLoading = false;
+        this._nostrEncryptionMode = '';
+        this._nostrRelayListenerActive = false;
         this._updateContent();
       });
     });
@@ -2401,6 +2455,8 @@ class AlbyHubPanel extends HTMLElement {
           this._pendingNostrMsg = '';
           this._nostrMessages = null;
           this._nostrLoading = false;
+          this._nostrEncryptionMode = '';
+          this._nostrRelayListenerActive = false;
           this._updateContent();
         }).catch((err) => {
           console.warn('Alby Hub panel: nostr_send_bot_message failed', err);
@@ -2424,6 +2480,8 @@ class AlbyHubPanel extends HTMLElement {
           this._pendingTestMsg = '';
           this._nostrMessages = null;
           this._nostrLoading = false;
+          this._nostrEncryptionMode = '';
+          this._nostrRelayListenerActive = false;
           this._updateContent();
         }).catch((err) => {
           console.warn('Alby Hub panel: nostr_send_test_message failed', err);

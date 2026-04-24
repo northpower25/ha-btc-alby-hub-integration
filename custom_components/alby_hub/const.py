@@ -24,6 +24,14 @@ CONF_NOSTR_BOT_NSEC = "nostr_bot_nsec"
 CONF_NOSTR_BOT_NPUB = "nostr_bot_npub"
 CONF_NOSTR_ALLOWED_NPUBS = "nostr_allowed_npubs"
 CONF_NOSTR_WEBHOOK_SECRET = "nostr_webhook_secret"
+CONF_NOSTR_ENCRYPTION_MODE = "nostr_encryption_mode"
+
+# Nostr encryption mode values
+NOSTR_ENCRYPTION_NIP44 = "nip44"
+NOSTR_ENCRYPTION_NIP04 = "nip04"
+NOSTR_ENCRYPTION_BOTH = "both"
+NOSTR_ENCRYPTION_PLAINTEXT = "plaintext"
+DEFAULT_NOSTR_ENCRYPTION_MODE = NOSTR_ENCRYPTION_NIP04
 
 MODE_CLOUD = "cloud"
 MODE_EXPERT = "expert"

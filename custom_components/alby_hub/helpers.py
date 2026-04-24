@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .sensor import AlbyHubLastInvoiceSensor
     from .text import AlbyHubTextEntity
     from .nostr_bot import AlbyHubNostrBotManager
+    from .nostr_relay_listener import NostrRelayListener
 
 
 @dataclass(slots=False)  # slots=False: dict fields are populated after __init__ via platform setup
@@ -35,6 +36,7 @@ class AlbyHubRuntime:
     select_entities: dict[str, "AlbyHubInvoiceAmountUnitSelect"] = field(default_factory=dict)
     last_invoice_entity: "AlbyHubLastInvoiceSensor | None" = field(default=None)
     nostr_bot_manager: "AlbyHubNostrBotManager | None" = field(default=None)
+    nostr_relay_listener: "NostrRelayListener | None" = field(default=None)
 
 
 def get_runtime(hass: HomeAssistant, entry_id: str) -> AlbyHubRuntime:

@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
-from .nostr_client import async_send_nip44_dm_to_relays, npub_from_nsec
+from .nostr_client import async_send_dm_to_relays, async_send_nip04_dm_to_relays, npub_from_nsec
 
 _LOGGER = logging.getLogger(__name__)
 _MAX_MESSAGES = 250
@@ -46,6 +46,7 @@ class AlbyHubNostrBotManager:
         bot_nsec: str,
         allowed_npubs: str,
         webhook_secret: str,
+        encryption_mode: str = "nip04",
     ) -> None:
         self.hass = hass
         self.entry_id = entry_id
@@ -53,10 +54,11 @@ class AlbyHubNostrBotManager:
         self.bot_nsec = (bot_nsec or "").strip()
         self.allowed_npubs_raw = allowed_npubs or ""
         self.webhook_secret = webhook_secret
+        self.encryption_mode = encryption_mode or "nip04"
         self._messages: deque[NostrMessage] = deque(maxlen=_MAX_MESSAGES)
         self._bot_npub = ""
         self._allowed_npubs: set[str] = set()
-        self._reload_config(relay_urls, bot_nsec, allowed_npubs, webhook_secret)
+        self._reload_config(relay_urls, bot_nsec, allowed_npubs, webhook_secret, encryption_mode)
 
     @property
     def bot_npub(self) -> str:
@@ -72,11 +74,13 @@ class AlbyHubNostrBotManager:
         bot_nsec: str,
         allowed_npubs: str,
         webhook_secret: str,
+        encryption_mode: str = "nip04",
     ) -> None:
         self.relay_urls = [u.strip() for u in (relay_urls or []) if u and u.strip()]
         self.bot_nsec = (bot_nsec or "").strip()
         self.allowed_npubs_raw = allowed_npubs or ""
         self.webhook_secret = (webhook_secret or "").strip()
+        self.encryption_mode = (encryption_mode or "nip04").strip()
         self._allowed_npubs = _parse_allowed_npubs(self.allowed_npubs_raw)
         try:
             self._bot_npub = npub_from_nsec(self.bot_nsec) if self.bot_nsec else ""
@@ -95,6 +99,7 @@ class AlbyHubNostrBotManager:
             bot_nsec=str(data.get("nostr_bot_nsec", "")),
             allowed_npubs=str(data.get("nostr_allowed_npubs", "")),
             webhook_secret=str(data.get("nostr_webhook_secret", "")),
+            encryption_mode=str(data.get("nostr_encryption_mode", "nip04")),
         )
 
     def is_allowed_npub(self, npub: str) -> bool:
@@ -132,12 +137,13 @@ class AlbyHubNostrBotManager:
             raise ValueError("nostr_bot_nsec_missing")
         if not self.is_allowed_npub(target_npub):
             raise ValueError("nostr_target_not_allowed")
-        event_id = await async_send_nip44_dm_to_relays(
+        event_id = await async_send_dm_to_relays(
             async_get_clientsession(self.hass),
             self.relay_urls,
             self.bot_nsec,
             target_npub,
             message,
+            encryption_mode=self.encryption_mode,
         )
         self.add_message(
             direction="outgoing",
@@ -154,7 +160,8 @@ class AlbyHubNostrBotManager:
             raise ValueError("nostr_relay_missing")
         if not self._bot_npub:
             raise ValueError("nostr_bot_npub_unavailable")
-        event_id = await async_send_nip44_dm_to_relays(
+        # Test messages always use NIP-04 for maximum compatibility
+        event_id = await async_send_nip04_dm_to_relays(
             async_get_clientsession(self.hass),
             self.relay_urls,
             test_nsec,

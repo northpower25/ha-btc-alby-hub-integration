@@ -26,6 +26,7 @@
           "nostr_bot_npub": "Bot-Öffentlicher Schlüssel (NPUB, automatisch aus NSEC abgeleitet)",
           "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (deine App-NPUB(s), eine pro Zeile oder komma-getrennt)",
           "nostr_webhook_secret": "Webhook-Secret (X-Alby-Nostr-Secret)",
+          "nostr_encryption_mode": "Nostr-DM-Verschlüsselungsmodus",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       },
@@ -48,6 +49,7 @@
           "nostr_bot_npub": "Bot-Öffentlicher Schlüssel (NPUB, automatisch aus NSEC abgeleitet)",
           "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (deine App-NPUB(s), eine pro Zeile oder komma-getrennt)",
           "nostr_webhook_secret": "Webhook-Secret (X-Alby-Nostr-Secret)",
+          "nostr_encryption_mode": "Nostr-DM-Verschlüsselungsmodus",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       },
@@ -87,6 +89,7 @@
           "nostr_bot_npub": "Bot-Öffentlicher Schlüssel (NPUB, automatisch aus NSEC abgeleitet)",
           "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (deine App-NPUB(s), eine pro Zeile oder komma-getrennt)",
           "nostr_webhook_secret": "Webhook-Secret (X-Alby-Nostr-Secret)",
+          "nostr_encryption_mode": "Nostr-DM-Verschlüsselungsmodus",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       },
@@ -109,6 +112,7 @@
           "nostr_bot_npub": "Bot-Öffentlicher Schlüssel (NPUB, automatisch aus NSEC abgeleitet)",
           "nostr_allowed_npubs": "Erlaubte NPUB-Whitelist (deine App-NPUB(s), eine pro Zeile oder komma-getrennt)",
           "nostr_webhook_secret": "Webhook-Secret (X-Alby-Nostr-Secret)",
+          "nostr_encryption_mode": "Nostr-DM-Verschlüsselungsmodus",
           "allow_continue_with_warning": "Mit Warnung fortfahren (Beta-Risiko und Eigenverantwortung verstanden)"
         }
       },

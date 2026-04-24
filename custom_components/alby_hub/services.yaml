@@ -346,7 +346,10 @@ run_scheduled_payment_now:
 nostr_send_bot_message:
   name: "Nostr bot: send encrypted message"
   description: >
-    Sends a NIP-44 encrypted direct message from the configured bot key to a whitelisted npub.
+    Sends a direct message from the configured bot key to a whitelisted npub.
+    The encryption method (NIP-04, NIP-44, both, or plaintext) is determined by
+    the 'nostr_encryption_mode' setting configured in the integration options.
+    NIP-04 (default) offers maximum compatibility with Damus, Primal, WhiteNoise, and Oxchat.
   fields:
     config_entry_id:
       required: false
