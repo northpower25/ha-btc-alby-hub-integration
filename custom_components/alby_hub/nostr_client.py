@@ -341,7 +341,7 @@ def try_decrypt_dm(recipient_priv_hex: str, sender_pub_hex: str, content: str) -
     try:
         plaintext = _nip44_decrypt_sync(recipient_priv_hex, sender_pub_hex, content)
         return plaintext, "nip44"
-    except (ValueError, Exception):  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         pass
 
     # Fall back to NIP-04

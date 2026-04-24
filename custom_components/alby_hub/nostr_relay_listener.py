@@ -8,7 +8,7 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
-from aiohttp import ClientSession, ClientTimeout, WSMsgType
+from aiohttp import ClientSession, ClientTimeout, ClientWebSocketResponse, WSMsgType
 
 from .nostr_client import _bech32_encode, try_decrypt_dm
 
@@ -162,7 +162,7 @@ class NostrRelayListener:
                     seen_ids.add(event_id)
                     self._handle_event(event)
 
-    async def _handle_auth(self, ws, relay_url: str, challenge: str) -> None:
+    async def _handle_auth(self, ws: ClientWebSocketResponse, relay_url: str, challenge: str) -> None:
         """Respond to a NIP-42 AUTH challenge."""
         from .nostr_client import _build_nip42_auth_event  # noqa: PLC0415
         try:

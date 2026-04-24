@@ -739,7 +739,7 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
     allowed_npubs = (user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "") or "").strip()
     webhook_secret = (user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "") or "").strip()
     encryption_mode = (
-        user_input.get(CONF_NOSTR_ENCRYPTION_MODE, DEFAULT_NOSTR_ENCRYPTION_MODE) or DEFAULT_NOSTR_ENCRYPTION_MODE
+        user_input.get(CONF_NOSTR_ENCRYPTION_MODE) or DEFAULT_NOSTR_ENCRYPTION_MODE
     ).strip()
 
     if enabled:

@@ -1378,11 +1378,13 @@ class AlbyHubPanel extends HTMLElement {
     }
 
     const isPlaintext = this._nostrEncryptionMode === 'plaintext';
-    const sendBtnLabel = isPlaintext
-      ? t('sendBtnPlaintext')
-      : (this._nostrEncryptionMode === 'nip44' ? t('sendBtnNip44')
-        : (this._nostrEncryptionMode === 'both' ? t('sendBtnBoth')
-          : t('sendBtnNip04')));
+    const encModeLabels = {
+      nip04: t('sendBtnNip04'),
+      nip44: t('sendBtnNip44'),
+      both: t('sendBtnBoth'),
+      plaintext: t('sendBtnPlaintext'),
+    };
+    const sendBtnLabel = encModeLabels[this._nostrEncryptionMode] || t('sendBtn');
 
     const plaintextWarning = isPlaintext
       ? `<p style="color:#c0392b;font-weight:bold;font-size:0.85rem">⚠️ ${t('plaintextWarning')}</p>`
