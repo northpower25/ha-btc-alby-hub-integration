@@ -54,14 +54,18 @@ def nsec_from_hex(private_key_hex: str) -> str:
     return _bech32_encode("nsec", bytes.fromhex(priv_hex))
 
 
-async def async_send_nip44_dm(
+async def async_send_nip44_dm_to_relays(
     session: ClientSession,
-    relay_url: str,
+    relay_urls: list[str],
     sender_nsec_or_hex: str,
     recipient_npub_or_hex: str,
     message: str,
 ) -> str:
-    """Send NIP-44 v2 encrypted DM and return event id."""
+    """Send a NIP-44 v2 DM to multiple relays concurrently.
+
+    Returns the event id on success.  Succeeds as long as at least one relay
+    accepts the event.  Raises the last exception if every relay fails.
+    """
     sender_priv_hex = parse_key_to_hex(sender_nsec_or_hex, "nsec")
     recipient_pub_hex = parse_key_to_hex(recipient_npub_or_hex, "npub")
     sender_pub_hex = _derive_pubkey_x_hex(sender_priv_hex)
@@ -85,8 +89,33 @@ async def async_send_nip44_dm(
         "content": content,
         "sig": sig,
     }
-    await _ws_publish_event(session, relay_url, event, sender_priv_hex)
+
+    last_exc: Exception | None = None
+    any_ok = False
+    for relay_url in relay_urls:
+        try:
+            await _ws_publish_event(session, relay_url, event, sender_priv_hex)
+            any_ok = True
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("Failed to publish event to relay %s: %s", relay_url, exc)
+            last_exc = exc
+
+    if not any_ok:
+        raise last_exc or RuntimeError("No relays available")
     return event_id
+
+
+async def async_send_nip44_dm(
+    session: ClientSession,
+    relay_url: str,
+    sender_nsec_or_hex: str,
+    recipient_npub_or_hex: str,
+    message: str,
+) -> str:
+    """Send NIP-44 v2 encrypted DM to a single relay and return event id."""
+    return await async_send_nip44_dm_to_relays(
+        session, [relay_url], sender_nsec_or_hex, recipient_npub_or_hex, message
+    )
 
 
 def _nip44_encrypt_sync(sender_priv_hex: str, recipient_pub_hex: str, message: str) -> str:

@@ -24,6 +24,7 @@ from .const import (
     CONF_NOSTR_BOT_NSEC,
     CONF_NOSTR_ENABLED,
     CONF_NOSTR_RELAY,
+    CONF_NOSTR_RELAYS,
     CONF_NOSTR_WEBHOOK_SECRET,
     CONF_NWC_URI,
     CONF_PRICE_CURRENCY,
@@ -179,10 +180,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = runtime
 
     if merged.get(CONF_NOSTR_ENABLED):
+        # Resolve relay list — support both new list field and legacy single-string field
+        relay_urls_raw = merged.get(CONF_NOSTR_RELAYS)
+        if isinstance(relay_urls_raw, list):
+            relay_urls = [u.strip() for u in relay_urls_raw if u and u.strip()]
+        else:
+            single = str(merged.get(CONF_NOSTR_RELAY, "")).strip()
+            relay_urls = [single] if single else []
         manager = AlbyHubNostrBotManager(
             hass=hass,
             entry_id=entry.entry_id,
-            relay_url=str(merged.get(CONF_NOSTR_RELAY, "")),
+            relay_urls=relay_urls,
             bot_nsec=str(merged.get(CONF_NOSTR_BOT_NSEC, "")),
             allowed_npubs=str(merged.get(CONF_NOSTR_ALLOWED_NPUBS, "")),
             webhook_secret=str(merged.get(CONF_NOSTR_WEBHOOK_SECRET, "")),
