@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
+import dataclasses
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import json
@@ -15,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
-from .nostr_client import async_send_nip44_dm, npub_from_nsec
+from .nostr_client import async_send_nip44_dm_to_relays, npub_from_nsec
 
 _LOGGER = logging.getLogger(__name__)
 _MAX_MESSAGES = 250
@@ -41,21 +42,21 @@ class AlbyHubNostrBotManager:
         self,
         hass: HomeAssistant,
         entry_id: str,
-        relay_url: str,
+        relay_urls: list[str],
         bot_nsec: str,
         allowed_npubs: str,
         webhook_secret: str,
     ) -> None:
         self.hass = hass
         self.entry_id = entry_id
-        self.relay_url = (relay_url or "").strip()
+        self.relay_urls: list[str] = relay_urls
         self.bot_nsec = (bot_nsec or "").strip()
         self.allowed_npubs_raw = allowed_npubs or ""
         self.webhook_secret = webhook_secret
         self._messages: deque[NostrMessage] = deque(maxlen=_MAX_MESSAGES)
         self._bot_npub = ""
         self._allowed_npubs: set[str] = set()
-        self._reload_config(relay_url, bot_nsec, allowed_npubs, webhook_secret)
+        self._reload_config(relay_urls, bot_nsec, allowed_npubs, webhook_secret)
 
     @property
     def bot_npub(self) -> str:
@@ -67,12 +68,12 @@ class AlbyHubNostrBotManager:
 
     def _reload_config(
         self,
-        relay_url: str,
+        relay_urls: list[str],
         bot_nsec: str,
         allowed_npubs: str,
         webhook_secret: str,
     ) -> None:
-        self.relay_url = (relay_url or "").strip()
+        self.relay_urls = [u.strip() for u in (relay_urls or []) if u and u.strip()]
         self.bot_nsec = (bot_nsec or "").strip()
         self.allowed_npubs_raw = allowed_npubs or ""
         self.webhook_secret = (webhook_secret or "").strip()
@@ -83,8 +84,14 @@ class AlbyHubNostrBotManager:
             self._bot_npub = ""
 
     def update_from_data(self, data: dict[str, Any]) -> None:
+        raw = data.get("nostr_relays")
+        if isinstance(raw, list):
+            relays = raw
+        else:
+            single = str(data.get("nostr_relay", "")).strip()
+            relays = [single] if single else []
         self._reload_config(
-            relay_url=str(data.get("nostr_relay", "")),
+            relay_urls=relays,
             bot_nsec=str(data.get("nostr_bot_nsec", "")),
             allowed_npubs=str(data.get("nostr_allowed_npubs", "")),
             webhook_secret=str(data.get("nostr_webhook_secret", "")),
@@ -116,18 +123,18 @@ class AlbyHubNostrBotManager:
         )
 
     def list_messages(self, limit: int = 100) -> list[dict[str, Any]]:
-        return [m.__dict__ for m in list(self._messages)[: max(1, min(limit, _MAX_MESSAGES))]]
+        return [dataclasses.asdict(m) for m in list(self._messages)[: max(1, min(limit, _MAX_MESSAGES))]]
 
     async def async_send_bot_message(self, target_npub: str, message: str) -> str:
-        if not self.relay_url:
+        if not self.relay_urls:
             raise ValueError("nostr_relay_missing")
         if not self.bot_nsec:
             raise ValueError("nostr_bot_nsec_missing")
         if not self.is_allowed_npub(target_npub):
             raise ValueError("nostr_target_not_allowed")
-        event_id = await async_send_nip44_dm(
+        event_id = await async_send_nip44_dm_to_relays(
             async_get_clientsession(self.hass),
-            self.relay_url,
+            self.relay_urls,
             self.bot_nsec,
             target_npub,
             message,
@@ -143,13 +150,13 @@ class AlbyHubNostrBotManager:
         return event_id
 
     async def async_send_test_message(self, test_nsec: str, message: str) -> str:
-        if not self.relay_url:
+        if not self.relay_urls:
             raise ValueError("nostr_relay_missing")
         if not self._bot_npub:
             raise ValueError("nostr_bot_npub_unavailable")
-        event_id = await async_send_nip44_dm(
+        event_id = await async_send_nip44_dm_to_relays(
             async_get_clientsession(self.hass),
-            self.relay_url,
+            self.relay_urls,
             test_nsec,
             self._bot_npub,
             message,

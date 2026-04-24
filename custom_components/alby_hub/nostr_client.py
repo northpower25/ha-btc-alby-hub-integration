@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
+import hmac as _hmac
 import json
 import logging
 import os
@@ -12,7 +13,7 @@ import time
 from typing import Iterable
 
 from aiohttp import ClientSession, ClientTimeout, WSMsgType
-from nacl.bindings import crypto_aead_xchacha20poly1305_ietf_encrypt
+from nacl.bindings import crypto_aead_chacha20poly1305_ietf_encrypt
 
 from .nwc_client import _compute_event_id, _derive_pubkey_x_hex, _ecdh_shared_x, _schnorr_sign_sync
 
@@ -21,6 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 _B32_ALPHABET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 _B32_ALPHABET_MAP = {c: i for i, c in enumerate(_B32_ALPHABET)}
 _WEBSOCKET_TIMEOUT_SECONDS = 15
+# Extra time budget for AUTH round-trip (challenge → signed auth → re-send event → OK)
+_EVENT_PUBLISH_TIMEOUT_SECONDS = 10
 
 
 def parse_key_to_hex(value: str, expected_hrp: str) -> str:
@@ -51,14 +54,18 @@ def nsec_from_hex(private_key_hex: str) -> str:
     return _bech32_encode("nsec", bytes.fromhex(priv_hex))
 
 
-async def async_send_nip44_dm(
+async def async_send_nip44_dm_to_relays(
     session: ClientSession,
-    relay_url: str,
+    relay_urls: list[str],
     sender_nsec_or_hex: str,
     recipient_npub_or_hex: str,
     message: str,
 ) -> str:
-    """Send encrypted kind-4 DM and return event id."""
+    """Send a NIP-44 v2 DM to multiple relays concurrently.
+
+    Returns the event id on success.  Succeeds as long as at least one relay
+    accepts the event.  Raises the last exception if every relay fails.
+    """
     sender_priv_hex = parse_key_to_hex(sender_nsec_or_hex, "nsec")
     recipient_pub_hex = parse_key_to_hex(recipient_npub_or_hex, "npub")
     sender_pub_hex = _derive_pubkey_x_hex(sender_priv_hex)
@@ -82,31 +89,109 @@ async def async_send_nip44_dm(
         "content": content,
         "sig": sig,
     }
-    await _ws_publish_event(session, relay_url, event)
+
+    last_exc: Exception | None = None
+    any_ok = False
+    for relay_url in relay_urls:
+        try:
+            await _ws_publish_event(session, relay_url, event, sender_priv_hex)
+            any_ok = True
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("Failed to publish event to relay %s: %s", relay_url, exc)
+            last_exc = exc
+
+    if not any_ok:
+        raise last_exc or RuntimeError("No relays available")
     return event_id
 
 
-def _nip44_encrypt_sync(sender_priv_hex: str, recipient_pub_hex: str, message: str) -> str:
-    """Build NIP-44 v2 envelope payload (version marker + nonce + ciphertext)."""
-    shared = _ecdh_shared_x(sender_priv_hex, recipient_pub_hex)
-    key = hashlib.sha256(shared).digest()
-    nonce = os.urandom(24)
-    ciphertext = crypto_aead_xchacha20poly1305_ietf_encrypt(
-        message.encode("utf-8"),
-        b"",
-        nonce,
-        key,
+async def async_send_nip44_dm(
+    session: ClientSession,
+    relay_url: str,
+    sender_nsec_or_hex: str,
+    recipient_npub_or_hex: str,
+    message: str,
+) -> str:
+    """Send NIP-44 v2 encrypted DM to a single relay and return event id."""
+    return await async_send_nip44_dm_to_relays(
+        session, [relay_url], sender_nsec_or_hex, recipient_npub_or_hex, message
     )
-    envelope = b"\x02" + nonce + ciphertext
+
+
+def _nip44_encrypt_sync(sender_priv_hex: str, recipient_pub_hex: str, message: str) -> str:
+    """Build a NIP-44 v2 compliant encrypted payload.
+
+    Format: base64(version(1) | nonce(32) | ciphertext | mac(32))
+    - version = 0x02
+    - conversation_key = HKDF-Extract(salt=b'nip44-v2', IKM=ECDH_x)
+    - nonce = 32 random bytes used as HKDF-Expand info
+    - (chacha_key, chacha_nonce, hmac_key) = HKDF-Expand(conversation_key, nonce, 76)
+    - ciphertext = ChaCha20-Poly1305-IETF(key=chacha_key, nonce=chacha_nonce, plaintext=padded)
+    - mac = HMAC-SHA256(key=hmac_key, data=nonce | ciphertext)
+    """
+    shared_x = _ecdh_shared_x(sender_priv_hex, recipient_pub_hex)
+    # HKDF-Extract
+    conversation_key = _hmac.new(b"nip44-v2", shared_x, hashlib.sha256).digest()
+    # 32-byte random nonce used as HKDF info
+    nonce = os.urandom(32)
+    # HKDF-Expand → 76 bytes: chacha_key(32) | chacha_nonce(12) | hmac_key(32)
+    keys = _hkdf_expand_sha256(conversation_key, nonce, 76)
+    chacha_key = keys[0:32]
+    chacha_nonce = keys[32:44]
+    hmac_key = keys[44:76]
+    # Pad plaintext per NIP-44 v2
+    padded = _nip44_pad(message.encode("utf-8"))
+    # Encrypt (ChaCha20-Poly1305 IETF, 12-byte nonce)
+    ciphertext = crypto_aead_chacha20poly1305_ietf_encrypt(padded, b"", chacha_nonce, chacha_key)
+    # Authenticate nonce + ciphertext
+    mac = _hmac.new(hmac_key, nonce + ciphertext, hashlib.sha256).digest()
+    envelope = b"\x02" + nonce + ciphertext + mac
     return base64.b64encode(envelope).decode("ascii")
 
 
-async def _ws_publish_event(session: ClientSession, relay_url: str, event: dict) -> None:
+def _hkdf_expand_sha256(prk: bytes, info: bytes, length: int) -> bytes:
+    """HKDF-Expand using HMAC-SHA256."""
+    result = b""
+    block = b""
+    counter = 1
+    while len(result) < length:
+        block = _hmac.new(prk, block + info + bytes([counter]), hashlib.sha256).digest()
+        result += block
+        counter += 1
+    return result[:length]
+
+
+def _nip44_pad(plaintext: bytes) -> bytes:
+    """NIP-44 v2 padding: 2-byte big-endian length prefix + zero-padded content."""
+    length = len(plaintext)
+    if length == 0 or length > 65535:
+        raise ValueError("nip44_invalid_plaintext_length")
+    if length <= 32:
+        chunk = 32
+    else:
+        next_power = 1 << (length - 1).bit_length()
+        chunk = 64 if next_power <= 64 else next_power
+    return length.to_bytes(2, "big") + plaintext + b"\x00" * (chunk - length)
+
+
+async def _ws_publish_event(
+    session: ClientSession,
+    relay_url: str,
+    event: dict,
+    sender_priv_hex: str | None = None,
+) -> None:
+    """Publish a signed Nostr event over a WebSocket connection.
+
+    Handles NIP-42 AUTH challenges automatically when *sender_priv_hex* is
+    provided so that relays that require authentication (such as
+    wss://relay.getalby.com/v1) accept the event.
+    """
     timeout = ClientTimeout(total=_WEBSOCKET_TIMEOUT_SECONDS)
     event_id = event["id"]
     async with session.ws_connect(relay_url, timeout=timeout) as ws:
         await ws.send_str(json.dumps(["EVENT", event]))
-        deadline = time.monotonic() + 5
+        deadline = time.monotonic() + _EVENT_PUBLISH_TIMEOUT_SECONDS
+        auth_sent = False
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
@@ -123,16 +208,49 @@ async def _ws_publish_event(session: ClientSession, relay_url: str, event: dict)
                 data = json.loads(msg.data)
             except json.JSONDecodeError:
                 continue
-            if (
-                isinstance(data, list)
-                and len(data) >= 3
-                and data[0] == "OK"
-                and data[1] == event_id
-                and data[2] is False
-            ):
+            if not isinstance(data, list) or not data:
+                continue
+            msg_type = data[0]
+            if msg_type == "AUTH" and len(data) >= 2 and sender_priv_hex and not auth_sent:
+                # NIP-42: respond to authentication challenge
+                challenge = str(data[1])
+                auth_event = await _build_nip42_auth_event(
+                    sender_priv_hex, relay_url, challenge
+                )
+                await ws.send_str(json.dumps(["AUTH", auth_event]))
+                auth_sent = True
+                # Re-send the original event now that we are authenticated
+                await ws.send_str(json.dumps(["EVENT", event]))
+            elif msg_type == "OK" and len(data) >= 3 and data[1] == event_id:
+                if data[2] is True:
+                    return  # Event accepted; stop waiting for more messages
                 raise ValueError(
                     f"Relay rejected event: {data[3] if len(data) >= 4 else 'unknown'}"
                 )
+
+
+async def _build_nip42_auth_event(
+    sender_priv_hex: str,
+    relay_url: str,
+    challenge: str,
+) -> dict:
+    """Build and sign a NIP-42 kind-22242 AUTH event."""
+    sender_pub_hex = _derive_pubkey_x_hex(sender_priv_hex)
+    created_at = int(time.time())
+    tags = [["relay", relay_url], ["challenge", challenge]]
+    event_id = _compute_event_id(sender_pub_hex, created_at, 22242, tags, "")
+    sig = await asyncio.get_running_loop().run_in_executor(
+        None, _schnorr_sign_sync, sender_priv_hex, event_id
+    )
+    return {
+        "id": event_id,
+        "pubkey": sender_pub_hex,
+        "created_at": created_at,
+        "kind": 22242,
+        "tags": tags,
+        "content": "",
+        "sig": sig,
+    }
 
 
 def _bech32_decode(value: str) -> tuple[str, bytes]:

@@ -19,6 +19,7 @@ CONF_RELAY_OVERRIDE = "relay_override"
 CONF_SETUP_WARNINGS = "setup_warnings"
 CONF_NOSTR_ENABLED = "nostr_enabled"
 CONF_NOSTR_RELAY = "nostr_relay"
+CONF_NOSTR_RELAYS = "nostr_relays"
 CONF_NOSTR_BOT_NSEC = "nostr_bot_nsec"
 CONF_NOSTR_BOT_NPUB = "nostr_bot_npub"
 CONF_NOSTR_ALLOWED_NPUBS = "nostr_allowed_npubs"
@@ -33,6 +34,13 @@ DEFAULT_NETWORK_PROVIDER = "mempool"
 DEFAULT_PRICE_CURRENCY = "EUR"
 DEFAULT_PRICE_PROVIDER = "coingecko"
 DEFAULT_NOSTR_RELAY = "wss://relay.getalby.com/v1"
+DEFAULT_NOSTR_RELAYS: list[str] = [
+    "wss://relay.damus.io",
+    "wss://relay.primal.net",
+    "wss://nos.lol",
+    "wss://relay.nostr.band",
+    "wss://nostr.wine",
+]
 RELAY_PROXY_PORT = 3334
 
 NETWORK_PROVIDER_MEMPOOL = "mempool"
