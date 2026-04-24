@@ -26,6 +26,7 @@ from .const import (
     CONF_NOSTR_BOT_NPUB,
     CONF_NOSTR_BOT_NSEC,
     CONF_NOSTR_ENABLED,
+    CONF_NOSTR_ENCRYPTION_MODE,
     CONF_NOSTR_RELAY,
     CONF_NOSTR_RELAYS,
     CONF_NOSTR_WEBHOOK_SECRET,
@@ -37,6 +38,7 @@ from .const import (
     CONF_SETUP_WARNINGS,
     DEFAULT_CONNECTION_NAME,
     DEFAULT_NETWORK_PROVIDER,
+    DEFAULT_NOSTR_ENCRYPTION_MODE,
     DEFAULT_NOSTR_RELAY,
     DEFAULT_NOSTR_RELAYS,
     DEFAULT_HUB_URL,
@@ -47,6 +49,10 @@ from .const import (
     MODE_EXPERT,
     NETWORK_PROVIDER_CUSTOM_NODE,
     NETWORK_PROVIDER_MEMPOOL,
+    NOSTR_ENCRYPTION_BOTH,
+    NOSTR_ENCRYPTION_NIP04,
+    NOSTR_ENCRYPTION_NIP44,
+    NOSTR_ENCRYPTION_PLAINTEXT,
     PRICE_PROVIDER_BINANCE,
     PRICE_PROVIDER_BITCOIN_DE,
     PRICE_PROVIDER_BITQUERY,
@@ -120,6 +126,33 @@ def _nostr_relay_selector() -> selector.SelectSelector:
             multiple=True,
             custom_value=True,
             mode=selector.SelectSelectorMode.LIST,
+        )
+    )
+
+
+def _nostr_encryption_selector() -> selector.SelectSelector:
+    """Return a dropdown for configuring the Nostr DM encryption mode."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(
+                    value=NOSTR_ENCRYPTION_NIP04,
+                    label="NIP-04 (AES-256-CBC – maximum app compatibility, recommended)",
+                ),
+                selector.SelectOptionDict(
+                    value=NOSTR_ENCRYPTION_NIP44,
+                    label="NIP-44 (ChaCha20-Poly1305 – modern, best security)",
+                ),
+                selector.SelectOptionDict(
+                    value=NOSTR_ENCRYPTION_BOTH,
+                    label="Both NIP-04 + NIP-44 (sends two events per message)",
+                ),
+                selector.SelectOptionDict(
+                    value=NOSTR_ENCRYPTION_PLAINTEXT,
+                    label="⚠️ Plaintext kind:1 (PUBLIC – visible to everyone, no encryption!)",
+                ),
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
         )
     )
 
@@ -526,6 +559,7 @@ def _cloud_schema(user_input) -> vol.Schema:
     default_nostr_bot_npub = ""
     default_nostr_allowed_npubs = ""
     default_nostr_webhook_secret = ""
+    default_nostr_encryption_mode = DEFAULT_NOSTR_ENCRYPTION_MODE
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
         default_connection_name = user_input.get(CONF_CONNECTION_NAME, DEFAULT_CONNECTION_NAME)
@@ -541,6 +575,9 @@ def _cloud_schema(user_input) -> vol.Schema:
         default_nostr_bot_npub = user_input.get(CONF_NOSTR_BOT_NPUB, "")
         default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
         default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
+        default_nostr_encryption_mode = user_input.get(
+            CONF_NOSTR_ENCRYPTION_MODE, DEFAULT_NOSTR_ENCRYPTION_MODE
+        )
     # Derive NPUB from NSEC if NSEC is present but NPUB is missing (user provided own NSEC)
     if default_nostr_bot_nsec and not default_nostr_bot_npub:
         default_nostr_bot_npub = _derive_npub_from_nsec(str(default_nostr_bot_nsec))
@@ -566,6 +603,9 @@ def _cloud_schema(user_input) -> vol.Schema:
                 selector.TextSelectorConfig(multiline=True)
             ),
             vol.Optional(CONF_NOSTR_WEBHOOK_SECRET, default=default_nostr_webhook_secret): str,
+            vol.Optional(
+                CONF_NOSTR_ENCRYPTION_MODE, default=default_nostr_encryption_mode
+            ): _nostr_encryption_selector(),
             vol.Optional(CONF_ALLOW_CONTINUE_WITH_WARNING, default=default_warning): bool,
         }
     )
@@ -588,6 +628,7 @@ def _expert_schema(user_input) -> vol.Schema:
     default_nostr_bot_npub = ""
     default_nostr_allowed_npubs = ""
     default_nostr_webhook_secret = ""
+    default_nostr_encryption_mode = DEFAULT_NOSTR_ENCRYPTION_MODE
 
     if user_input:
         default_uri = user_input.get(CONF_NWC_URI, "")
@@ -606,6 +647,9 @@ def _expert_schema(user_input) -> vol.Schema:
         default_nostr_bot_npub = user_input.get(CONF_NOSTR_BOT_NPUB, "")
         default_nostr_allowed_npubs = user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "")
         default_nostr_webhook_secret = user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "")
+        default_nostr_encryption_mode = user_input.get(
+            CONF_NOSTR_ENCRYPTION_MODE, DEFAULT_NOSTR_ENCRYPTION_MODE
+        )
     # Derive NPUB from NSEC if NSEC is present but NPUB is missing (user provided own NSEC)
     if default_nostr_bot_nsec and not default_nostr_bot_npub:
         default_nostr_bot_npub = _derive_npub_from_nsec(str(default_nostr_bot_nsec))
@@ -633,6 +677,9 @@ def _expert_schema(user_input) -> vol.Schema:
                 selector.TextSelectorConfig(multiline=True)
             ),
             vol.Optional(CONF_NOSTR_WEBHOOK_SECRET, default=default_nostr_webhook_secret): str,
+            vol.Optional(
+                CONF_NOSTR_ENCRYPTION_MODE, default=default_nostr_encryption_mode
+            ): _nostr_encryption_selector(),
             vol.Optional(CONF_ALLOW_CONTINUE_WITH_WARNING, default=default_warning): bool,
         }
     )
@@ -691,6 +738,9 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
     bot_npub = (user_input.get(CONF_NOSTR_BOT_NPUB, "") or "").strip()
     allowed_npubs = (user_input.get(CONF_NOSTR_ALLOWED_NPUBS, "") or "").strip()
     webhook_secret = (user_input.get(CONF_NOSTR_WEBHOOK_SECRET, "") or "").strip()
+    encryption_mode = (
+        user_input.get(CONF_NOSTR_ENCRYPTION_MODE) or DEFAULT_NOSTR_ENCRYPTION_MODE
+    ).strip()
 
     if enabled:
         # Derive NPUB from NSEC when user provides their own NSEC without NPUB
@@ -717,6 +767,7 @@ def _normalize_nostr_config(user_input: dict, errors: dict[str, str]) -> dict[st
         CONF_NOSTR_BOT_NPUB: bot_npub,
         CONF_NOSTR_ALLOWED_NPUBS: allowed_npubs,
         CONF_NOSTR_WEBHOOK_SECRET: webhook_secret,
+        CONF_NOSTR_ENCRYPTION_MODE: encryption_mode,
     }
 
 

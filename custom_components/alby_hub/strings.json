@@ -26,6 +26,7 @@
           "nostr_bot_npub": "Bot public key (NPUB, auto-derived from NSEC)",
           "nostr_allowed_npubs": "Allowed npubs whitelist (your app npub(s), one per line or comma-separated)",
           "nostr_webhook_secret": "Webhook secret (X-Alby-Nostr-Secret)",
+          "nostr_encryption_mode": "Nostr DM encryption mode",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },
@@ -48,6 +49,7 @@
           "nostr_bot_npub": "Bot public key (NPUB, auto-derived from NSEC)",
           "nostr_allowed_npubs": "Allowed npubs whitelist (your app npub(s), one per line or comma-separated)",
           "nostr_webhook_secret": "Webhook secret (X-Alby-Nostr-Secret)",
+          "nostr_encryption_mode": "Nostr DM encryption mode",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },
@@ -87,6 +89,7 @@
           "nostr_bot_npub": "Bot public key (NPUB, auto-derived from NSEC)",
           "nostr_allowed_npubs": "Allowed npubs whitelist (your app npub(s), one per line or comma-separated)",
           "nostr_webhook_secret": "Webhook secret (X-Alby-Nostr-Secret)",
+          "nostr_encryption_mode": "Nostr DM encryption mode",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },
@@ -109,6 +112,7 @@
           "nostr_bot_npub": "Bot public key (NPUB, auto-derived from NSEC)",
           "nostr_allowed_npubs": "Allowed npubs whitelist (your app npub(s), one per line or comma-separated)",
           "nostr_webhook_secret": "Webhook secret (X-Alby-Nostr-Secret)",
+          "nostr_encryption_mode": "Nostr DM encryption mode",
           "allow_continue_with_warning": "Continue with warning (I understand the beta risk and my responsibility)"
         }
       },

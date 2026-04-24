@@ -15,7 +15,14 @@ from typing import Iterable
 from aiohttp import ClientSession, ClientTimeout, WSMsgType
 from nacl.bindings import crypto_aead_chacha20poly1305_ietf_encrypt
 
-from .nwc_client import _compute_event_id, _derive_pubkey_x_hex, _ecdh_shared_x, _schnorr_sign_sync
+from .nwc_client import (
+    _compute_event_id,
+    _derive_pubkey_x_hex,
+    _ecdh_shared_x,
+    _nip04_decrypt,
+    _nip04_encrypt,
+    _schnorr_sign_sync,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -116,6 +123,234 @@ async def async_send_nip44_dm(
     return await async_send_nip44_dm_to_relays(
         session, [relay_url], sender_nsec_or_hex, recipient_npub_or_hex, message
     )
+
+
+async def async_send_nip04_dm_to_relays(
+    session: ClientSession,
+    relay_urls: list[str],
+    sender_nsec_or_hex: str,
+    recipient_npub_or_hex: str,
+    message: str,
+) -> str:
+    """Send a NIP-04 encrypted DM (kind:4) to multiple relays concurrently.
+
+    NIP-04 uses AES-256-CBC with a shared ECDH key and encodes the result as
+    ``base64(ciphertext)?iv=base64(iv)``.  This format is understood by virtually
+    all Nostr clients (Damus, Primal, WhiteNoise, Oxchat, …).
+
+    Returns the event id on success.  Succeeds as long as at least one relay
+    accepts the event.  Raises the last exception if every relay fails.
+    """
+    sender_priv_hex = parse_key_to_hex(sender_nsec_or_hex, "nsec")
+    recipient_pub_hex = parse_key_to_hex(recipient_npub_or_hex, "npub")
+    sender_pub_hex = _derive_pubkey_x_hex(sender_priv_hex)
+
+    shared_x = await asyncio.get_running_loop().run_in_executor(
+        None, _ecdh_shared_x, sender_priv_hex, recipient_pub_hex
+    )
+    content = await asyncio.get_running_loop().run_in_executor(
+        None, _nip04_encrypt, message, shared_x
+    )
+
+    created_at = int(time.time())
+    tags = [["p", recipient_pub_hex]]
+    event_id = _compute_event_id(sender_pub_hex, created_at, 4, tags, content)
+    sig = await asyncio.get_running_loop().run_in_executor(
+        None, _schnorr_sign_sync, sender_priv_hex, event_id
+    )
+    event = {
+        "id": event_id,
+        "pubkey": sender_pub_hex,
+        "created_at": created_at,
+        "kind": 4,
+        "tags": tags,
+        "content": content,
+        "sig": sig,
+    }
+
+    last_exc: Exception | None = None
+    any_ok = False
+    for relay_url in relay_urls:
+        try:
+            await _ws_publish_event(session, relay_url, event, sender_priv_hex)
+            any_ok = True
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("Failed to publish NIP-04 event to relay %s: %s", relay_url, exc)
+            last_exc = exc
+
+    if not any_ok:
+        raise last_exc or RuntimeError("No relays available")
+    return event_id
+
+
+async def async_send_plaintext_note_to_relays(
+    session: ClientSession,
+    relay_urls: list[str],
+    sender_nsec_or_hex: str,
+    message: str,
+    tags: list | None = None,
+) -> str:
+    """Publish a kind:1 public text note (unencrypted) to multiple relays.
+
+    ⚠️ WARNING: kind:1 events are fully public and visible to everyone on the relay.
+    Only use when the user has explicitly opted in to plaintext mode.
+    """
+    sender_priv_hex = parse_key_to_hex(sender_nsec_or_hex, "nsec")
+    sender_pub_hex = _derive_pubkey_x_hex(sender_priv_hex)
+
+    created_at = int(time.time())
+    event_tags = tags or []
+    event_id = _compute_event_id(sender_pub_hex, created_at, 1, event_tags, message)
+    sig = await asyncio.get_running_loop().run_in_executor(
+        None, _schnorr_sign_sync, sender_priv_hex, event_id
+    )
+    event = {
+        "id": event_id,
+        "pubkey": sender_pub_hex,
+        "created_at": created_at,
+        "kind": 1,
+        "tags": event_tags,
+        "content": message,
+        "sig": sig,
+    }
+
+    last_exc: Exception | None = None
+    any_ok = False
+    for relay_url in relay_urls:
+        try:
+            await _ws_publish_event(session, relay_url, event, sender_priv_hex)
+            any_ok = True
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("Failed to publish kind:1 note to relay %s: %s", relay_url, exc)
+            last_exc = exc
+
+    if not any_ok:
+        raise last_exc or RuntimeError("No relays available")
+    return event_id
+
+
+async def async_send_dm_to_relays(
+    session: ClientSession,
+    relay_urls: list[str],
+    sender_nsec_or_hex: str,
+    recipient_npub_or_hex: str,
+    message: str,
+    encryption_mode: str = "nip04",
+) -> str:
+    """Send a DM using the configured encryption mode.
+
+    Supported modes:
+    - ``nip04``: NIP-04 AES-256-CBC (maximum app compatibility, default)
+    - ``nip44``: NIP-44 ChaCha20-Poly1305 (modern, best security)
+    - ``both``:  Send both a NIP-04 and a NIP-44 event; returns the NIP-04 event id
+    - ``plaintext``: kind:1 public text note (⚠️ unencrypted – use with care)
+    """
+    from .const import (  # noqa: PLC0415
+        NOSTR_ENCRYPTION_BOTH,
+        NOSTR_ENCRYPTION_NIP04,
+        NOSTR_ENCRYPTION_NIP44,
+        NOSTR_ENCRYPTION_PLAINTEXT,
+    )
+
+    mode = (encryption_mode or NOSTR_ENCRYPTION_NIP04).lower()
+
+    if mode == NOSTR_ENCRYPTION_NIP44:
+        return await async_send_nip44_dm_to_relays(
+            session, relay_urls, sender_nsec_or_hex, recipient_npub_or_hex, message
+        )
+    if mode == NOSTR_ENCRYPTION_BOTH:
+        event_id = await async_send_nip04_dm_to_relays(
+            session, relay_urls, sender_nsec_or_hex, recipient_npub_or_hex, message
+        )
+        try:
+            await async_send_nip44_dm_to_relays(
+                session, relay_urls, sender_nsec_or_hex, recipient_npub_or_hex, message
+            )
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("NIP-44 send failed in 'both' mode (NIP-04 succeeded): %s", exc)
+        return event_id
+    if mode == NOSTR_ENCRYPTION_PLAINTEXT:
+        recipient_pub_hex = parse_key_to_hex(recipient_npub_or_hex, "npub")
+        return await async_send_plaintext_note_to_relays(
+            session, relay_urls, sender_nsec_or_hex, message,
+            tags=[["p", recipient_pub_hex]],
+        )
+    # Default: NIP-04
+    return await async_send_nip04_dm_to_relays(
+        session, relay_urls, sender_nsec_or_hex, recipient_npub_or_hex, message
+    )
+
+
+def _nip44_decrypt_sync(recipient_priv_hex: str, sender_pub_hex: str, content: str) -> str:
+    """Decrypt a NIP-44 v2 encrypted payload.
+
+    Inverse of :func:`_nip44_encrypt_sync`.  Raises ``ValueError`` on any
+    decryption or authentication failure so the caller can fall back to NIP-04.
+    """
+    from nacl.bindings import crypto_aead_chacha20poly1305_ietf_decrypt  # noqa: PLC0415
+    import nacl.exceptions  # noqa: PLC0415
+
+    try:
+        raw = base64.b64decode(content)
+    except Exception as exc:
+        raise ValueError(f"nip44_base64_decode_failed: {exc}") from exc
+
+    if not raw or raw[0] != 0x02:
+        raise ValueError("nip44_unsupported_version")
+
+    if len(raw) < 1 + 32 + 32 + 32:
+        raise ValueError("nip44_envelope_too_short")
+
+    nonce = raw[1:33]
+    # Everything after the nonce: ciphertext-with-AEAD-tag + 32-byte HMAC
+    mac = raw[-32:]
+    ciphertext = raw[33:-32]  # AEAD ciphertext (includes 16-byte Poly1305 tag)
+
+    shared_x = _ecdh_shared_x(recipient_priv_hex, sender_pub_hex)
+    conversation_key = _hmac.new(b"nip44-v2", shared_x, hashlib.sha256).digest()
+    keys = _hkdf_expand_sha256(conversation_key, nonce, 76)
+    chacha_key = keys[0:32]
+    chacha_nonce = keys[32:44]
+    hmac_key = keys[44:76]
+
+    expected_mac = _hmac.new(hmac_key, nonce + ciphertext, hashlib.sha256).digest()
+    if not _hmac.compare_digest(expected_mac, mac):
+        raise ValueError("nip44_mac_verification_failed")
+
+    try:
+        padded = crypto_aead_chacha20poly1305_ietf_decrypt(ciphertext, b"", chacha_nonce, chacha_key)
+    except nacl.exceptions.CryptoError as exc:
+        raise ValueError(f"nip44_chacha_decrypt_failed: {exc}") from exc
+
+    # Unpad: first 2 bytes are the message length
+    if len(padded) < 2:
+        raise ValueError("nip44_padded_too_short")
+    msg_len = int.from_bytes(padded[:2], "big")
+    if msg_len > len(padded) - 2:
+        raise ValueError("nip44_invalid_padded_length")
+    return padded[2:2 + msg_len].decode("utf-8")
+
+
+def try_decrypt_dm(recipient_priv_hex: str, sender_pub_hex: str, content: str) -> tuple[str, str]:
+    """Attempt to decrypt a kind:4 DM content using NIP-44 then NIP-04 fallback.
+
+    Returns ``(plaintext, method)`` where *method* is ``"nip44"`` or ``"nip04"``.
+    Raises ``ValueError`` if both methods fail.
+    """
+    # Try NIP-44 first (v2 envelope starts with version byte 0x02 after base64 decode)
+    try:
+        plaintext = _nip44_decrypt_sync(recipient_priv_hex, sender_pub_hex, content)
+        return plaintext, "nip44"
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Fall back to NIP-04
+    try:
+        shared_x = _ecdh_shared_x(recipient_priv_hex, sender_pub_hex)
+        plaintext = _nip04_decrypt(content, shared_x)
+        return plaintext, "nip04"
+    except Exception as exc:
+        raise ValueError(f"Could not decrypt DM with NIP-44 or NIP-04: {exc}") from exc
 
 
 def _nip44_encrypt_sync(sender_priv_hex: str, recipient_pub_hex: str, message: str) -> str:
