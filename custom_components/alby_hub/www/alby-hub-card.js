@@ -286,6 +286,7 @@ const TRANSLATIONS = {
       noBitcoinAddress: 'Keine Bitcoin-Adresse gespeichert.',
       noNostrPubkey: 'Kein Nostr Public Key gespeichert.',
       errNameRequired: 'Bitte mindestens Vor- oder Nachname angeben.',
+      errAmountMin: 'Bitte einen gültigen Betrag (mindestens 1 sat) eingeben.',
       quickSendTitle: 'Schnellaktion',
       bitcoinAddressLabel: 'Bitcoin-Adresse',
       copyAddress: '📋 Adresse kopieren',
@@ -554,6 +555,7 @@ const TRANSLATIONS = {
       noBitcoinAddress: 'No Bitcoin address stored.',
       noNostrPubkey: 'No Nostr public key stored.',
       errNameRequired: 'Please provide at least a first or last name.',
+      errAmountMin: 'Please enter a valid amount (at least 1 sat).',
       quickSendTitle: 'Quick Actions',
       bitcoinAddressLabel: 'Bitcoin Address',
       copyAddress: '📋 Copy Address',
@@ -2325,6 +2327,13 @@ class AlbyHubPanel extends HTMLElement {
       });
   }
 
+  _resetContactForm() {
+    this._contactForm = {
+      last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '',
+      lightning_address: '', bitcoin_address: '', notes: '', tags: '',
+    };
+  }
+
   _loadContacts() {
     if (this._contactsLoading) return;
     this._contactsLoading = true;
@@ -3320,7 +3329,7 @@ class AlbyHubPanel extends HTMLElement {
         const svcName = isEditing ? 'address_book_update_contact' : 'address_book_create_contact';
         this._hass.callService('alby_hub', svcName, serviceData)
           .then(() => {
-            this._contactForm = { last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '', lightning_address: '', bitcoin_address: '', notes: '', tags: '' };
+            this._resetContactForm();
             this._contactEditId = null;
             this._contacts = null;
             this._contactsLoading = false;
@@ -3334,7 +3343,7 @@ class AlbyHubPanel extends HTMLElement {
     root.querySelectorAll('#ab-cancel-edit-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         this._contactEditId = null;
-        this._contactForm = { last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '', lightning_address: '', bitcoin_address: '', notes: '', tags: '' };
+        this._resetContactForm();
         this._updateContent();
       });
     });
@@ -3385,7 +3394,7 @@ class AlbyHubPanel extends HTMLElement {
         this._hass.callService('alby_hub', 'address_book_delete_contact', { contact_id: cid })
           .then(() => {
             if (this._contactDetailId === cid) this._contactDetailId = null;
-            if (this._contactEditId === cid) { this._contactEditId = null; this._contactForm = { last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '', lightning_address: '', bitcoin_address: '', notes: '', tags: '' }; }
+            if (this._contactEditId === cid) { this._contactEditId = null; this._resetContactForm(); }
             this._contacts = null;
             this._contactsLoading = false;
             this._updateContent();
@@ -3439,7 +3448,7 @@ class AlbyHubPanel extends HTMLElement {
         const memo = (this._abLnMemo || '').trim();
         if (!lnAddr) return;
         const amtNum = parseInt(amtRaw, 10);
-        if (!Number.isFinite(amtNum) || amtNum < 1) { alert('Bitte einen gültigen Betrag (≥ 1 sat) eingeben.'); return; }
+        if (!Number.isFinite(amtNum) || amtNum < 1) { alert(this._t('addressBook.errAmountMin')); return; }
         btn.disabled = true;
         const svcData = { payment_request: lnAddr, amount_sat: amtNum };
         if (memo) svcData.memo = memo;
