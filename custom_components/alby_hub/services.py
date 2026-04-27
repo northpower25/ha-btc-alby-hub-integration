@@ -21,6 +21,11 @@ from .const import (
     DOMAIN,
     MODE_EXPERT,
     SATS_PER_BTC,
+    SERVICE_ADDRESS_BOOK_CREATE_CONTACT,
+    SERVICE_ADDRESS_BOOK_DELETE_CONTACT,
+    SERVICE_ADDRESS_BOOK_GET_CONTACT,
+    SERVICE_ADDRESS_BOOK_LIST_CONTACTS,
+    SERVICE_ADDRESS_BOOK_UPDATE_CONTACT,
     SERVICE_CREATE_INVOICE,
     SERVICE_DELETE_SCHEDULED_PAYMENT,
     SERVICE_LIST_SCHEDULED_PAYMENTS,
@@ -37,6 +42,7 @@ from .const import (
 from .helpers import AlbyHubRuntime, is_lightning_address
 from .nwc_client import async_nwc_request
 from .recurring_payments import VALID_FREQUENCIES, get_scheduler
+from .address_book import get_address_book
 
 _LOGGER = logging.getLogger(__name__)
 _MSATS_PER_SAT = 1000
@@ -145,6 +151,47 @@ SERVICE_NOSTR_LIST_MESSAGES_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
         vol.Optional("limit", default=100): vol.All(vol.Coerce(int), vol.Range(min=1, max=250)),
+    }
+)
+
+SERVICE_ADDRESS_BOOK_CREATE_CONTACT_SCHEMA = vol.Schema(
+    {
+        vol.Optional("last_name", default=""): cv.string,
+        vol.Optional("first_name", default=""): cv.string,
+        vol.Optional("nostr_alias", default=""): cv.string,
+        vol.Optional("nostr_pubkey", default=""): cv.string,
+        vol.Optional("lightning_address", default=""): cv.string,
+        vol.Optional("bitcoin_address", default=""): cv.string,
+        vol.Optional("notes", default=""): cv.string,
+        vol.Optional("tags", default=[]): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+SERVICE_ADDRESS_BOOK_UPDATE_CONTACT_SCHEMA = vol.Schema(
+    {
+        vol.Required("contact_id"): cv.string,
+        vol.Optional("last_name"): cv.string,
+        vol.Optional("first_name"): cv.string,
+        vol.Optional("nostr_alias"): cv.string,
+        vol.Optional("nostr_pubkey"): cv.string,
+        vol.Optional("lightning_address"): cv.string,
+        vol.Optional("bitcoin_address"): cv.string,
+        vol.Optional("notes"): cv.string,
+        vol.Optional("tags"): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+SERVICE_ADDRESS_BOOK_DELETE_CONTACT_SCHEMA = vol.Schema(
+    {
+        vol.Required("contact_id"): cv.string,
+    }
+)
+
+SERVICE_ADDRESS_BOOK_LIST_CONTACTS_SCHEMA = vol.Schema({})
+
+SERVICE_ADDRESS_BOOK_GET_CONTACT_SCHEMA = vol.Schema(
+    {
+        vol.Required("contact_id"): cv.string,
     }
 )
 
@@ -504,6 +551,79 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         supports_response=SupportsResponse.ONLY,
     )
 
+    # ── Address book services ──────────────────────────────────────────────────
+
+    async def handle_address_book_create_contact(call: ServiceCall) -> ServiceResponse:
+        book = get_address_book(hass)
+        contact = await book.async_create(dict(call.data))
+        return {"contact": contact}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADDRESS_BOOK_CREATE_CONTACT,
+        handle_address_book_create_contact,
+        schema=SERVICE_ADDRESS_BOOK_CREATE_CONTACT_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def handle_address_book_update_contact(call: ServiceCall) -> ServiceResponse:
+        book = get_address_book(hass)
+        params = {k: v for k, v in call.data.items() if k != "contact_id"}
+        updated = await book.async_update(str(call.data["contact_id"]), params)
+        if updated is None:
+            raise HomeAssistantError(f"Contact not found: {call.data['contact_id']}")
+        return {"contact": updated}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADDRESS_BOOK_UPDATE_CONTACT,
+        handle_address_book_update_contact,
+        schema=SERVICE_ADDRESS_BOOK_UPDATE_CONTACT_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def handle_address_book_delete_contact(call: ServiceCall) -> ServiceResponse:
+        book = get_address_book(hass)
+        deleted = await book.async_delete(str(call.data["contact_id"]))
+        if not deleted:
+            raise HomeAssistantError(f"Contact not found: {call.data['contact_id']}")
+        return {"deleted": True, "contact_id": call.data["contact_id"]}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADDRESS_BOOK_DELETE_CONTACT,
+        handle_address_book_delete_contact,
+        schema=SERVICE_ADDRESS_BOOK_DELETE_CONTACT_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def handle_address_book_list_contacts(call: ServiceCall) -> ServiceResponse:
+        book = get_address_book(hass)
+        return {"contacts": book.list_contacts()}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADDRESS_BOOK_LIST_CONTACTS,
+        handle_address_book_list_contacts,
+        schema=SERVICE_ADDRESS_BOOK_LIST_CONTACTS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    async def handle_address_book_get_contact(call: ServiceCall) -> ServiceResponse:
+        book = get_address_book(hass)
+        contact = book.get_contact(str(call.data["contact_id"]))
+        if contact is None:
+            raise HomeAssistantError(f"Contact not found: {call.data['contact_id']}")
+        return {"contact": contact}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADDRESS_BOOK_GET_CONTACT,
+        handle_address_book_get_contact,
+        schema=SERVICE_ADDRESS_BOOK_GET_CONTACT_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
 
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unload integration services when no entries remain."""
@@ -519,6 +639,11 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_NOSTR_SEND_BOT_MESSAGE,
         SERVICE_NOSTR_SEND_TEST_MESSAGE,
         SERVICE_NOSTR_LIST_MESSAGES,
+        SERVICE_ADDRESS_BOOK_CREATE_CONTACT,
+        SERVICE_ADDRESS_BOOK_UPDATE_CONTACT,
+        SERVICE_ADDRESS_BOOK_DELETE_CONTACT,
+        SERVICE_ADDRESS_BOOK_LIST_CONTACTS,
+        SERVICE_ADDRESS_BOOK_GET_CONTACT,
     ):
         hass.services.async_remove(DOMAIN, svc)
 

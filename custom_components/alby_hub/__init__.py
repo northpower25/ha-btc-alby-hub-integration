@@ -44,6 +44,7 @@ from .helpers import AlbyHubRuntime
 from .nostr_bot import AlbyHubNostrWebhookView, AlbyHubNostrBotManager
 from .nostr_relay_listener import NostrRelayListener
 from .nwc import parse_nwc_connection_uri
+from .address_book import async_setup_address_book
 from .recurring_payments import async_setup_scheduler, async_unload_scheduler
 from .services import async_setup_services, async_unload_services
 # Preload all platform modules into sys.modules while still in the executor
@@ -68,7 +69,7 @@ PLATFORMS: list[Platform] = [
 ]
 
 # Frontend panel configuration
-_CARD_VERSION = "4"
+_CARD_VERSION = "5"
 _PANEL_FILENAME = "alby-hub-card.js"
 _PANEL_URL_PATH = "alby-hub-panel"
 _PANEL_ELEMENT_NAME = "alby-hub-panel"
@@ -225,6 +226,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await async_setup_services(hass)
     await async_setup_scheduler(hass)
+    await async_setup_address_book(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

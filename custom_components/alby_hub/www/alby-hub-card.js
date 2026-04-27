@@ -16,7 +16,7 @@
  * @license MIT
  */
 
-const ALBY_HUB_VERSION = '1.1.0';
+const ALBY_HUB_VERSION = '1.2.0';
 const PANEL_ELEMENT_NAME = 'alby-hub-panel';
 const STATIC_BASE_PATH = '/alby_hub_local';
 
@@ -25,7 +25,7 @@ const STATIC_BASE_PATH = '/alby_hub_local';
 // ──────────────────────────────────────────────────────────────────────────────
 const TRANSLATIONS = {
   de: {
-    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk', activity: '📋 Aktivität', scheduled: '🔁 Geplant', nostr: '🟣 Nostr' },
+    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk', activity: '📋 Aktivität', scheduled: '🔁 Geplant', nostr: '🟣 Nostr', addressBook: '📒 Adressbuch' },
     noInstance: 'Keine Alby-Hub-Instanz gefunden',
     noInstanceHint: 'Konfiguriere die Alby-Hub-Integration unter <strong>Einstellungen → Geräte & Dienste</strong>.',
     overview: {
@@ -238,9 +238,62 @@ const TRANSLATIONS = {
       haHint: '💡 <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> → einfügen → speichern.',
     },
     unavailable: 'nicht verfügbar',
+    addressBook: {
+      title: 'Adressbuch',
+      refresh: '↺ Aktualisieren',
+      noContacts: 'Noch keine Kontakte vorhanden.',
+      loading: 'Lade Kontakte…',
+      newContactTitle: 'Neuer Kontakt',
+      editContactTitle: 'Kontakt bearbeiten',
+      detailTitle: 'Kontakt-Details',
+      lastName: 'Nachname',
+      firstName: 'Vorname',
+      nostrAlias: 'Nostr-Alias',
+      nostrPubkey: 'Nostr Public Key (npub / hex)',
+      lightningAddress: 'Lightning-Adresse',
+      bitcoinAddress: 'Bitcoin-Adresse',
+      notes: 'Notizen',
+      tags: 'Tags (kommagetrennt)',
+      saveBtn: '💾 Kontakt speichern',
+      cancelBtn: 'Abbrechen',
+      editBtn: '✏️ Bearbeiten',
+      deleteBtn: '🗑 Löschen',
+      backBtn: '← Zurück',
+      sendNostrBtn: '🟣 Nostr-Nachricht senden',
+      payLightningBtn: '⚡ Lightning-Zahlung',
+      payBitcoinBtn: '₿ Bitcoin-Zahlung',
+      nostrMsgLabel: 'Nostr-Nachricht',
+      nostrMsgPlaceholder: 'Nachricht eingeben…',
+      sendNostrMsgBtn: '🔐 Senden',
+      lightningAmountLabel: 'Betrag (sat)',
+      lightningMemoLabel: 'Verwendungszweck (optional)',
+      sendLightningBtn: '⚡ Jetzt zahlen',
+      relatedNostr: 'Nostr-Nachrichten',
+      relatedLightning: 'Lightning-Zahlungen',
+      relatedScheduled: 'Geplante Zahlungen',
+      noRelatedNostr: 'Keine Nostr-Nachrichten mit diesem Kontakt.',
+      noRelatedLightning: 'Keine Lightning-Zahlungen an diesen Kontakt.',
+      noRelatedScheduled: 'Keine geplanten Zahlungen an diesen Kontakt.',
+      colName: 'Name',
+      colNostr: 'Nostr',
+      colLightning: 'Lightning-Adresse',
+      colBitcoin: 'Bitcoin-Adresse',
+      colActions: 'Aktionen',
+      createdAt: 'Erstellt am',
+      updatedAt: 'Aktualisiert am',
+      nostrDisabled: 'Nostr-Bot nicht aktiv.',
+      noLightningAddress: 'Keine Lightning-Adresse gespeichert.',
+      noBitcoinAddress: 'Keine Bitcoin-Adresse gespeichert.',
+      noNostrPubkey: 'Kein Nostr Public Key gespeichert.',
+      errNameRequired: 'Bitte mindestens Vor- oder Nachname angeben.',
+      quickSendTitle: 'Schnellaktion',
+      bitcoinAddressLabel: 'Bitcoin-Adresse',
+      copyAddress: '📋 Adresse kopieren',
+      copied: '✅ Kopiert!',
+    },
   },
   en: {
-    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network', activity: '📋 Activity', scheduled: '🔁 Scheduled', nostr: '🟣 Nostr' },
+    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network', activity: '📋 Activity', scheduled: '🔁 Scheduled', nostr: '🟣 Nostr', addressBook: '📒 Address Book' },
     noInstance: 'No Alby Hub instance found',
     noInstanceHint: 'Configure the Alby Hub integration under <strong>Settings → Devices &amp; Services</strong>.',
     overview: {
@@ -453,6 +506,59 @@ const TRANSLATIONS = {
       haHint: '💡 <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b> → paste → save.',
     },
     unavailable: 'unavailable',
+    addressBook: {
+      title: 'Address Book',
+      refresh: '↺ Refresh',
+      noContacts: 'No contacts yet.',
+      loading: 'Loading contacts…',
+      newContactTitle: 'New Contact',
+      editContactTitle: 'Edit Contact',
+      detailTitle: 'Contact Details',
+      lastName: 'Last Name',
+      firstName: 'First Name',
+      nostrAlias: 'Nostr Alias',
+      nostrPubkey: 'Nostr Public Key (npub / hex)',
+      lightningAddress: 'Lightning Address',
+      bitcoinAddress: 'Bitcoin Address',
+      notes: 'Notes',
+      tags: 'Tags (comma-separated)',
+      saveBtn: '💾 Save Contact',
+      cancelBtn: 'Cancel',
+      editBtn: '✏️ Edit',
+      deleteBtn: '🗑 Delete',
+      backBtn: '← Back',
+      sendNostrBtn: '🟣 Send Nostr Message',
+      payLightningBtn: '⚡ Lightning Payment',
+      payBitcoinBtn: '₿ Bitcoin Payment',
+      nostrMsgLabel: 'Nostr Message',
+      nostrMsgPlaceholder: 'Enter message…',
+      sendNostrMsgBtn: '🔐 Send',
+      lightningAmountLabel: 'Amount (sat)',
+      lightningMemoLabel: 'Memo (optional)',
+      sendLightningBtn: '⚡ Pay Now',
+      relatedNostr: 'Nostr Messages',
+      relatedLightning: 'Lightning Payments',
+      relatedScheduled: 'Scheduled Payments',
+      noRelatedNostr: 'No Nostr messages with this contact.',
+      noRelatedLightning: 'No Lightning payments to this contact.',
+      noRelatedScheduled: 'No scheduled payments to this contact.',
+      colName: 'Name',
+      colNostr: 'Nostr',
+      colLightning: 'Lightning Address',
+      colBitcoin: 'Bitcoin Address',
+      colActions: 'Actions',
+      createdAt: 'Created',
+      updatedAt: 'Updated',
+      nostrDisabled: 'Nostr bot not active.',
+      noLightningAddress: 'No Lightning address stored.',
+      noBitcoinAddress: 'No Bitcoin address stored.',
+      noNostrPubkey: 'No Nostr public key stored.',
+      errNameRequired: 'Please provide at least a first or last name.',
+      quickSendTitle: 'Quick Actions',
+      bitcoinAddressLabel: 'Bitcoin Address',
+      copyAddress: '📋 Copy Address',
+      copied: '✅ Copied!',
+    },
   },
 };
 
@@ -570,6 +676,18 @@ class AlbyHubPanel extends HTMLElement {
     this._pendingNostrMsg = '';
     this._pendingTestNsec = '';
     this._pendingTestMsg = '';
+    // Address book tab state
+    this._contacts = null;        // null = not loaded
+    this._contactsLoading = false;
+    this._contactEditId = null;   // UUID of contact being edited, null = new
+    this._contactDetailId = null; // UUID of contact being viewed in detail
+    this._contactForm = {
+      last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '',
+      lightning_address: '', bitcoin_address: '', notes: '', tags: '',
+    };
+    this._abNostrMsg = '';
+    this._abLnAmount = '';
+    this._abLnMemo = '';
   }
 
   connectedCallback() {
@@ -642,6 +760,7 @@ class AlbyHubPanel extends HTMLElement {
       { id: 'activity',   label: t('tabs.activity')   },
       { id: 'scheduled',  label: t('tabs.scheduled')  },
       { id: 'nostr',      label: t('tabs.nostr')      },
+      { id: 'addressBook', label: t('tabs.addressBook') },
     ];
   }
 
@@ -871,6 +990,7 @@ class AlbyHubPanel extends HTMLElement {
       case 'activity':   return this._tabActivity(p);
       case 'scheduled':  return this._tabScheduled(p);
       case 'nostr':      return this._tabNostr(p);
+      case 'addressBook': return this._tabAddressBook(p);
       default:           return '';
     }
   }
@@ -2205,6 +2325,293 @@ class AlbyHubPanel extends HTMLElement {
       });
   }
 
+  _loadContacts() {
+    if (this._contactsLoading) return;
+    this._contactsLoading = true;
+    this._hass.callService('alby_hub', 'address_book_list_contacts', {}, undefined, true, true)
+      .then((resp) => {
+        const data = resp?.response ?? resp;
+        this._contacts = Array.isArray(data?.contacts) ? data.contacts : [];
+        this._contactsLoading = false;
+        this._updateContent();
+      })
+      .catch(() => {
+        this._contacts = [];
+        this._contactsLoading = false;
+        this._updateContent();
+      });
+  }
+
+  // ── Tab: Address Book ─────────────────────────────────────────────────────────
+
+  _tabAddressBook(p) {
+    const t = (k) => this._t(`addressBook.${k}`);
+
+    if (this._contacts === null && !this._contactsLoading) {
+      this._loadContacts();
+      return `<div class="cards-grid"><div class="card"><p class="muted">${t('loading')}</p></div></div>`;
+    }
+
+    // ── Detail view ──────────────────────────────────────────────────────────
+    if (this._contactDetailId) {
+      return this._renderContactDetail(p, t);
+    }
+
+    // ── Contact form ─────────────────────────────────────────────────────────
+    const isEditing = Boolean(this._contactEditId);
+    const f = this._contactForm;
+    const formTitle = isEditing ? t('editContactTitle') : t('newContactTitle');
+
+    const contactForm = `<div class="card">
+      <div class="card-title">${formTitle}</div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('firstName')}</label>
+          <input type="text" class="inp" id="ab-first-name" value="${this._esc(f.first_name)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('lastName')}</label>
+          <input type="text" class="inp" id="ab-last-name" value="${this._esc(f.last_name)}">
+        </div>
+      </div>
+      <div class="field">
+        <label>${t('nostrAlias')}</label>
+        <input type="text" class="inp" id="ab-nostr-alias" placeholder="alice@nostr.com" value="${this._esc(f.nostr_alias)}">
+      </div>
+      <div class="field">
+        <label>${t('nostrPubkey')}</label>
+        <input type="text" class="inp mono" id="ab-nostr-pubkey" placeholder="npub1…" value="${this._esc(f.nostr_pubkey)}">
+      </div>
+      <div class="field">
+        <label>${t('lightningAddress')}</label>
+        <input type="text" class="inp" id="ab-ln-address" placeholder="alice@wallet.com" value="${this._esc(f.lightning_address)}">
+      </div>
+      <div class="field">
+        <label>${t('bitcoinAddress')}</label>
+        <input type="text" class="inp mono" id="ab-btc-address" placeholder="bc1q…" value="${this._esc(f.bitcoin_address)}">
+      </div>
+      <div class="field">
+        <label>${t('notes')}</label>
+        <textarea class="inp" id="ab-notes" rows="2">${this._esc(f.notes)}</textarea>
+      </div>
+      <div class="field">
+        <label>${t('tags')}</label>
+        <input type="text" class="inp" id="ab-tags" placeholder="Familie, Freunde" value="${this._esc(f.tags)}">
+      </div>
+      <button class="btn" id="ab-save-btn" data-prefix="${this._esc(p)}">${t('saveBtn')}</button>
+      ${isEditing ? `<button class="filter-btn" id="ab-cancel-edit-btn" style="margin-top:8px;width:100%">${t('cancelBtn')}</button>` : ''}
+    </div>`;
+
+    // ── Contact list ─────────────────────────────────────────────────────────
+    const contacts = this._contacts || [];
+    const contactRows = contacts.length === 0
+      ? `<tr><td colspan="5" class="muted" style="text-align:center;padding:16px">${t('noContacts')}</td></tr>`
+      : contacts.map((c) => {
+          const fullName = [c.first_name, c.last_name].filter(Boolean).join(' ') || '—';
+          const nostrInfo = c.nostr_alias || (c.nostr_pubkey ? c.nostr_pubkey.slice(0, 14) + '…' : '—');
+          const lnAddr = c.lightning_address || '—';
+          const btcAddr = c.bitcoin_address ? c.bitcoin_address.slice(0, 12) + '…' : '—';
+          return `<tr style="cursor:pointer" class="ab-contact-row" data-id="${this._esc(c.id)}" title="${this._esc(fullName)}">
+            <td><b>${this._esc(fullName)}</b>${c.tags?.length ? `<br><span class="muted" style="font-size:0.72rem">${c.tags.map((tg) => this._esc(tg)).join(', ')}</span>` : ''}</td>
+            <td class="small">${this._esc(nostrInfo)}</td>
+            <td class="small">${this._esc(lnAddr)}</td>
+            <td class="small">${this._esc(btcAddr)}</td>
+            <td style="white-space:nowrap">
+              <button class="ab-edit-btn small-btn" data-id="${this._esc(c.id)}" style="border-color:var(--primary-color,#f7931a);color:var(--primary-color,#f7931a)" title="${t('editBtn')}">${t('editBtn')}</button>
+              <button class="ab-del-btn small-btn" data-id="${this._esc(c.id)}" title="${t('deleteBtn')}">${t('deleteBtn')}</button>
+            </td>
+          </tr>`;
+        }).join('');
+
+    const listCard = `<div class="card" style="grid-column:1/-1">
+      <div class="card-title" style="display:flex;align-items:center;gap:8px">
+        ${t('title')}
+        <button class="filter-btn" style="margin-left:auto" data-action="refresh-ab">${t('refresh')}</button>
+      </div>
+      <div class="tx-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>${t('colName')}</th>
+              <th>${t('colNostr')}</th>
+              <th>${t('colLightning')}</th>
+              <th>${t('colBitcoin')}</th>
+              <th>${t('colActions')}</th>
+            </tr>
+          </thead>
+          <tbody>${contactRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+    return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(380px,1fr))">
+      ${contactForm}
+      ${listCard}
+    </div>`;
+  }
+
+  _renderContactDetail(p, t) {
+    const c = (this._contacts || []).find((x) => x.id === this._contactDetailId);
+    if (!c) {
+      this._contactDetailId = null;
+      return this._tabAddressBook(p);
+    }
+
+    const fullName = [c.first_name, c.last_name].filter(Boolean).join(' ') || '—';
+
+    // ── Related Nostr messages ────────────────────────────────────────────────
+    const relatedMsgs = Array.isArray(this._nostrMessages)
+      ? this._nostrMessages.filter((m) => {
+          const pk = (c.nostr_pubkey || '').toLowerCase();
+          const alias = (c.nostr_alias || '').toLowerCase();
+          if (!pk && !alias) return false;
+          const sender = (m.sender || '').toLowerCase();
+          const recipient = (m.recipient || '').toLowerCase();
+          return (pk && (sender.includes(pk) || recipient.includes(pk)))
+              || (alias && (sender.includes(alias) || recipient.includes(alias)));
+        })
+      : [];
+
+    const nostrRows = relatedMsgs.length === 0
+      ? `<p class="muted">${t('noRelatedNostr')}</p>`
+      : relatedMsgs.slice(0, 10).map((m) => {
+          const ts = m.ts ? new Date(m.ts).toLocaleString() : '—';
+          const dir = m.direction === 'outgoing' ? '↗' : '↙';
+          return `<div style="padding:6px 0;border-bottom:1px solid var(--divider-color,#2a2a2a);font-size:0.83rem">
+            <span style="opacity:.6">${dir} ${this._esc(ts)}</span><br>
+            <span>${this._esc(m.message || '—')}</span>
+          </div>`;
+        }).join('');
+
+    // ── Related transactions ──────────────────────────────────────────────────
+    const relatedTx = Array.isArray(this._transactions)
+      ? this._transactions.filter((tx) => {
+          const lnAddr = (c.lightning_address || '').toLowerCase();
+          const desc = (tx.description || '').toLowerCase();
+          return lnAddr && (desc.includes(lnAddr) || (tx.destination || '').toLowerCase().includes(lnAddr));
+        })
+      : [];
+
+    const txRows = relatedTx.length === 0
+      ? `<p class="muted">${t('noRelatedLightning')}</p>`
+      : relatedTx.slice(0, 5).map((tx) => {
+          const sign = tx.type === 'incoming' ? '+' : '−';
+          const color = tx.type === 'incoming' ? '#4caf50' : '#f44336';
+          const dateStr = tx.settled_at ? new Date(tx.settled_at * 1000).toLocaleString() : '';
+          return `<div style="padding:6px 0;border-bottom:1px solid var(--divider-color,#2a2a2a);font-size:0.83rem">
+            <span style="color:${color};font-weight:600">${sign}${tx.amount_sat.toLocaleString()} sat</span>
+            <span class="muted" style="margin-left:8px">${this._esc(dateStr)}</span><br>
+            <span class="muted">${this._esc(tx.description || '—')}</span>
+          </div>`;
+        }).join('');
+
+    // ── Related scheduled payments ────────────────────────────────────────────
+    const relatedSched = Array.isArray(this._schedules)
+      ? this._schedules.filter((s) => {
+          const lnAddr = (c.lightning_address || '').toLowerCase();
+          return lnAddr && (s.recipient || '').toLowerCase().includes(lnAddr);
+        })
+      : [];
+
+    const schedRows = relatedSched.length === 0
+      ? `<p class="muted">${t('noRelatedScheduled')}</p>`
+      : relatedSched.map((s) => {
+          const nextRun = s.next_run ? new Date(s.next_run).toLocaleString() : '—';
+          return `<div style="padding:6px 0;border-bottom:1px solid var(--divider-color,#2a2a2a);font-size:0.83rem">
+            <b>${this._esc(s.label || s.recipient)}</b>: ${s.amount_sat.toLocaleString()} sat / ${this._esc(s.frequency)}
+            <span class="muted" style="margin-left:6px">→ ${this._esc(nextRun)}</span>
+          </div>`;
+        }).join('');
+
+    // ── Quick actions ─────────────────────────────────────────────────────────
+    const hasNostr = Boolean(c.nostr_pubkey) && this._nostrEnabled;
+    const hasLightning = Boolean(c.lightning_address);
+    const hasBitcoin = Boolean(c.bitcoin_address);
+
+    const nostrSection = hasNostr ? `
+      <div class="field">
+        <label>${t('nostrMsgLabel')}</label>
+        <textarea class="inp" id="ab-quick-nostr-msg" rows="2" placeholder="${t('nostrMsgPlaceholder')}">${this._esc(this._abNostrMsg)}</textarea>
+      </div>
+      <button class="btn" id="ab-send-nostr-btn" data-pubkey="${this._esc(c.nostr_pubkey)}" style="margin-bottom:8px">${t('sendNostrMsgBtn')} (Nostr)</button>`
+    : `<p class="muted" style="font-size:0.82rem">${!c.nostr_pubkey ? t('noNostrPubkey') : t('nostrDisabled')}</p>`;
+
+    const lnSection = hasLightning ? `
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('lightningAmountLabel')}</label>
+          <input type="number" class="inp" id="ab-quick-ln-amount" min="1" step="1" value="${this._esc(this._abLnAmount)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('lightningMemoLabel')}</label>
+          <input type="text" class="inp" id="ab-quick-ln-memo" value="${this._esc(this._abLnMemo)}">
+        </div>
+      </div>
+      <button class="btn" id="ab-send-ln-btn" data-ln="${this._esc(c.lightning_address)}" style="margin-bottom:8px">${t('sendLightningBtn')} ⚡</button>`
+    : `<p class="muted" style="font-size:0.82rem">${t('noLightningAddress')}</p>`;
+
+    const btcSection = hasBitcoin ? `
+      <div class="field">
+        <label>${t('bitcoinAddressLabel')}</label>
+        <code style="display:block;background:var(--secondary-background-color,#111);padding:6px 8px;border-radius:6px;font-size:0.72rem;word-break:break-all">${this._esc(c.bitcoin_address)}</code>
+      </div>
+      <button class="filter-btn ab-copy-btc-btn" data-addr="${this._esc(c.bitcoin_address)}" style="width:100%;margin-bottom:4px">${t('copyAddress')}</button>
+      <div class="qr-wrap">
+        <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(c.bitcoin_address)}&size=200x200&margin=8" alt="Bitcoin QR" style="max-width:200px">
+      </div>`
+    : `<p class="muted" style="font-size:0.82rem">${t('noBitcoinAddress')}</p>`;
+
+    return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
+      <!-- Header / back -->
+      <div class="card" style="grid-column:1/-1">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <button class="filter-btn" id="ab-back-btn">${t('backBtn')}</button>
+          <span style="font-size:1.1rem;font-weight:600">${this._esc(fullName)}</span>
+          <button class="filter-btn ab-edit-btn" data-id="${this._esc(c.id)}" style="margin-left:auto;border-color:var(--primary-color,#f7931a);color:var(--primary-color,#f7931a)">${t('editBtn')}</button>
+          <button class="ab-del-btn small-btn" data-id="${this._esc(c.id)}">${t('deleteBtn')}</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 20px;font-size:0.85rem">
+          ${c.nostr_alias ? `<span>🟣 ${this._esc(c.nostr_alias)}</span>` : ''}
+          ${c.nostr_pubkey ? `<span title="${this._esc(c.nostr_pubkey)}" style="cursor:default">🔑 ${this._esc(c.nostr_pubkey.slice(0,16))}…</span>` : ''}
+          ${c.lightning_address ? `<span>⚡ ${this._esc(c.lightning_address)}</span>` : ''}
+          ${c.bitcoin_address ? `<span>₿ ${this._esc(c.bitcoin_address.slice(0,14))}…</span>` : ''}
+          ${c.notes ? `<span class="muted">📝 ${this._esc(c.notes)}</span>` : ''}
+          ${c.tags?.length ? c.tags.map((tg) => `<span style="background:rgba(247,147,26,.15);color:var(--primary-color,#f7931a);padding:1px 7px;border-radius:10px;font-size:0.75rem">${this._esc(tg)}</span>`).join('') : ''}
+        </div>
+        <div class="muted" style="font-size:0.72rem;margin-top:6px">${t('createdAt')}: ${this._esc(c.created_at ? new Date(c.created_at).toLocaleString() : '—')} &nbsp;|&nbsp; ${t('updatedAt')}: ${this._esc(c.updated_at ? new Date(c.updated_at).toLocaleString() : '—')}</div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="card">
+        <div class="card-title">${t('quickSendTitle')}</div>
+        <div class="card-title" style="font-size:0.85rem;margin-top:10px">🟣 Nostr</div>
+        ${nostrSection}
+        <div class="card-title" style="font-size:0.85rem;margin-top:10px">⚡ Lightning</div>
+        ${lnSection}
+        <div class="card-title" style="font-size:0.85rem;margin-top:10px">₿ Bitcoin</div>
+        ${btcSection}
+      </div>
+
+      <!-- Related Nostr messages -->
+      <div class="card">
+        <div class="card-title">${t('relatedNostr')}</div>
+        ${nostrRows}
+      </div>
+
+      <!-- Related Lightning transactions -->
+      <div class="card">
+        <div class="card-title">${t('relatedLightning')}</div>
+        ${txRows}
+      </div>
+
+      <!-- Related scheduled payments -->
+      <div class="card">
+        <div class="card-title">${t('relatedScheduled')}</div>
+        ${schedRows}
+      </div>
+    </div>`;
+  }
+
   /** Resolve a config entry ID from a known entity prefix (best-effort). */
   _resolveEntryId(_prefix) {
     // The panel doesn't have direct access to config entry IDs from hass.states;
@@ -2275,6 +2682,12 @@ class AlbyHubPanel extends HTMLElement {
           this._nostrLoading = false;
           this._nostrEncryptionMode = '';
           this._nostrRelayListenerActive = false;
+        }
+        if (this._activeTab === 'addressBook' && prevTab !== 'addressBook') {
+          this._contacts = null;
+          this._contactsLoading = false;
+          this._contactDetailId = null;
+          this._contactEditId = null;
         }
         this._render();
         this._autoStartDeviceCameraIfNeeded();
@@ -2855,6 +3268,205 @@ class AlbyHubPanel extends HTMLElement {
     });
 
     this._autoStartDeviceCameraIfNeeded();
+
+    // ── Address book listeners ────────────────────────────────────────────────
+
+    root.querySelectorAll('[data-action="refresh-ab"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._contacts = null;
+        this._contactsLoading = false;
+        this._updateContent();
+      });
+    });
+
+    const bindAbField = (id, key) => {
+      const el = root.querySelector(`#${id}`);
+      if (el) {
+        el.addEventListener('input',  () => { this._contactForm[key] = el.value; });
+        el.addEventListener('change', () => { this._contactForm[key] = el.value; });
+      }
+    };
+    bindAbField('ab-first-name',   'first_name');
+    bindAbField('ab-last-name',    'last_name');
+    bindAbField('ab-nostr-alias',  'nostr_alias');
+    bindAbField('ab-nostr-pubkey', 'nostr_pubkey');
+    bindAbField('ab-ln-address',   'lightning_address');
+    bindAbField('ab-btc-address',  'bitcoin_address');
+    bindAbField('ab-notes',        'notes');
+    bindAbField('ab-tags',         'tags');
+
+    root.querySelectorAll('#ab-save-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const f = this._contactForm;
+        const t = (k) => this._t(`addressBook.${k}`);
+        if (!f.first_name.trim() && !f.last_name.trim()) {
+          alert(t('errNameRequired'));
+          return;
+        }
+        const tagsArr = f.tags.split(',').map((s) => s.trim()).filter(Boolean);
+        const serviceData = {
+          first_name: f.first_name.trim(),
+          last_name: f.last_name.trim(),
+          nostr_alias: f.nostr_alias.trim(),
+          nostr_pubkey: f.nostr_pubkey.trim(),
+          lightning_address: f.lightning_address.trim(),
+          bitcoin_address: f.bitcoin_address.trim(),
+          notes: f.notes.trim(),
+          tags: tagsArr,
+        };
+        btn.disabled = true;
+        const isEditing = Boolean(this._contactEditId);
+        if (isEditing) serviceData.contact_id = this._contactEditId;
+        const svcName = isEditing ? 'address_book_update_contact' : 'address_book_create_contact';
+        this._hass.callService('alby_hub', svcName, serviceData)
+          .then(() => {
+            this._contactForm = { last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '', lightning_address: '', bitcoin_address: '', notes: '', tags: '' };
+            this._contactEditId = null;
+            this._contacts = null;
+            this._contactsLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => { console.warn('Alby Hub panel: address_book save failed', err); })
+          .finally(() => { btn.disabled = false; });
+      });
+    });
+
+    root.querySelectorAll('#ab-cancel-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._contactEditId = null;
+        this._contactForm = { last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '', lightning_address: '', bitcoin_address: '', notes: '', tags: '' };
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.ab-contact-row').forEach((row) => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        this._contactDetailId = row.dataset.id;
+        this._abNostrMsg = '';
+        this._abLnAmount = '';
+        this._abLnMemo = '';
+        // Pre-load Nostr messages, transactions and schedules if not already loaded
+        const p = this._activePrefix;
+        if (this._nostrMessages === null && !this._nostrLoading) this._loadNostrMessages(p);
+        if (this._transactions === null && !this._txLoading) this._loadTransactions(p);
+        if (this._schedules === null && !this._schedLoading) this._loadSchedules(p);
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.ab-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cid = btn.dataset.id;
+        if (!cid || !Array.isArray(this._contacts)) return;
+        const c = this._contacts.find((x) => x.id === cid);
+        if (!c) return;
+        this._contactEditId = cid;
+        this._contactDetailId = null;
+        this._contactForm = {
+          first_name: c.first_name || '',
+          last_name: c.last_name || '',
+          nostr_alias: c.nostr_alias || '',
+          nostr_pubkey: c.nostr_pubkey || '',
+          lightning_address: c.lightning_address || '',
+          bitcoin_address: c.bitcoin_address || '',
+          notes: c.notes || '',
+          tags: (c.tags || []).join(', '),
+        };
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.ab-del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cid = btn.dataset.id;
+        if (!cid) return;
+        btn.disabled = true;
+        this._hass.callService('alby_hub', 'address_book_delete_contact', { contact_id: cid })
+          .then(() => {
+            if (this._contactDetailId === cid) this._contactDetailId = null;
+            if (this._contactEditId === cid) { this._contactEditId = null; this._contactForm = { last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '', lightning_address: '', bitcoin_address: '', notes: '', tags: '' }; }
+            this._contacts = null;
+            this._contactsLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => { console.warn('Alby Hub panel: address_book_delete_contact failed', err); btn.disabled = false; });
+      });
+    });
+
+    root.querySelectorAll('#ab-back-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._contactDetailId = null;
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('#ab-quick-nostr-msg').forEach((el) => {
+      el.addEventListener('input',  () => { this._abNostrMsg = el.value; });
+      el.addEventListener('change', () => { this._abNostrMsg = el.value; });
+    });
+    root.querySelectorAll('#ab-quick-ln-amount').forEach((el) => {
+      el.addEventListener('input',  () => { this._abLnAmount = el.value; });
+      el.addEventListener('change', () => { this._abLnAmount = el.value; });
+    });
+    root.querySelectorAll('#ab-quick-ln-memo').forEach((el) => {
+      el.addEventListener('input',  () => { this._abLnMemo = el.value; });
+      el.addEventListener('change', () => { this._abLnMemo = el.value; });
+    });
+
+    root.querySelectorAll('#ab-send-nostr-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pubkey = btn.dataset.pubkey;
+        const msg = (this._abNostrMsg || '').trim();
+        if (!pubkey || !msg) return;
+        btn.disabled = true;
+        this._hass.callService('alby_hub', 'nostr_send_bot_message', { target_npub: pubkey, message: msg }, undefined, true, true)
+          .then(() => {
+            this._abNostrMsg = '';
+            this._nostrMessages = null;
+            this._nostrLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => { console.warn('Alby Hub panel: nostr send from address book failed', err); })
+          .finally(() => { btn.disabled = false; });
+      });
+    });
+
+    root.querySelectorAll('#ab-send-ln-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const lnAddr = btn.dataset.ln;
+        const amtRaw = this._abLnAmount;
+        const memo = (this._abLnMemo || '').trim();
+        if (!lnAddr) return;
+        const amtNum = parseInt(amtRaw, 10);
+        if (!Number.isFinite(amtNum) || amtNum < 1) { alert('Bitte einen gültigen Betrag (≥ 1 sat) eingeben.'); return; }
+        btn.disabled = true;
+        const svcData = { payment_request: lnAddr, amount_sat: amtNum };
+        if (memo) svcData.memo = memo;
+        this._hass.callService('alby_hub', 'send_payment', svcData)
+          .then(() => {
+            this._abLnAmount = '';
+            this._abLnMemo = '';
+            this._transactions = null;
+            this._txLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => { console.warn('Alby Hub panel: ln payment from address book failed', err); })
+          .finally(() => { btn.disabled = false; });
+      });
+    });
+
+    root.querySelectorAll('.ab-copy-btc-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const addr = btn.dataset.addr;
+        if (!addr) return;
+        const origText = btn.textContent;
+        navigator.clipboard.writeText(addr).then(() => {
+          btn.textContent = this._t('addressBook.copied');
+          setTimeout(() => { btn.textContent = origText; }, 2000);
+        }).catch(() => {});
+      });
+    });
   }
 
   // ── CSS ──────────────────────────────────────────────────────────────────────
