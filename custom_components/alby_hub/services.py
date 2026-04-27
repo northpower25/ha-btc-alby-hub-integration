@@ -42,7 +42,7 @@ from .const import (
 from .helpers import AlbyHubRuntime, is_lightning_address
 from .nwc_client import async_nwc_request
 from .recurring_payments import VALID_FREQUENCIES, get_scheduler
-from .address_book import get_address_book
+from .address_book import CONTACT_STRING_FIELDS, get_address_book
 
 _LOGGER = logging.getLogger(__name__)
 _MSATS_PER_SAT = 1000
@@ -154,10 +154,10 @@ SERVICE_NOSTR_LIST_MESSAGES_SCHEMA = vol.Schema(
     }
 )
 
-_VCARD_OPT_FIELDS = {
-    "nickname", "phone", "email", "birthday", "anniversary", "gender",
-    "organization", "title", "role", "website",
-    "street", "city", "zip_code", "state", "country",
+# Fields that go beyond the vCard-invariant base (last_name, first_name, nostr_*, lightning_*, bitcoin_*, notes, tags).
+_VCARD_OPT_FIELDS = CONTACT_STRING_FIELDS - {
+    "last_name", "first_name", "nostr_alias", "nostr_pubkey",
+    "lightning_address", "bitcoin_address", "notes",
 }
 
 SERVICE_ADDRESS_BOOK_CREATE_CONTACT_SCHEMA = vol.Schema(

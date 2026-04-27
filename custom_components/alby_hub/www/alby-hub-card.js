@@ -2619,7 +2619,7 @@ class AlbyHubPanel extends HTMLElement {
     const lines = [];
     lines.push('BEGIN:VCARD');
     lines.push('VERSION:4.0');
-    lines.push(`PRODID:-//Alby Hub HA Integration//DE`);
+    lines.push(`PRODID:-//Alby Hub HA Integration//alby-hub-card v1.3.0//EN`);
 
     // FN + N
     const fn = [c.first_name, c.last_name].filter(Boolean).join(' ') || (c.nickname || c.nostr_alias || '');
@@ -2656,7 +2656,11 @@ class AlbyHubPanel extends HTMLElement {
     if (c.tags?.length) lines.push(fold(`CATEGORIES:${c.tags.map(esc).join(',')}`));
 
     if (c.id) lines.push(fold(`UID:urn:uuid:${c.id}`));
-    if (c.updated_at) lines.push(fold(`REV:${c.updated_at.replace(/\.\d+/, '').replace(/[-:]/g, '').replace('T', 'T')}`));
+    if (c.updated_at) {
+      // RFC 6350 REV format: YYYYMMDDTHHmmssZ
+      const rev = c.updated_at.replace(/\.\d+Z?$/, 'Z').replace(/[-:]/g, '').replace(/(\d{8})T(\d{6})Z/, '$1T$2Z');
+      lines.push(fold(`REV:${rev}`));
+    }
 
     lines.push('END:VCARD');
     return lines.join('\r\n');
@@ -2762,7 +2766,7 @@ class AlbyHubPanel extends HTMLElement {
     ` : `<p class="muted" style="font-size:0.82rem">${t('noNostrPubkey')}</p>`;
 
     const lnSection = hasLightning ? `
-      ${qrBlock('lightning:' + c.lightning_address, '⚡', t('qrLightning'), 'Lightning address QR')}
+      ${qrBlock(`lightning:${c.lightning_address}`, '⚡', t('qrLightning'), 'Lightning address QR')}
       <div style="display:flex;gap:8px;margin-top:8px">
         <div class="field" style="flex:1">
           <label>${t('lightningAmountLabel')}</label>

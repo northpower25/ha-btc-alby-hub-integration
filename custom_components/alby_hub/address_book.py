@@ -31,6 +31,17 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_KEY_ADDRESS_BOOK = "alby_hub_address_book"
 STORAGE_VERSION_ADDRESS_BOOK = 1
 
+# All string fields persisted per contact (used by both AddressBook and service schemas).
+CONTACT_STRING_FIELDS: frozenset[str] = frozenset({
+    "last_name", "first_name", "nickname",
+    "nostr_alias", "nostr_pubkey",
+    "lightning_address", "bitcoin_address",
+    "notes",
+    "phone", "email", "birthday", "anniversary", "gender",
+    "organization", "title", "role", "website",
+    "street", "city", "zip_code", "state", "country",
+})
+
 
 def _now_iso() -> str:
     return datetime.now(tz=timezone.utc).isoformat()
@@ -59,15 +70,7 @@ class AddressBook:
     # ── public CRUD API ────────────────────────────────────────────────────────
 
     # All fields that map 1-to-1 to a string in the stored contact dict.
-    _STRING_FIELDS: frozenset[str] = frozenset({
-        "last_name", "first_name", "nickname",
-        "nostr_alias", "nostr_pubkey",
-        "lightning_address", "bitcoin_address",
-        "notes",
-        "phone", "email", "birthday", "anniversary", "gender",
-        "organization", "title", "role", "website",
-        "street", "city", "zip_code", "state", "country",
-    })
+    _STRING_FIELDS: frozenset[str] = CONTACT_STRING_FIELDS
 
     async def async_create(self, params: dict[str, Any]) -> dict[str, Any]:
         """Create and persist a new contact. Returns the created contact."""
