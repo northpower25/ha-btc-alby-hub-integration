@@ -727,11 +727,14 @@ class AlbyHubPanel extends HTMLElement {
       .replace(/'/g, '&#39;');
   }
 
-  /** Truncate a long string (e.g. npub) to head…tail, full value available as title tooltip. */
+  /** Truncate a long string (e.g. npub) to head…tail, full value available as title tooltip.
+   *  When tail is 0, only the head prefix is shown (suitable for long message truncation). */
   _truncStr(v, head = 12, tail = 6) {
     const s = String(v ?? '');
-    if (s.length <= head + tail + 3) return this._esc(s);
-    return `<span title="${this._esc(s)}" style="cursor:default">${this._esc(s.slice(0, head))}…${this._esc(s.slice(-tail))}</span>`;
+    const minLen = tail > 0 ? head + tail + 3 : head + 3;
+    if (s.length <= minLen) return this._esc(s);
+    const suffix = tail > 0 ? this._esc(s.slice(-tail)) : '';
+    return `<span title="${this._esc(s)}" style="cursor:default">${this._esc(s.slice(0, head))}…${suffix}</span>`;
   }
 
   _state(id)                     { return this._hass?.states[id]; }
@@ -1439,15 +1442,11 @@ class AlbyHubPanel extends HTMLElement {
           const dir = dirLabel[m.direction] || this._esc(m.direction || '—');
           const status = statusLabel[m.status] || this._esc(m.status || '—');
           const src = srcLabel(m.source);
-          const msg = m.message || '—';
-          const msgDisplay = msg.length > 120
-            ? `<span title="${this._esc(msg)}" style="cursor:default">${this._esc(msg.slice(0, 120))}…</span>`
-            : this._esc(msg);
           return `<tr>
             <td>${dir}</td>
             <td class="small">${this._truncStr(m.sender || '—')}</td>
             <td class="small">${this._truncStr(m.recipient || '—')}</td>
-            <td>${msgDisplay}</td>
+            <td>${this._truncStr(m.message || '—', 120, 0)}</td>
             <td class="small">${src}</td>
             <td>${status}</td>
             <td class="small muted">${this._esc(ts)}</td>
