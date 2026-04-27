@@ -168,6 +168,14 @@ const TRANSLATIONS = {
       disabled: 'Nostr-Bot/Client ist in dieser Config nicht aktiviert.',
       statusSent: 'gesendet',
       statusReceived: 'empfangen',
+      dirIncoming: '↙ Eingehend',
+      dirOutgoing: '↗ Ausgehend',
+      dirTestOutgoing: '🧪 Test-Ausgang',
+      dirIncomingWebhook: '🔔 Webhook',
+      srcRelay: 'Relay',
+      srcBot: 'Bot',
+      srcTest: 'Test',
+      srcWebhook: 'Webhook',
       colDirection: 'Richtung',
       colSender: 'Sender',
       colRecipient: 'Empfänger',
@@ -375,6 +383,14 @@ const TRANSLATIONS = {
       disabled: 'Nostr bot/client is not enabled for this config entry.',
       statusSent: 'sent',
       statusReceived: 'received',
+      dirIncoming: '↙ Incoming',
+      dirOutgoing: '↗ Outgoing',
+      dirTestOutgoing: '🧪 Test outgoing',
+      dirIncomingWebhook: '🔔 Webhook',
+      srcRelay: 'Relay',
+      srcBot: 'Bot',
+      srcTest: 'Test',
+      srcWebhook: 'Webhook',
       colDirection: 'Direction',
       colSender: 'Sender',
       colRecipient: 'Recipient',
@@ -709,6 +725,16 @@ class AlbyHubPanel extends HTMLElement {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  /** Truncate a long string (e.g. npub) to head…tail, full value available as title tooltip.
+   *  When tail is 0, only the head prefix is shown (suitable for long message truncation). */
+  _truncStr(v, head = 12, tail = 6) {
+    const s = String(v ?? '');
+    const minLen = tail > 0 ? head + tail + 3 : head + 3;
+    if (s.length <= minLen) return this._esc(s);
+    const suffix = tail > 0 ? this._esc(s.slice(-tail)) : '';
+    return `<span title="${this._esc(s)}" style="cursor:default">${this._esc(s.slice(0, head))}…${suffix}</span>`;
   }
 
   _state(id)                     { return this._hass?.states[id]; }
@@ -1397,19 +1423,32 @@ class AlbyHubPanel extends HTMLElement {
       ? `<span style="color:#27ae60">● ${t('listenerActive')}</span>`
       : `<span style="color:#e67e22">○ ${t('listenerInactive')}</span>`;
 
+    const dirLabel = { incoming: t('dirIncoming'), outgoing: t('dirOutgoing'), test_outgoing: t('dirTestOutgoing'), incoming_webhook: t('dirIncomingWebhook') };
+    const statusLabel = { sent: t('statusSent'), received: t('statusReceived') };
+    const srcLabel = (raw) => {
+      if (!raw || raw === '—') return '—';
+      if (raw.startsWith('relay:')) {
+        const enc = raw.slice(6).toUpperCase();
+        return `${t('srcRelay')} (${enc})`;
+      }
+      return { webhook: t('srcWebhook'), bot: t('srcBot'), test: t('srcTest') }[raw] || this._esc(raw);
+    };
+
     const messages = Array.isArray(this._nostrMessages) ? this._nostrMessages : [];
     const rows = messages.length === 0
       ? `<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">${t('noMessages')}</td></tr>`
       : messages.map((m) => {
           const ts = m.ts ? new Date(m.ts).toLocaleString() : '—';
-          const src = m.source || '—';
+          const dir = dirLabel[m.direction] || this._esc(m.direction || '—');
+          const status = statusLabel[m.status] || this._esc(m.status || '—');
+          const src = srcLabel(m.source);
           return `<tr>
-            <td>${this._esc(m.direction || '—')}</td>
-            <td class="small">${this._esc(m.sender || '—')}</td>
-            <td class="small">${this._esc(m.recipient || '—')}</td>
-            <td>${this._esc(m.message || '—')}</td>
-            <td class="small">${this._esc(src)}</td>
-            <td>${this._esc(m.status || '—')}</td>
+            <td>${dir}</td>
+            <td class="small">${this._truncStr(m.sender || '—')}</td>
+            <td class="small">${this._truncStr(m.recipient || '—')}</td>
+            <td>${this._truncStr(m.message || '—', 120, 0)}</td>
+            <td class="small">${src}</td>
+            <td>${status}</td>
             <td class="small muted">${this._esc(ts)}</td>
           </tr>`;
         }).join('');
