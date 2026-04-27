@@ -405,3 +405,127 @@ nostr_list_messages:
           max: 250
           mode: box
           step: 1
+address_book_list_contacts:
+  name: "Address book: list contacts"
+  description: >
+    Returns all address book contacts sorted by last name and first name.
+
+address_book_get_contact:
+  name: "Address book: get contact"
+  description: >
+    Returns a single address book contact by its unique ID.
+  fields:
+    contact_id:
+      required: true
+      description: Unique contact ID (UUID string).
+      selector:
+        text:
+
+address_book_create_contact:
+  name: "Address book: create contact"
+  description: >
+    Create a new address book contact. At least one of last_name or first_name should be provided.
+  fields:
+    last_name:
+      required: false
+      description: Family name (Nachname).
+      selector:
+        text:
+    first_name:
+      required: false
+      description: Given name (Vorname).
+      selector:
+        text:
+    nostr_alias:
+      required: false
+      description: Human-readable Nostr handle / alias (e.g. alice@nostr.com).
+      selector:
+        text:
+    nostr_pubkey:
+      required: false
+      description: Nostr public key (npub… or 64-char hex).
+      selector:
+        text:
+    lightning_address:
+      required: false
+      description: Lightning address (e.g. alice@wallet.com).
+      selector:
+        text:
+    bitcoin_address:
+      required: false
+      description: On-chain Bitcoin address (bc1…, 1…, 3…).
+      selector:
+        text:
+    notes:
+      required: false
+      description: Free-text notes about this contact.
+      selector:
+        text:
+    tags:
+      required: false
+      description: List of tag strings for grouping contacts.
+      selector:
+        text:
+
+address_book_update_contact:
+  name: "Address book: update contact"
+  description: >
+    Update one or more fields of an existing address book contact.
+    Only the provided fields are changed.
+  fields:
+    contact_id:
+      required: true
+      description: Unique contact ID (UUID string).
+      selector:
+        text:
+    last_name:
+      required: false
+      description: New family name.
+      selector:
+        text:
+    first_name:
+      required: false
+      description: New given name.
+      selector:
+        text:
+    nostr_alias:
+      required: false
+      description: New Nostr alias.
+      selector:
+        text:
+    nostr_pubkey:
+      required: false
+      description: New Nostr public key (npub or 64-char hex).
+      selector:
+        text:
+    lightning_address:
+      required: false
+      description: New Lightning address.
+      selector:
+        text:
+    bitcoin_address:
+      required: false
+      description: New Bitcoin on-chain address.
+      selector:
+        text:
+    notes:
+      required: false
+      description: New free-text notes.
+      selector:
+        text:
+    tags:
+      required: false
+      description: New list of tag strings.
+      selector:
+        text:
+
+address_book_delete_contact:
+  name: "Address book: delete contact"
+  description: >
+    Permanently delete an address book contact by its unique ID.
+  fields:
+    contact_id:
+      required: true
+      description: Unique contact ID (UUID string).
+      selector:
+        text:

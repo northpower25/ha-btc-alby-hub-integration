@@ -83,6 +83,12 @@ SERVICE_NOSTR_SEND_BOT_MESSAGE = "nostr_send_bot_message"
 SERVICE_NOSTR_SEND_TEST_MESSAGE = "nostr_send_test_message"
 SERVICE_NOSTR_LIST_MESSAGES = "nostr_list_messages"
 
+SERVICE_ADDRESS_BOOK_CREATE_CONTACT = "address_book_create_contact"
+SERVICE_ADDRESS_BOOK_UPDATE_CONTACT = "address_book_update_contact"
+SERVICE_ADDRESS_BOOK_DELETE_CONTACT = "address_book_delete_contact"
+SERVICE_ADDRESS_BOOK_LIST_CONTACTS = "address_book_list_contacts"
+SERVICE_ADDRESS_BOOK_GET_CONTACT = "address_book_get_contact"
+
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 
 # Persistent storage key for recurring/scheduled payments

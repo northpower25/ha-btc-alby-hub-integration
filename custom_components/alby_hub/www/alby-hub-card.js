@@ -16,7 +16,7 @@
  * @license MIT
  */
 
-const ALBY_HUB_VERSION = '1.1.0';
+const ALBY_HUB_VERSION = '1.3.0';
 const PANEL_ELEMENT_NAME = 'alby-hub-panel';
 const STATIC_BASE_PATH = '/alby_hub_local';
 
@@ -25,7 +25,7 @@ const STATIC_BASE_PATH = '/alby_hub_local';
 // ──────────────────────────────────────────────────────────────────────────────
 const TRANSLATIONS = {
   de: {
-    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk', activity: '📋 Aktivität', scheduled: '🔁 Geplant', nostr: '🟣 Nostr' },
+    tabs: { overview: '⚡ Übersicht', receive: '↙ Empfangen', send: '↗ Senden', budget: '💰 Budget', network: '₿ Netzwerk', activity: '📋 Aktivität', scheduled: '🔁 Geplant', nostr: '🟣 Nostr', addressBook: '📒 Adressbuch' },
     noInstance: 'Keine Alby-Hub-Instanz gefunden',
     noInstanceHint: 'Konfiguriere die Alby-Hub-Integration unter <strong>Einstellungen → Geräte & Dienste</strong>.',
     overview: {
@@ -238,9 +238,88 @@ const TRANSLATIONS = {
       haHint: '💡 <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> → einfügen → speichern.',
     },
     unavailable: 'nicht verfügbar',
+    addressBook: {
+      title: 'Adressbuch',
+      refresh: '↺ Aktualisieren',
+      noContacts: 'Noch keine Kontakte vorhanden.',
+      loading: 'Lade Kontakte…',
+      newContactTitle: 'Neuer Kontakt',
+      editContactTitle: 'Kontakt bearbeiten',
+      detailTitle: 'Kontakt-Details',
+      sectionPersonal: 'Persönliche Daten',
+      sectionContact: 'Kontaktdaten',
+      sectionOrg: 'Beruf & Organisation',
+      sectionAddress: 'Adresse',
+      sectionCrypto: 'Krypto-Adressen',
+      sectionNotes: 'Notizen & Tags',
+      lastName: 'Nachname',
+      firstName: 'Vorname',
+      nickname: 'Spitzname / Alias',
+      birthday: 'Geburtsdatum',
+      anniversary: 'Jahrestag',
+      gender: 'Geschlecht',
+      phone: 'Telefon',
+      email: 'E-Mail',
+      website: 'Webseite',
+      organization: 'Organisation / Firma',
+      title: 'Jobtitel',
+      role: 'Rolle',
+      street: 'Straße & Nr.',
+      city: 'Stadt',
+      zipCode: 'PLZ',
+      state: 'Bundesland / Kanton',
+      country: 'Land',
+      nostrAlias: 'Nostr-Alias',
+      nostrPubkey: 'Nostr Public Key (npub / hex)',
+      lightningAddress: 'Lightning-Adresse',
+      bitcoinAddress: 'Bitcoin-Adresse',
+      notes: 'Notizen',
+      tags: 'Tags (kommagetrennt)',
+      saveBtn: '💾 Kontakt speichern',
+      cancelBtn: 'Abbrechen',
+      editBtn: '✏️ Bearbeiten',
+      deleteBtn: '🗑 Löschen',
+      backBtn: '← Zurück',
+      exportVcardBtn: '📇 vCard (.vcf) exportieren',
+      sendNostrBtn: '🟣 Nostr-Nachricht senden',
+      payLightningBtn: '⚡ Lightning-Zahlung',
+      payBitcoinBtn: '₿ Bitcoin-Zahlung',
+      nostrMsgLabel: 'Nostr-Nachricht',
+      nostrMsgPlaceholder: 'Nachricht eingeben…',
+      sendNostrMsgBtn: '🔐 Senden',
+      lightningAmountLabel: 'Betrag (sat)',
+      lightningMemoLabel: 'Verwendungszweck (optional)',
+      sendLightningBtn: '⚡ Jetzt zahlen',
+      relatedNostr: 'Nostr-Nachrichten',
+      relatedLightning: 'Lightning-Zahlungen',
+      relatedScheduled: 'Geplante Zahlungen',
+      noRelatedNostr: 'Keine Nostr-Nachrichten mit diesem Kontakt.',
+      noRelatedLightning: 'Keine Lightning-Zahlungen an diesen Kontakt.',
+      noRelatedScheduled: 'Keine geplanten Zahlungen an diesen Kontakt.',
+      colName: 'Name',
+      colNostr: 'Nostr',
+      colLightning: 'Lightning-Adresse',
+      colBitcoin: 'Bitcoin-Adresse',
+      colActions: 'Aktionen',
+      createdAt: 'Erstellt am',
+      updatedAt: 'Aktualisiert am',
+      nostrDisabled: 'Nostr-Bot nicht aktiv.',
+      noLightningAddress: 'Keine Lightning-Adresse gespeichert.',
+      noBitcoinAddress: 'Keine Bitcoin-Adresse gespeichert.',
+      noNostrPubkey: 'Kein Nostr Public Key gespeichert.',
+      errNameRequired: 'Bitte mindestens Vor- oder Nachname angeben.',
+      errAmountMin: 'Bitte einen gültigen Betrag (mindestens 1 sat) eingeben.',
+      quickSendTitle: 'Schnellaktion',
+      bitcoinAddressLabel: 'Bitcoin-Adresse',
+      copyAddress: '📋 Adresse kopieren',
+      copied: '✅ Kopiert!',
+      qrLightning: 'Lightning QR-Code',
+      qrNostr: 'Nostr QR-Code',
+      qrBitcoin: 'Bitcoin QR-Code',
+    },
   },
   en: {
-    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network', activity: '📋 Activity', scheduled: '🔁 Scheduled', nostr: '🟣 Nostr' },
+    tabs: { overview: '⚡ Overview', receive: '↙ Receive', send: '↗ Send', budget: '💰 Budget', network: '₿ Network', activity: '📋 Activity', scheduled: '🔁 Scheduled', nostr: '🟣 Nostr', addressBook: '📒 Address Book' },
     noInstance: 'No Alby Hub instance found',
     noInstanceHint: 'Configure the Alby Hub integration under <strong>Settings → Devices &amp; Services</strong>.',
     overview: {
@@ -453,6 +532,85 @@ const TRANSLATIONS = {
       haHint: '💡 <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b> → paste → save.',
     },
     unavailable: 'unavailable',
+    addressBook: {
+      title: 'Address Book',
+      refresh: '↺ Refresh',
+      noContacts: 'No contacts yet.',
+      loading: 'Loading contacts…',
+      newContactTitle: 'New Contact',
+      editContactTitle: 'Edit Contact',
+      detailTitle: 'Contact Details',
+      sectionPersonal: 'Personal Info',
+      sectionContact: 'Contact Details',
+      sectionOrg: 'Job & Organisation',
+      sectionAddress: 'Address',
+      sectionCrypto: 'Crypto Addresses',
+      sectionNotes: 'Notes & Tags',
+      lastName: 'Last Name',
+      firstName: 'First Name',
+      nickname: 'Nickname / Alias',
+      birthday: 'Birthday',
+      anniversary: 'Anniversary',
+      gender: 'Gender',
+      phone: 'Phone',
+      email: 'E-Mail',
+      website: 'Website',
+      organization: 'Organisation / Company',
+      title: 'Job Title',
+      role: 'Role',
+      street: 'Street & No.',
+      city: 'City',
+      zipCode: 'ZIP / Postal Code',
+      state: 'State / Province',
+      country: 'Country',
+      nostrAlias: 'Nostr Alias',
+      nostrPubkey: 'Nostr Public Key (npub / hex)',
+      lightningAddress: 'Lightning Address',
+      bitcoinAddress: 'Bitcoin Address',
+      notes: 'Notes',
+      tags: 'Tags (comma-separated)',
+      saveBtn: '💾 Save Contact',
+      cancelBtn: 'Cancel',
+      editBtn: '✏️ Edit',
+      deleteBtn: '🗑 Delete',
+      backBtn: '← Back',
+      exportVcardBtn: '📇 Export vCard (.vcf)',
+      sendNostrBtn: '🟣 Send Nostr Message',
+      payLightningBtn: '⚡ Lightning Payment',
+      payBitcoinBtn: '₿ Bitcoin Payment',
+      nostrMsgLabel: 'Nostr Message',
+      nostrMsgPlaceholder: 'Enter message…',
+      sendNostrMsgBtn: '🔐 Send',
+      lightningAmountLabel: 'Amount (sat)',
+      lightningMemoLabel: 'Memo (optional)',
+      sendLightningBtn: '⚡ Pay Now',
+      relatedNostr: 'Nostr Messages',
+      relatedLightning: 'Lightning Payments',
+      relatedScheduled: 'Scheduled Payments',
+      noRelatedNostr: 'No Nostr messages with this contact.',
+      noRelatedLightning: 'No Lightning payments to this contact.',
+      noRelatedScheduled: 'No scheduled payments to this contact.',
+      colName: 'Name',
+      colNostr: 'Nostr',
+      colLightning: 'Lightning Address',
+      colBitcoin: 'Bitcoin Address',
+      colActions: 'Actions',
+      createdAt: 'Created',
+      updatedAt: 'Updated',
+      nostrDisabled: 'Nostr bot not active.',
+      noLightningAddress: 'No Lightning address stored.',
+      noBitcoinAddress: 'No Bitcoin address stored.',
+      noNostrPubkey: 'No Nostr public key stored.',
+      errNameRequired: 'Please provide at least a first or last name.',
+      errAmountMin: 'Please enter a valid amount (at least 1 sat).',
+      quickSendTitle: 'Quick Actions',
+      bitcoinAddressLabel: 'Bitcoin Address',
+      copyAddress: '📋 Copy Address',
+      copied: '✅ Copied!',
+      qrLightning: 'Lightning QR Code',
+      qrNostr: 'Nostr QR Code',
+      qrBitcoin: 'Bitcoin QR Code',
+    },
   },
 };
 
@@ -570,6 +728,24 @@ class AlbyHubPanel extends HTMLElement {
     this._pendingNostrMsg = '';
     this._pendingTestNsec = '';
     this._pendingTestMsg = '';
+    // Address book tab state
+    this._contacts = null;        // null = not loaded
+    this._contactsLoading = false;
+    this._contactEditId = null;   // UUID of contact being edited, null = new
+    this._contactDetailId = null; // UUID of contact being viewed in detail
+    this._contactForm = {
+      last_name: '', first_name: '', nickname: '',
+      birthday: '', anniversary: '', gender: '',
+      phone: '', email: '', website: '',
+      organization: '', title: '', role: '',
+      street: '', city: '', zip_code: '', state: '', country: '',
+      nostr_alias: '', nostr_pubkey: '',
+      lightning_address: '', bitcoin_address: '',
+      notes: '', tags: '',
+    };
+    this._abNostrMsg = '';
+    this._abLnAmount = '';
+    this._abLnMemo = '';
   }
 
   connectedCallback() {
@@ -642,6 +818,7 @@ class AlbyHubPanel extends HTMLElement {
       { id: 'activity',   label: t('tabs.activity')   },
       { id: 'scheduled',  label: t('tabs.scheduled')  },
       { id: 'nostr',      label: t('tabs.nostr')      },
+      { id: 'addressBook', label: t('tabs.addressBook') },
     ];
   }
 
@@ -871,6 +1048,7 @@ class AlbyHubPanel extends HTMLElement {
       case 'activity':   return this._tabActivity(p);
       case 'scheduled':  return this._tabScheduled(p);
       case 'nostr':      return this._tabNostr(p);
+      case 'addressBook': return this._tabAddressBook(p);
       default:           return '';
     }
   }
@@ -2205,6 +2383,478 @@ class AlbyHubPanel extends HTMLElement {
       });
   }
 
+  _resetContactForm() {
+    this._contactForm = {
+      last_name: '', first_name: '', nickname: '',
+      birthday: '', anniversary: '', gender: '',
+      phone: '', email: '', website: '',
+      organization: '', title: '', role: '',
+      street: '', city: '', zip_code: '', state: '', country: '',
+      nostr_alias: '', nostr_pubkey: '',
+      lightning_address: '', bitcoin_address: '',
+      notes: '', tags: '',
+    };
+  }
+
+  _loadContacts() {
+    if (this._contactsLoading) return;
+    this._contactsLoading = true;
+    this._hass.callService('alby_hub', 'address_book_list_contacts', {}, undefined, true, true)
+      .then((resp) => {
+        const data = resp?.response ?? resp;
+        this._contacts = Array.isArray(data?.contacts) ? data.contacts : [];
+        this._contactsLoading = false;
+        this._updateContent();
+      })
+      .catch(() => {
+        this._contacts = [];
+        this._contactsLoading = false;
+        this._updateContent();
+      });
+  }
+
+  // ── Tab: Address Book ─────────────────────────────────────────────────────────
+
+  _tabAddressBook(p) {
+    const t = (k) => this._t(`addressBook.${k}`);
+
+    if (this._contacts === null && !this._contactsLoading) {
+      this._loadContacts();
+      return `<div class="cards-grid"><div class="card"><p class="muted">${t('loading')}</p></div></div>`;
+    }
+
+    // ── Detail view ──────────────────────────────────────────────────────────
+    if (this._contactDetailId) {
+      return this._renderContactDetail(p, t);
+    }
+
+    // ── Contact form ─────────────────────────────────────────────────────────
+    const isEditing = Boolean(this._contactEditId);
+    const f = this._contactForm;
+    const formTitle = isEditing ? t('editContactTitle') : t('newContactTitle');
+
+    const contactForm = `<div class="card">
+      <div class="card-title">${formTitle}</div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:4px;color:var(--secondary-text-color,#aaa)">${t('sectionPersonal')}</div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('firstName')}</label>
+          <input type="text" class="inp" id="ab-first-name" value="${this._esc(f.first_name)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('lastName')}</label>
+          <input type="text" class="inp" id="ab-last-name" value="${this._esc(f.last_name)}">
+        </div>
+      </div>
+      <div class="field">
+        <label>${t('nickname')}</label>
+        <input type="text" class="inp" id="ab-nickname" value="${this._esc(f.nickname)}">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('birthday')}</label>
+          <input type="date" class="inp" id="ab-birthday" value="${this._esc(f.birthday)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('anniversary')}</label>
+          <input type="date" class="inp" id="ab-anniversary" value="${this._esc(f.anniversary)}">
+        </div>
+      </div>
+      <div class="field">
+        <label>${t('gender')}</label>
+        <input type="text" class="inp" id="ab-gender" placeholder="m / f / x" value="${this._esc(f.gender)}">
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionContact')}</div>
+      <div class="field">
+        <label>${t('phone')}</label>
+        <input type="tel" class="inp" id="ab-phone" placeholder="+49 …" value="${this._esc(f.phone)}">
+      </div>
+      <div class="field">
+        <label>${t('email')}</label>
+        <input type="email" class="inp" id="ab-email" placeholder="user@example.com" value="${this._esc(f.email)}">
+      </div>
+      <div class="field">
+        <label>${t('website')}</label>
+        <input type="url" class="inp" id="ab-website" placeholder="https://…" value="${this._esc(f.website)}">
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionOrg')}</div>
+      <div class="field">
+        <label>${t('organization')}</label>
+        <input type="text" class="inp" id="ab-organization" value="${this._esc(f.organization)}">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('title')}</label>
+          <input type="text" class="inp" id="ab-title" value="${this._esc(f.title)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('role')}</label>
+          <input type="text" class="inp" id="ab-role" value="${this._esc(f.role)}">
+        </div>
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionAddress')}</div>
+      <div class="field">
+        <label>${t('street')}</label>
+        <input type="text" class="inp" id="ab-street" value="${this._esc(f.street)}">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:2">
+          <label>${t('city')}</label>
+          <input type="text" class="inp" id="ab-city" value="${this._esc(f.city)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('zipCode')}</label>
+          <input type="text" class="inp" id="ab-zip" value="${this._esc(f.zip_code)}">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('state')}</label>
+          <input type="text" class="inp" id="ab-state" value="${this._esc(f.state)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('country')}</label>
+          <input type="text" class="inp" id="ab-country" value="${this._esc(f.country)}">
+        </div>
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionCrypto')}</div>
+      <div class="field">
+        <label>${t('nostrAlias')}</label>
+        <input type="text" class="inp" id="ab-nostr-alias" placeholder="alice@nostr.com" value="${this._esc(f.nostr_alias)}">
+      </div>
+      <div class="field">
+        <label>${t('nostrPubkey')}</label>
+        <input type="text" class="inp mono" id="ab-nostr-pubkey" placeholder="npub1…" value="${this._esc(f.nostr_pubkey)}">
+      </div>
+      <div class="field">
+        <label>${t('lightningAddress')}</label>
+        <input type="text" class="inp" id="ab-ln-address" placeholder="alice@wallet.com" value="${this._esc(f.lightning_address)}">
+      </div>
+      <div class="field">
+        <label>${t('bitcoinAddress')}</label>
+        <input type="text" class="inp mono" id="ab-btc-address" placeholder="bc1q…" value="${this._esc(f.bitcoin_address)}">
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionNotes')}</div>
+      <div class="field">
+        <label>${t('notes')}</label>
+        <textarea class="inp" id="ab-notes" rows="2">${this._esc(f.notes)}</textarea>
+      </div>
+      <div class="field">
+        <label>${t('tags')}</label>
+        <input type="text" class="inp" id="ab-tags" placeholder="Familie, Freunde" value="${this._esc(f.tags)}">
+      </div>
+      <button class="btn" id="ab-save-btn" data-prefix="${this._esc(p)}">${t('saveBtn')}</button>
+      ${isEditing ? `<button class="filter-btn" id="ab-cancel-edit-btn" style="margin-top:8px;width:100%">${t('cancelBtn')}</button>` : ''}
+    </div>`;
+
+    // ── Contact list ─────────────────────────────────────────────────────────
+    const contacts = this._contacts || [];
+    const contactRows = contacts.length === 0
+      ? `<tr><td colspan="5" class="muted" style="text-align:center;padding:16px">${t('noContacts')}</td></tr>`
+      : contacts.map((c) => {
+          const fullName = [c.first_name, c.last_name].filter(Boolean).join(' ') || '—';
+          const nostrInfo = c.nostr_alias || (c.nostr_pubkey ? c.nostr_pubkey.slice(0, 14) + '…' : '—');
+          const lnAddr = c.lightning_address || '—';
+          const btcAddr = c.bitcoin_address ? c.bitcoin_address.slice(0, 12) + '…' : '—';
+          return `<tr style="cursor:pointer" class="ab-contact-row" data-id="${this._esc(c.id)}" title="${this._esc(fullName)}">
+            <td><b>${this._esc(fullName)}</b>${c.tags?.length ? `<br><span class="muted" style="font-size:0.72rem">${c.tags.map((tg) => this._esc(tg)).join(', ')}</span>` : ''}</td>
+            <td class="small">${this._esc(nostrInfo)}</td>
+            <td class="small">${this._esc(lnAddr)}</td>
+            <td class="small">${this._esc(btcAddr)}</td>
+            <td style="white-space:nowrap">
+              <button class="ab-edit-btn small-btn" data-id="${this._esc(c.id)}" style="border-color:var(--primary-color,#f7931a);color:var(--primary-color,#f7931a)" title="${t('editBtn')}">${t('editBtn')}</button>
+              <button class="ab-del-btn small-btn" data-id="${this._esc(c.id)}" title="${t('deleteBtn')}">${t('deleteBtn')}</button>
+            </td>
+          </tr>`;
+        }).join('');
+
+    const listCard = `<div class="card" style="grid-column:1/-1">
+      <div class="card-title" style="display:flex;align-items:center;gap:8px">
+        ${t('title')}
+        <button class="filter-btn" style="margin-left:auto" data-action="refresh-ab">${t('refresh')}</button>
+      </div>
+      <div class="tx-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>${t('colName')}</th>
+              <th>${t('colNostr')}</th>
+              <th>${t('colLightning')}</th>
+              <th>${t('colBitcoin')}</th>
+              <th>${t('colActions')}</th>
+            </tr>
+          </thead>
+          <tbody>${contactRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+    return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(380px,1fr))">
+      ${contactForm}
+      ${listCard}
+    </div>`;
+  }
+
+  _buildVCard(c) {
+    const fold = (line) => {
+      // RFC 6350: fold lines longer than 75 octets
+      if (line.length <= 75) return line;
+      let result = '';
+      let current = '';
+      for (const ch of line) {
+        if (current.length >= 75) { result += current + '\r\n '; current = ch; }
+        else current += ch;
+      }
+      return result + current;
+    };
+    const esc = (v) => String(v || '').replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+    const escNote = (v) => String(v || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n');
+
+    const lines = [];
+    lines.push('BEGIN:VCARD');
+    lines.push('VERSION:4.0');
+    lines.push(`PRODID:-//Alby Hub HA Integration//alby-hub-card v1.3.0//EN`);
+
+    // FN + N
+    const fn = [c.first_name, c.last_name].filter(Boolean).join(' ') || (c.nickname || c.nostr_alias || '');
+    lines.push(fold(`FN:${esc(fn)}`));
+    lines.push(fold(`N:${esc(c.last_name)};${esc(c.first_name)};;;`));
+    if (c.nickname) lines.push(fold(`NICKNAME:${esc(c.nickname)}`));
+
+    if (c.birthday) lines.push(fold(`BDAY:${c.birthday.replace(/-/g, '')}`));
+    if (c.anniversary) lines.push(fold(`ANNIVERSARY:${c.anniversary.replace(/-/g, '')}`));
+    if (c.gender) lines.push(fold(`GENDER:${esc(c.gender)}`));
+
+    if (c.phone) lines.push(fold(`TEL;TYPE=CELL:${esc(c.phone)}`));
+    if (c.email) lines.push(fold(`EMAIL;TYPE=HOME:${esc(c.email)}`));
+    if (c.website) lines.push(fold(`URL:${esc(c.website)}`));
+
+    if (c.organization) lines.push(fold(`ORG:${esc(c.organization)}`));
+    if (c.title) lines.push(fold(`TITLE:${esc(c.title)}`));
+    if (c.role) lines.push(fold(`ROLE:${esc(c.role)}`));
+
+    // ADR: PO-Box;Extended;Street;City;State;ZIP;Country
+    if (c.street || c.city || c.zip_code || c.state || c.country) {
+      lines.push(fold(`ADR;TYPE=HOME:;;${esc(c.street)};${esc(c.city)};${esc(c.state)};${esc(c.zip_code)};${esc(c.country)}`));
+    }
+
+    // Crypto addresses and Nostr as NOTE fields
+    const noteParts = [];
+    if (c.lightning_address) noteParts.push(`Lightning: ${c.lightning_address}`);
+    if (c.nostr_alias) noteParts.push(`Nostr-Alias: ${c.nostr_alias}`);
+    if (c.nostr_pubkey) noteParts.push(`Nostr-Pubkey: ${c.nostr_pubkey}`);
+    if (c.bitcoin_address) noteParts.push(`Bitcoin: ${c.bitcoin_address}`);
+    if (c.notes) noteParts.push(c.notes);
+    if (noteParts.length > 0) lines.push(fold(`NOTE:${escNote(noteParts.join('\n'))}`));
+
+    if (c.tags?.length) lines.push(fold(`CATEGORIES:${c.tags.map(esc).join(',')}`));
+
+    if (c.id) lines.push(fold(`UID:urn:uuid:${c.id}`));
+    if (c.updated_at) {
+      // RFC 6350 REV format: YYYYMMDDTHHmmssZ
+      const rev = c.updated_at.replace(/\.\d+Z?$/, 'Z').replace(/[-:]/g, '').replace(/(\d{8})T(\d{6})Z/, '$1T$2Z');
+      lines.push(fold(`REV:${rev}`));
+    }
+
+    lines.push('END:VCARD');
+    return lines.join('\r\n');
+  }
+
+  _renderContactDetail(p, t) {
+    const c = (this._contacts || []).find((x) => x.id === this._contactDetailId);
+    if (!c) {
+      this._contactDetailId = null;
+      return this._tabAddressBook(p);
+    }
+
+    const fullName = [c.first_name, c.last_name].filter(Boolean).join(' ') || '—';
+
+    // ── Related Nostr messages ────────────────────────────────────────────────
+    const relatedMsgs = Array.isArray(this._nostrMessages)
+      ? this._nostrMessages.filter((m) => {
+          const pk = (c.nostr_pubkey || '').toLowerCase();
+          const alias = (c.nostr_alias || '').toLowerCase();
+          if (!pk && !alias) return false;
+          const sender = (m.sender || '').toLowerCase();
+          const recipient = (m.recipient || '').toLowerCase();
+          return (pk && (sender.includes(pk) || recipient.includes(pk)))
+              || (alias && (sender.includes(alias) || recipient.includes(alias)));
+        })
+      : [];
+
+    const nostrRows = relatedMsgs.length === 0
+      ? `<p class="muted">${t('noRelatedNostr')}</p>`
+      : relatedMsgs.slice(0, 10).map((m) => {
+          const ts = m.ts ? new Date(m.ts).toLocaleString() : '—';
+          const dir = m.direction === 'outgoing' ? '↗' : '↙';
+          return `<div style="padding:6px 0;border-bottom:1px solid var(--divider-color,#2a2a2a);font-size:0.83rem">
+            <span style="opacity:.6">${dir} ${this._esc(ts)}</span><br>
+            <span>${this._esc(m.message || '—')}</span>
+          </div>`;
+        }).join('');
+
+    // ── Related transactions ──────────────────────────────────────────────────
+    const relatedTx = Array.isArray(this._transactions)
+      ? this._transactions.filter((tx) => {
+          const lnAddr = (c.lightning_address || '').toLowerCase();
+          const desc = (tx.description || '').toLowerCase();
+          return lnAddr && (desc.includes(lnAddr) || (tx.destination || '').toLowerCase().includes(lnAddr));
+        })
+      : [];
+
+    const txRows = relatedTx.length === 0
+      ? `<p class="muted">${t('noRelatedLightning')}</p>`
+      : relatedTx.slice(0, 5).map((tx) => {
+          const sign = tx.type === 'incoming' ? '+' : '−';
+          const color = tx.type === 'incoming' ? '#4caf50' : '#f44336';
+          const dateStr = tx.settled_at ? new Date(tx.settled_at * 1000).toLocaleString() : '';
+          return `<div style="padding:6px 0;border-bottom:1px solid var(--divider-color,#2a2a2a);font-size:0.83rem">
+            <span style="color:${color};font-weight:600">${sign}${tx.amount_sat.toLocaleString()} sat</span>
+            <span class="muted" style="margin-left:8px">${this._esc(dateStr)}</span><br>
+            <span class="muted">${this._esc(tx.description || '—')}</span>
+          </div>`;
+        }).join('');
+
+    // ── Related scheduled payments ────────────────────────────────────────────
+    const relatedSched = Array.isArray(this._schedules)
+      ? this._schedules.filter((s) => {
+          const lnAddr = (c.lightning_address || '').toLowerCase();
+          return lnAddr && (s.recipient || '').toLowerCase().includes(lnAddr);
+        })
+      : [];
+
+    const schedRows = relatedSched.length === 0
+      ? `<p class="muted">${t('noRelatedScheduled')}</p>`
+      : relatedSched.map((s) => {
+          const nextRun = s.next_run ? new Date(s.next_run).toLocaleString() : '—';
+          return `<div style="padding:6px 0;border-bottom:1px solid var(--divider-color,#2a2a2a);font-size:0.83rem">
+            <b>${this._esc(s.label || s.recipient)}</b>: ${s.amount_sat.toLocaleString()} sat / ${this._esc(s.frequency)}
+            <span class="muted" style="margin-left:6px">→ ${this._esc(nextRun)}</span>
+          </div>`;
+        }).join('');
+
+    // ── Quick actions ─────────────────────────────────────────────────────────
+    const hasNostr = Boolean(c.nostr_pubkey) && this._nostrEnabled;
+    const hasLightning = Boolean(c.lightning_address);
+    const hasBitcoin = Boolean(c.bitcoin_address);
+
+    // Helper: inline QR code with copy button
+    const qrBlock = (addr, prefix, label, altText) => `
+      <div>
+        <code style="display:block;background:var(--secondary-background-color,#111);padding:5px 8px;border-radius:6px;font-size:0.72rem;word-break:break-all;margin-bottom:4px">${this._esc(addr)}</code>
+        <button class="filter-btn ab-copy-addr-btn" data-addr="${this._esc(addr)}" style="width:100%;margin-bottom:6px">${t('copyAddress')} ${prefix}</button>
+        <div class="qr-wrap" style="text-align:center">
+          <div class="muted" style="font-size:0.75rem;margin-bottom:4px">${this._esc(label)}</div>
+          <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(addr)}&size=200x200&margin=8" alt="${this._esc(altText)}" style="max-width:200px;border-radius:8px">
+        </div>
+      </div>`;
+
+    const nostrSection = c.nostr_pubkey ? `
+      ${qrBlock(c.nostr_pubkey, '🟣', t('qrNostr'), 'Nostr pubkey QR')}
+      ${hasNostr ? `
+        <div class="field" style="margin-top:8px">
+          <label>${t('nostrMsgLabel')}</label>
+          <textarea class="inp" id="ab-quick-nostr-msg" rows="2" placeholder="${t('nostrMsgPlaceholder')}">${this._esc(this._abNostrMsg)}</textarea>
+        </div>
+        <button class="btn" id="ab-send-nostr-btn" data-pubkey="${this._esc(c.nostr_pubkey)}" style="margin-bottom:8px">${t('sendNostrMsgBtn')} (Nostr)</button>` : ''}
+    ` : `<p class="muted" style="font-size:0.82rem">${t('noNostrPubkey')}</p>`;
+
+    const lnSection = hasLightning ? `
+      ${qrBlock(`lightning:${c.lightning_address}`, '⚡', t('qrLightning'), 'Lightning address QR')}
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <div class="field" style="flex:1">
+          <label>${t('lightningAmountLabel')}</label>
+          <input type="number" class="inp" id="ab-quick-ln-amount" min="1" step="1" value="${this._esc(this._abLnAmount)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('lightningMemoLabel')}</label>
+          <input type="text" class="inp" id="ab-quick-ln-memo" value="${this._esc(this._abLnMemo)}">
+        </div>
+      </div>
+      <button class="btn" id="ab-send-ln-btn" data-ln="${this._esc(c.lightning_address)}" style="margin-bottom:8px">${t('sendLightningBtn')} ⚡</button>`
+    : `<p class="muted" style="font-size:0.82rem">${t('noLightningAddress')}</p>`;
+
+    const btcSection = hasBitcoin ? qrBlock(c.bitcoin_address, '₿', t('qrBitcoin'), 'Bitcoin address QR')
+    : `<p class="muted" style="font-size:0.82rem">${t('noBitcoinAddress')}</p>`;
+
+    // ── Build extended contact info rows for header card ─────────────────────
+    const infoRow = (icon, val) => val ? `<span style="font-size:0.85rem">${icon} ${this._esc(val)}</span>` : '';
+    const contactInfoChips = [
+      infoRow('📛', c.nickname),
+      infoRow('🎂', c.birthday),
+      infoRow('📞', c.phone),
+      infoRow('📧', c.email),
+      infoRow('🌐', c.website),
+      infoRow('🏢', [c.organization, c.title, c.role].filter(Boolean).join(' · ')),
+      infoRow('📍', [c.street, c.city, c.zip_code, c.state, c.country].filter(Boolean).join(', ')),
+      c.nostr_alias ? `<span>🟣 ${this._esc(c.nostr_alias)}</span>` : '',
+      c.nostr_pubkey ? `<span title="${this._esc(c.nostr_pubkey)}" style="cursor:default;font-size:0.85rem">🔑 ${this._esc(c.nostr_pubkey.slice(0,16))}…</span>` : '',
+      c.lightning_address ? `<span style="font-size:0.85rem">⚡ ${this._esc(c.lightning_address)}</span>` : '',
+      c.bitcoin_address ? `<span style="font-size:0.85rem">₿ ${this._esc(c.bitcoin_address.slice(0,14))}…</span>` : '',
+      c.notes ? `<span class="muted" style="font-size:0.85rem">📝 ${this._esc(c.notes)}</span>` : '',
+    ].filter(Boolean);
+
+    return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
+      <!-- Header / back -->
+      <div class="card" style="grid-column:1/-1">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="filter-btn" id="ab-back-btn">${t('backBtn')}</button>
+          <span style="font-size:1.1rem;font-weight:600">${this._esc(fullName)}</span>
+          <button class="filter-btn ab-edit-btn" data-id="${this._esc(c.id)}" style="margin-left:auto;border-color:var(--primary-color,#f7931a);color:var(--primary-color,#f7931a)">${t('editBtn')}</button>
+          <button class="ab-del-btn small-btn" data-id="${this._esc(c.id)}">${t('deleteBtn')}</button>
+          <button class="filter-btn ab-export-vcard-btn" data-id="${this._esc(c.id)}" title="${t('exportVcardBtn')}">${t('exportVcardBtn')}</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 20px">
+          ${contactInfoChips.join('')}
+          ${c.tags?.length ? c.tags.map((tg) => `<span style="background:rgba(247,147,26,.15);color:var(--primary-color,#f7931a);padding:1px 7px;border-radius:10px;font-size:0.75rem">${this._esc(tg)}</span>`).join('') : ''}
+        </div>
+        <div class="muted" style="font-size:0.72rem;margin-top:6px">${t('createdAt')}: ${this._esc(c.created_at ? new Date(c.created_at).toLocaleString() : '—')} &nbsp;|&nbsp; ${t('updatedAt')}: ${this._esc(c.updated_at ? new Date(c.updated_at).toLocaleString() : '—')}</div>
+      </div>
+
+      <!-- Nostr address card -->
+      <div class="card">
+        <div class="card-title">🟣 Nostr</div>
+        ${nostrSection}
+      </div>
+
+      <!-- Lightning address card -->
+      <div class="card">
+        <div class="card-title">⚡ Lightning</div>
+        ${lnSection}
+      </div>
+
+      <!-- Bitcoin address card -->
+      <div class="card">
+        <div class="card-title">₿ Bitcoin</div>
+        ${btcSection}
+      </div>
+
+      <!-- Related Nostr messages -->
+      <div class="card">
+        <div class="card-title">${t('relatedNostr')}</div>
+        ${nostrRows}
+      </div>
+
+      <!-- Related Lightning transactions -->
+      <div class="card">
+        <div class="card-title">${t('relatedLightning')}</div>
+        ${txRows}
+      </div>
+
+      <!-- Related scheduled payments -->
+      <div class="card">
+        <div class="card-title">${t('relatedScheduled')}</div>
+        ${schedRows}
+      </div>
+    </div>`;
+  }
+
   /** Resolve a config entry ID from a known entity prefix (best-effort). */
   _resolveEntryId(_prefix) {
     // The panel doesn't have direct access to config entry IDs from hass.states;
@@ -2275,6 +2925,12 @@ class AlbyHubPanel extends HTMLElement {
           this._nostrLoading = false;
           this._nostrEncryptionMode = '';
           this._nostrRelayListenerActive = false;
+        }
+        if (this._activeTab === 'addressBook' && prevTab !== 'addressBook') {
+          this._contacts = null;
+          this._contactsLoading = false;
+          this._contactDetailId = null;
+          this._contactEditId = null;
         }
         this._render();
         this._autoStartDeviceCameraIfNeeded();
@@ -2855,6 +3511,271 @@ class AlbyHubPanel extends HTMLElement {
     });
 
     this._autoStartDeviceCameraIfNeeded();
+
+    // ── Address book listeners ────────────────────────────────────────────────
+
+    root.querySelectorAll('[data-action="refresh-ab"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._contacts = null;
+        this._contactsLoading = false;
+        this._updateContent();
+      });
+    });
+
+    const bindAbField = (id, key) => {
+      const el = root.querySelector(`#${id}`);
+      if (el) {
+        el.addEventListener('input',  () => { this._contactForm[key] = el.value; });
+        el.addEventListener('change', () => { this._contactForm[key] = el.value; });
+      }
+    };
+    bindAbField('ab-first-name',   'first_name');
+    bindAbField('ab-last-name',    'last_name');
+    bindAbField('ab-nickname',     'nickname');
+    bindAbField('ab-birthday',     'birthday');
+    bindAbField('ab-anniversary',  'anniversary');
+    bindAbField('ab-gender',       'gender');
+    bindAbField('ab-phone',        'phone');
+    bindAbField('ab-email',        'email');
+    bindAbField('ab-website',      'website');
+    bindAbField('ab-organization', 'organization');
+    bindAbField('ab-title',        'title');
+    bindAbField('ab-role',         'role');
+    bindAbField('ab-street',       'street');
+    bindAbField('ab-city',         'city');
+    bindAbField('ab-zip',          'zip_code');
+    bindAbField('ab-state',        'state');
+    bindAbField('ab-country',      'country');
+    bindAbField('ab-nostr-alias',  'nostr_alias');
+    bindAbField('ab-nostr-pubkey', 'nostr_pubkey');
+    bindAbField('ab-ln-address',   'lightning_address');
+    bindAbField('ab-btc-address',  'bitcoin_address');
+    bindAbField('ab-notes',        'notes');
+    bindAbField('ab-tags',         'tags');
+
+    root.querySelectorAll('#ab-save-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const f = this._contactForm;
+        const t = (k) => this._t(`addressBook.${k}`);
+        if (!f.first_name.trim() && !f.last_name.trim()) {
+          alert(t('errNameRequired'));
+          return;
+        }
+        const tagsArr = f.tags.split(',').map((s) => s.trim()).filter(Boolean);
+        const serviceData = {
+          first_name: f.first_name.trim(),
+          last_name: f.last_name.trim(),
+          nickname: f.nickname.trim(),
+          birthday: f.birthday.trim(),
+          anniversary: f.anniversary.trim(),
+          gender: f.gender.trim(),
+          phone: f.phone.trim(),
+          email: f.email.trim(),
+          website: f.website.trim(),
+          organization: f.organization.trim(),
+          title: f.title.trim(),
+          role: f.role.trim(),
+          street: f.street.trim(),
+          city: f.city.trim(),
+          zip_code: f.zip_code.trim(),
+          state: f.state.trim(),
+          country: f.country.trim(),
+          nostr_alias: f.nostr_alias.trim(),
+          nostr_pubkey: f.nostr_pubkey.trim(),
+          lightning_address: f.lightning_address.trim(),
+          bitcoin_address: f.bitcoin_address.trim(),
+          notes: f.notes.trim(),
+          tags: tagsArr,
+        };
+        btn.disabled = true;
+        const isEditing = Boolean(this._contactEditId);
+        if (isEditing) serviceData.contact_id = this._contactEditId;
+        const svcName = isEditing ? 'address_book_update_contact' : 'address_book_create_contact';
+        this._hass.callService('alby_hub', svcName, serviceData)
+          .then(() => {
+            this._resetContactForm();
+            this._contactEditId = null;
+            this._contacts = null;
+            this._contactsLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => { console.warn('Alby Hub panel: address_book save failed', err); })
+          .finally(() => { btn.disabled = false; });
+      });
+    });
+
+    root.querySelectorAll('#ab-cancel-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._contactEditId = null;
+        this._resetContactForm();
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.ab-contact-row').forEach((row) => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        this._contactDetailId = row.dataset.id;
+        this._abNostrMsg = '';
+        this._abLnAmount = '';
+        this._abLnMemo = '';
+        // Pre-load Nostr messages, transactions and schedules if not already loaded
+        const p = this._activePrefix;
+        if (this._nostrMessages === null && !this._nostrLoading) this._loadNostrMessages(p);
+        if (this._transactions === null && !this._txLoading) this._loadTransactions(p);
+        if (this._schedules === null && !this._schedLoading) this._loadSchedules(p);
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.ab-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cid = btn.dataset.id;
+        if (!cid || !Array.isArray(this._contacts)) return;
+        const c = this._contacts.find((x) => x.id === cid);
+        if (!c) return;
+        this._contactEditId = cid;
+        this._contactDetailId = null;
+        this._contactForm = {
+          first_name: c.first_name || '',
+          last_name: c.last_name || '',
+          nickname: c.nickname || '',
+          birthday: c.birthday || '',
+          anniversary: c.anniversary || '',
+          gender: c.gender || '',
+          phone: c.phone || '',
+          email: c.email || '',
+          website: c.website || '',
+          organization: c.organization || '',
+          title: c.title || '',
+          role: c.role || '',
+          street: c.street || '',
+          city: c.city || '',
+          zip_code: c.zip_code || '',
+          state: c.state || '',
+          country: c.country || '',
+          nostr_alias: c.nostr_alias || '',
+          nostr_pubkey: c.nostr_pubkey || '',
+          lightning_address: c.lightning_address || '',
+          bitcoin_address: c.bitcoin_address || '',
+          notes: c.notes || '',
+          tags: (c.tags || []).join(', '),
+        };
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.ab-del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cid = btn.dataset.id;
+        if (!cid) return;
+        btn.disabled = true;
+        this._hass.callService('alby_hub', 'address_book_delete_contact', { contact_id: cid })
+          .then(() => {
+            if (this._contactDetailId === cid) this._contactDetailId = null;
+            if (this._contactEditId === cid) { this._contactEditId = null; this._resetContactForm(); }
+            this._contacts = null;
+            this._contactsLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => { console.warn('Alby Hub panel: address_book_delete_contact failed', err); btn.disabled = false; });
+      });
+    });
+
+    root.querySelectorAll('#ab-back-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._contactDetailId = null;
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.ab-export-vcard-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cid = btn.dataset.id;
+        if (!cid || !Array.isArray(this._contacts)) return;
+        const c = this._contacts.find((x) => x.id === cid);
+        if (!c) return;
+        const vcf = this._buildVCard(c);
+        const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        const safeName = [c.first_name, c.last_name].filter(Boolean).join('_').replace(/[^a-zA-Z0-9_-]/g, '_') || c.id;
+        anchor.href = url;
+        anchor.download = `${safeName}.vcf`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      });
+    });
+
+    root.querySelectorAll('#ab-quick-nostr-msg').forEach((el) => {
+      el.addEventListener('input',  () => { this._abNostrMsg = el.value; });
+      el.addEventListener('change', () => { this._abNostrMsg = el.value; });
+    });
+    root.querySelectorAll('#ab-quick-ln-amount').forEach((el) => {
+      el.addEventListener('input',  () => { this._abLnAmount = el.value; });
+      el.addEventListener('change', () => { this._abLnAmount = el.value; });
+    });
+    root.querySelectorAll('#ab-quick-ln-memo').forEach((el) => {
+      el.addEventListener('input',  () => { this._abLnMemo = el.value; });
+      el.addEventListener('change', () => { this._abLnMemo = el.value; });
+    });
+
+    root.querySelectorAll('#ab-send-nostr-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pubkey = btn.dataset.pubkey;
+        const msg = (this._abNostrMsg || '').trim();
+        if (!pubkey || !msg) return;
+        btn.disabled = true;
+        this._hass.callService('alby_hub', 'nostr_send_bot_message', { target_npub: pubkey, message: msg }, undefined, true, true)
+          .then(() => {
+            this._abNostrMsg = '';
+            this._nostrMessages = null;
+            this._nostrLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => { console.warn('Alby Hub panel: nostr send from address book failed', err); })
+          .finally(() => { btn.disabled = false; });
+      });
+    });
+
+    root.querySelectorAll('#ab-send-ln-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const lnAddr = btn.dataset.ln;
+        const amtRaw = this._abLnAmount;
+        const memo = (this._abLnMemo || '').trim();
+        if (!lnAddr) return;
+        const amtNum = parseInt(amtRaw, 10);
+        if (!Number.isFinite(amtNum) || amtNum < 1) { alert(this._t('addressBook.errAmountMin')); return; }
+        btn.disabled = true;
+        const svcData = { payment_request: lnAddr, amount_sat: amtNum };
+        if (memo) svcData.memo = memo;
+        this._hass.callService('alby_hub', 'send_payment', svcData)
+          .then(() => {
+            this._abLnAmount = '';
+            this._abLnMemo = '';
+            this._transactions = null;
+            this._txLoading = false;
+            this._updateContent();
+          })
+          .catch((err) => { console.warn('Alby Hub panel: ln payment from address book failed', err); })
+          .finally(() => { btn.disabled = false; });
+      });
+    });
+
+    // Unified copy-address button (replaces old .ab-copy-btc-btn)
+    root.querySelectorAll('.ab-copy-addr-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const addr = btn.dataset.addr;
+        if (!addr) return;
+        const origText = btn.textContent;
+        navigator.clipboard.writeText(addr).then(() => {
+          btn.textContent = this._t('addressBook.copied');
+          setTimeout(() => { btn.textContent = origText; }, 2000);
+        }).catch(() => {});
+      });
+    });
   }
 
   // ── CSS ──────────────────────────────────────────────────────────────────────
