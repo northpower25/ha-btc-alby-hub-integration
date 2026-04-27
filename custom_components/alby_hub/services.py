@@ -571,7 +571,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_ADDRESS_BOOK_CREATE_CONTACT,
         handle_address_book_create_contact,
         schema=SERVICE_ADDRESS_BOOK_CREATE_CONTACT_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     async def handle_address_book_update_contact(call: ServiceCall) -> ServiceResponse:
@@ -587,7 +587,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_ADDRESS_BOOK_UPDATE_CONTACT,
         handle_address_book_update_contact,
         schema=SERVICE_ADDRESS_BOOK_UPDATE_CONTACT_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     async def handle_address_book_delete_contact(call: ServiceCall) -> ServiceResponse:
@@ -602,7 +602,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_ADDRESS_BOOK_DELETE_CONTACT,
         handle_address_book_delete_contact,
         schema=SERVICE_ADDRESS_BOOK_DELETE_CONTACT_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     async def handle_address_book_list_contacts(call: ServiceCall) -> ServiceResponse:

@@ -52,6 +52,7 @@ class NostrRelayListener:
         self._bot_pub_hex = bot_pub_hex
         self._tasks: list[asyncio.Task] = []
         self._running = False
+        self._seen_event_ids: set[str] = set()  # dedup across all relay connections for this listener
 
     async def async_start(self) -> None:
         """Start one listener task per relay URL."""
@@ -78,6 +79,7 @@ class NostrRelayListener:
         if self._tasks:
             await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
+        self._seen_event_ids.clear()
         _LOGGER.debug("Nostr relay listener stopped")
 
     # ── Internal ──────────────────────────────────────────────────────────────
@@ -115,7 +117,7 @@ class NostrRelayListener:
             "since": since,
         }
         req_msg = json.dumps(["REQ", _SUB_ID, sub_filter])
-        seen_ids: set[str] = set()  # deduplicate within this connection
+        seen_ids: set[str] = set()  # per-connection dedup (relay echo/resubscribe guard)
 
         async with self._session.ws_connect(
             relay_url,
@@ -160,6 +162,10 @@ class NostrRelayListener:
                     if event_id in seen_ids:
                         continue
                     seen_ids.add(event_id)
+                    if event_id and event_id in self._seen_event_ids:
+                        continue
+                    if event_id:
+                        self._seen_event_ids.add(event_id)
                     self._handle_event(event)
 
     async def _handle_auth(self, ws: ClientWebSocketResponse, relay_url: str, challenge: str) -> None:

@@ -1576,7 +1576,10 @@ class AlbyHubPanel extends HTMLElement {
       this._loadNostrMessages(p);
       return `<div class="cards-grid"><div class="card"><p class="muted">${this._t('activity.loading')}</p></div></div>`;
     }
-
+    // Pre-load address book contacts for name resolution and datalist autocomplete
+    if (this._contacts === null && !this._contactsLoading) {
+      this._loadContacts();
+    }
     if (!this._nostrEnabled) {
       return `<div class="cards-grid"><div class="card"><div class="card-title">${t('title')}</div><p class="muted">${t('disabled')}</p></div></div>`;
     }
@@ -1620,16 +1623,35 @@ class AlbyHubPanel extends HTMLElement {
           const dir = dirLabel[m.direction] || this._esc(m.direction || '—');
           const status = statusLabel[m.status] || this._esc(m.status || '—');
           const src = srcLabel(m.source);
+          const senderName = this._resolveNpubToName(m.sender);
+          const recipientName = this._resolveNpubToName(m.recipient);
+          const senderDisplay = senderName
+            ? `<span title="${this._esc(m.sender || '')}">${this._esc(senderName)}</span>`
+            : `<span>${this._truncStr(m.sender || '—')}</span>`;
+          const recipientDisplay = recipientName
+            ? `<span title="${this._esc(m.recipient || '')}">${this._esc(recipientName)}</span>`
+            : `<span>${this._truncStr(m.recipient || '—')}</span>`;
           return `<tr>
             <td>${dir}</td>
-            <td class="small">${this._truncStr(m.sender || '—')}</td>
-            <td class="small">${this._truncStr(m.recipient || '—')}</td>
+            <td class="small">${senderDisplay}</td>
+            <td class="small">${recipientDisplay}</td>
             <td>${this._truncStr(m.message || '—', 120, 0)}</td>
             <td class="small">${src}</td>
             <td>${status}</td>
             <td class="small muted">${this._esc(ts)}</td>
           </tr>`;
         }).join('');
+
+    // Build datalist for address book lookup in the target field
+    const contactOptions = Array.isArray(this._contacts)
+      ? this._contacts
+          .filter((c) => c.nostr_pubkey)
+          .map((c) => {
+            const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || c.nostr_alias || '';
+            return `<option value="${this._esc(c.nostr_pubkey)}">${this._esc(name ? name + ' – ' + c.nostr_pubkey.slice(0, 16) + '…' : c.nostr_pubkey)}</option>`;
+          })
+          .join('')
+      : '';
 
     return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(420px,1fr))">
       <div class="card">
@@ -1644,7 +1666,8 @@ class AlbyHubPanel extends HTMLElement {
         ${plaintextWarning}
         <div class="field">
           <label>${t('targetNpub')}</label>
-          <input type="text" class="inp mono" id="nostr-target" placeholder="${t('targetNpubPlaceholder')}" value="${this._esc(this._pendingNostrTarget)}">
+          <input type="text" class="inp mono" id="nostr-target" placeholder="${t('targetNpubPlaceholder')}" value="${this._esc(this._pendingNostrTarget)}" list="nostr-ab-contacts" autocomplete="off">
+          <datalist id="nostr-ab-contacts">${contactOptions}</datalist>
         </div>
         <div class="field">
           <label>${t('message')}</label>
@@ -1698,6 +1721,23 @@ class AlbyHubPanel extends HTMLElement {
       <span class="row-name">${this._esc(name)}</span>
       <span class="row-val${small ? ' small' : ''}">${valHtml}</span>
     </div>`;
+  }
+
+  // ── Address book npub → contact name lookup ──────────────────────────────────
+
+  /**
+   * Look up a contact's display name by Nostr pubkey (npub or hex) or alias.
+   * Returns "Firstname Lastname" / alias if found, otherwise null.
+   */
+  _resolveNpubToName(npub) {
+    if (!npub || !Array.isArray(this._contacts)) return null;
+    const norm = (npub || '').toLowerCase().trim();
+    const c = this._contacts.find((x) =>
+      (x.nostr_pubkey || '').toLowerCase() === norm ||
+      (x.nostr_alias || '').toLowerCase() === norm
+    );
+    if (!c) return null;
+    return [c.first_name, c.last_name].filter(Boolean).join(' ') || c.nostr_alias || null;
   }
 
   // ── Camera entity helper ────────────────────────────────────────────────────
@@ -3141,6 +3181,9 @@ class AlbyHubPanel extends HTMLElement {
         const target = (this._pendingNostrTarget || '').trim();
         const message = (this._pendingNostrMsg || '').trim();
         if (!target || !message) return;
+        btn.disabled = true;
+        const origText = btn.textContent;
+        btn.textContent = '⏳ …';
         this._hass.callService(
           'alby_hub',
           'nostr_send_bot_message',
@@ -3157,6 +3200,8 @@ class AlbyHubPanel extends HTMLElement {
           this._updateContent();
         }).catch((err) => {
           console.warn('Alby Hub panel: nostr_send_bot_message failed', err);
+          btn.disabled = false;
+          btn.textContent = origText;
         });
       });
     });
@@ -3166,6 +3211,9 @@ class AlbyHubPanel extends HTMLElement {
         const nsec = (this._pendingTestNsec || '').trim();
         const message = (this._pendingTestMsg || '').trim();
         if (!nsec || !message) return;
+        btn.disabled = true;
+        const origText = btn.textContent;
+        btn.textContent = '⏳ …';
         this._hass.callService(
           'alby_hub',
           'nostr_send_test_message',
@@ -3182,6 +3230,8 @@ class AlbyHubPanel extends HTMLElement {
           this._updateContent();
         }).catch((err) => {
           console.warn('Alby Hub panel: nostr_send_test_message failed', err);
+          btn.disabled = false;
+          btn.textContent = origText;
         });
       });
     });
@@ -3591,7 +3641,8 @@ class AlbyHubPanel extends HTMLElement {
         const isEditing = Boolean(this._contactEditId);
         if (isEditing) serviceData.contact_id = this._contactEditId;
         const svcName = isEditing ? 'address_book_update_contact' : 'address_book_create_contact';
-        this._hass.callService('alby_hub', svcName, serviceData)
+        // callService(domain, service, data, target, notifyOnError, returnResponse)
+        this._hass.callService('alby_hub', svcName, serviceData, undefined, true, true)
           .then(() => {
             this._resetContactForm();
             this._contactEditId = null;
@@ -3670,7 +3721,8 @@ class AlbyHubPanel extends HTMLElement {
         const cid = btn.dataset.id;
         if (!cid) return;
         btn.disabled = true;
-        this._hass.callService('alby_hub', 'address_book_delete_contact', { contact_id: cid })
+        // callService(domain, service, data, target, notifyOnError, returnResponse)
+        this._hass.callService('alby_hub', 'address_book_delete_contact', { contact_id: cid }, undefined, true, true)
           .then(() => {
             if (this._contactDetailId === cid) this._contactDetailId = null;
             if (this._contactEditId === cid) { this._contactEditId = null; this._resetContactForm(); }
