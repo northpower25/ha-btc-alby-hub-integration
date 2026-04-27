@@ -52,7 +52,7 @@ class NostrRelayListener:
         self._bot_pub_hex = bot_pub_hex
         self._tasks: list[asyncio.Task] = []
         self._running = False
-        self._seen_event_ids: set[str] = set()  # global dedup across all relays
+        self._seen_event_ids: set[str] = set()  # dedup across all relay connections for this listener
 
     async def async_start(self) -> None:
         """Start one listener task per relay URL."""

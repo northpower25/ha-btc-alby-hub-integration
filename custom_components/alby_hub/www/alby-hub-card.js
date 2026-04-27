@@ -3641,6 +3641,7 @@ class AlbyHubPanel extends HTMLElement {
         const isEditing = Boolean(this._contactEditId);
         if (isEditing) serviceData.contact_id = this._contactEditId;
         const svcName = isEditing ? 'address_book_update_contact' : 'address_book_create_contact';
+        // callService(domain, service, data, target, notifyOnError, returnResponse)
         this._hass.callService('alby_hub', svcName, serviceData, undefined, true, true)
           .then(() => {
             this._resetContactForm();
@@ -3720,6 +3721,7 @@ class AlbyHubPanel extends HTMLElement {
         const cid = btn.dataset.id;
         if (!cid) return;
         btn.disabled = true;
+        // callService(domain, service, data, target, notifyOnError, returnResponse)
         this._hass.callService('alby_hub', 'address_book_delete_contact', { contact_id: cid }, undefined, true, true)
           .then(() => {
             if (this._contactDetailId === cid) this._contactDetailId = null;
