@@ -154,6 +154,12 @@ SERVICE_NOSTR_LIST_MESSAGES_SCHEMA = vol.Schema(
     }
 )
 
+_VCARD_OPT_FIELDS = {
+    "nickname", "phone", "email", "birthday", "anniversary", "gender",
+    "organization", "title", "role", "website",
+    "street", "city", "zip_code", "state", "country",
+}
+
 SERVICE_ADDRESS_BOOK_CREATE_CONTACT_SCHEMA = vol.Schema(
     {
         vol.Optional("last_name", default=""): cv.string,
@@ -164,6 +170,7 @@ SERVICE_ADDRESS_BOOK_CREATE_CONTACT_SCHEMA = vol.Schema(
         vol.Optional("bitcoin_address", default=""): cv.string,
         vol.Optional("notes", default=""): cv.string,
         vol.Optional("tags", default=[]): vol.All(cv.ensure_list, [cv.string]),
+        **{vol.Optional(f, default=""): cv.string for f in _VCARD_OPT_FIELDS},
     }
 )
 
@@ -178,6 +185,7 @@ SERVICE_ADDRESS_BOOK_UPDATE_CONTACT_SCHEMA = vol.Schema(
         vol.Optional("bitcoin_address"): cv.string,
         vol.Optional("notes"): cv.string,
         vol.Optional("tags"): vol.All(cv.ensure_list, [cv.string]),
+        **{vol.Optional(f): cv.string for f in _VCARD_OPT_FIELDS},
     }
 )
 

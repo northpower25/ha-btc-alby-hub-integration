@@ -16,7 +16,7 @@
  * @license MIT
  */
 
-const ALBY_HUB_VERSION = '1.2.0';
+const ALBY_HUB_VERSION = '1.3.0';
 const PANEL_ELEMENT_NAME = 'alby-hub-panel';
 const STATIC_BASE_PATH = '/alby_hub_local';
 
@@ -246,8 +246,29 @@ const TRANSLATIONS = {
       newContactTitle: 'Neuer Kontakt',
       editContactTitle: 'Kontakt bearbeiten',
       detailTitle: 'Kontakt-Details',
+      sectionPersonal: 'Persönliche Daten',
+      sectionContact: 'Kontaktdaten',
+      sectionOrg: 'Beruf & Organisation',
+      sectionAddress: 'Adresse',
+      sectionCrypto: 'Krypto-Adressen',
+      sectionNotes: 'Notizen & Tags',
       lastName: 'Nachname',
       firstName: 'Vorname',
+      nickname: 'Spitzname / Alias',
+      birthday: 'Geburtsdatum',
+      anniversary: 'Jahrestag',
+      gender: 'Geschlecht',
+      phone: 'Telefon',
+      email: 'E-Mail',
+      website: 'Webseite',
+      organization: 'Organisation / Firma',
+      title: 'Jobtitel',
+      role: 'Rolle',
+      street: 'Straße & Nr.',
+      city: 'Stadt',
+      zipCode: 'PLZ',
+      state: 'Bundesland / Kanton',
+      country: 'Land',
       nostrAlias: 'Nostr-Alias',
       nostrPubkey: 'Nostr Public Key (npub / hex)',
       lightningAddress: 'Lightning-Adresse',
@@ -259,6 +280,7 @@ const TRANSLATIONS = {
       editBtn: '✏️ Bearbeiten',
       deleteBtn: '🗑 Löschen',
       backBtn: '← Zurück',
+      exportVcardBtn: '📇 vCard (.vcf) exportieren',
       sendNostrBtn: '🟣 Nostr-Nachricht senden',
       payLightningBtn: '⚡ Lightning-Zahlung',
       payBitcoinBtn: '₿ Bitcoin-Zahlung',
@@ -291,6 +313,9 @@ const TRANSLATIONS = {
       bitcoinAddressLabel: 'Bitcoin-Adresse',
       copyAddress: '📋 Adresse kopieren',
       copied: '✅ Kopiert!',
+      qrLightning: 'Lightning QR-Code',
+      qrNostr: 'Nostr QR-Code',
+      qrBitcoin: 'Bitcoin QR-Code',
     },
   },
   en: {
@@ -515,8 +540,29 @@ const TRANSLATIONS = {
       newContactTitle: 'New Contact',
       editContactTitle: 'Edit Contact',
       detailTitle: 'Contact Details',
+      sectionPersonal: 'Personal Info',
+      sectionContact: 'Contact Details',
+      sectionOrg: 'Job & Organisation',
+      sectionAddress: 'Address',
+      sectionCrypto: 'Crypto Addresses',
+      sectionNotes: 'Notes & Tags',
       lastName: 'Last Name',
       firstName: 'First Name',
+      nickname: 'Nickname / Alias',
+      birthday: 'Birthday',
+      anniversary: 'Anniversary',
+      gender: 'Gender',
+      phone: 'Phone',
+      email: 'E-Mail',
+      website: 'Website',
+      organization: 'Organisation / Company',
+      title: 'Job Title',
+      role: 'Role',
+      street: 'Street & No.',
+      city: 'City',
+      zipCode: 'ZIP / Postal Code',
+      state: 'State / Province',
+      country: 'Country',
       nostrAlias: 'Nostr Alias',
       nostrPubkey: 'Nostr Public Key (npub / hex)',
       lightningAddress: 'Lightning Address',
@@ -528,6 +574,7 @@ const TRANSLATIONS = {
       editBtn: '✏️ Edit',
       deleteBtn: '🗑 Delete',
       backBtn: '← Back',
+      exportVcardBtn: '📇 Export vCard (.vcf)',
       sendNostrBtn: '🟣 Send Nostr Message',
       payLightningBtn: '⚡ Lightning Payment',
       payBitcoinBtn: '₿ Bitcoin Payment',
@@ -560,6 +607,9 @@ const TRANSLATIONS = {
       bitcoinAddressLabel: 'Bitcoin Address',
       copyAddress: '📋 Copy Address',
       copied: '✅ Copied!',
+      qrLightning: 'Lightning QR Code',
+      qrNostr: 'Nostr QR Code',
+      qrBitcoin: 'Bitcoin QR Code',
     },
   },
 };
@@ -684,8 +734,14 @@ class AlbyHubPanel extends HTMLElement {
     this._contactEditId = null;   // UUID of contact being edited, null = new
     this._contactDetailId = null; // UUID of contact being viewed in detail
     this._contactForm = {
-      last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '',
-      lightning_address: '', bitcoin_address: '', notes: '', tags: '',
+      last_name: '', first_name: '', nickname: '',
+      birthday: '', anniversary: '', gender: '',
+      phone: '', email: '', website: '',
+      organization: '', title: '', role: '',
+      street: '', city: '', zip_code: '', state: '', country: '',
+      nostr_alias: '', nostr_pubkey: '',
+      lightning_address: '', bitcoin_address: '',
+      notes: '', tags: '',
     };
     this._abNostrMsg = '';
     this._abLnAmount = '';
@@ -2329,8 +2385,14 @@ class AlbyHubPanel extends HTMLElement {
 
   _resetContactForm() {
     this._contactForm = {
-      last_name: '', first_name: '', nostr_alias: '', nostr_pubkey: '',
-      lightning_address: '', bitcoin_address: '', notes: '', tags: '',
+      last_name: '', first_name: '', nickname: '',
+      birthday: '', anniversary: '', gender: '',
+      phone: '', email: '', website: '',
+      organization: '', title: '', role: '',
+      street: '', city: '', zip_code: '', state: '', country: '',
+      nostr_alias: '', nostr_pubkey: '',
+      lightning_address: '', bitcoin_address: '',
+      notes: '', tags: '',
     };
   }
 
@@ -2373,6 +2435,8 @@ class AlbyHubPanel extends HTMLElement {
 
     const contactForm = `<div class="card">
       <div class="card-title">${formTitle}</div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:4px;color:var(--secondary-text-color,#aaa)">${t('sectionPersonal')}</div>
       <div style="display:flex;gap:8px">
         <div class="field" style="flex:1">
           <label>${t('firstName')}</label>
@@ -2383,6 +2447,82 @@ class AlbyHubPanel extends HTMLElement {
           <input type="text" class="inp" id="ab-last-name" value="${this._esc(f.last_name)}">
         </div>
       </div>
+      <div class="field">
+        <label>${t('nickname')}</label>
+        <input type="text" class="inp" id="ab-nickname" value="${this._esc(f.nickname)}">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('birthday')}</label>
+          <input type="date" class="inp" id="ab-birthday" value="${this._esc(f.birthday)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('anniversary')}</label>
+          <input type="date" class="inp" id="ab-anniversary" value="${this._esc(f.anniversary)}">
+        </div>
+      </div>
+      <div class="field">
+        <label>${t('gender')}</label>
+        <input type="text" class="inp" id="ab-gender" placeholder="m / f / x" value="${this._esc(f.gender)}">
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionContact')}</div>
+      <div class="field">
+        <label>${t('phone')}</label>
+        <input type="tel" class="inp" id="ab-phone" placeholder="+49 …" value="${this._esc(f.phone)}">
+      </div>
+      <div class="field">
+        <label>${t('email')}</label>
+        <input type="email" class="inp" id="ab-email" placeholder="user@example.com" value="${this._esc(f.email)}">
+      </div>
+      <div class="field">
+        <label>${t('website')}</label>
+        <input type="url" class="inp" id="ab-website" placeholder="https://…" value="${this._esc(f.website)}">
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionOrg')}</div>
+      <div class="field">
+        <label>${t('organization')}</label>
+        <input type="text" class="inp" id="ab-organization" value="${this._esc(f.organization)}">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('title')}</label>
+          <input type="text" class="inp" id="ab-title" value="${this._esc(f.title)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('role')}</label>
+          <input type="text" class="inp" id="ab-role" value="${this._esc(f.role)}">
+        </div>
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionAddress')}</div>
+      <div class="field">
+        <label>${t('street')}</label>
+        <input type="text" class="inp" id="ab-street" value="${this._esc(f.street)}">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:2">
+          <label>${t('city')}</label>
+          <input type="text" class="inp" id="ab-city" value="${this._esc(f.city)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('zipCode')}</label>
+          <input type="text" class="inp" id="ab-zip" value="${this._esc(f.zip_code)}">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1">
+          <label>${t('state')}</label>
+          <input type="text" class="inp" id="ab-state" value="${this._esc(f.state)}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>${t('country')}</label>
+          <input type="text" class="inp" id="ab-country" value="${this._esc(f.country)}">
+        </div>
+      </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionCrypto')}</div>
       <div class="field">
         <label>${t('nostrAlias')}</label>
         <input type="text" class="inp" id="ab-nostr-alias" placeholder="alice@nostr.com" value="${this._esc(f.nostr_alias)}">
@@ -2399,6 +2539,8 @@ class AlbyHubPanel extends HTMLElement {
         <label>${t('bitcoinAddress')}</label>
         <input type="text" class="inp mono" id="ab-btc-address" placeholder="bc1q…" value="${this._esc(f.bitcoin_address)}">
       </div>
+
+      <div class="card-title" style="font-size:0.8rem;margin-top:8px;color:var(--secondary-text-color,#aaa)">${t('sectionNotes')}</div>
       <div class="field">
         <label>${t('notes')}</label>
         <textarea class="inp" id="ab-notes" rows="2">${this._esc(f.notes)}</textarea>
@@ -2457,6 +2599,67 @@ class AlbyHubPanel extends HTMLElement {
       ${contactForm}
       ${listCard}
     </div>`;
+  }
+
+  _buildVCard(c) {
+    const fold = (line) => {
+      // RFC 6350: fold lines longer than 75 octets
+      if (line.length <= 75) return line;
+      let result = '';
+      let current = '';
+      for (const ch of line) {
+        if (current.length >= 75) { result += current + '\r\n '; current = ch; }
+        else current += ch;
+      }
+      return result + current;
+    };
+    const esc = (v) => String(v || '').replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+    const escNote = (v) => String(v || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n');
+
+    const lines = [];
+    lines.push('BEGIN:VCARD');
+    lines.push('VERSION:4.0');
+    lines.push(`PRODID:-//Alby Hub HA Integration//DE`);
+
+    // FN + N
+    const fn = [c.first_name, c.last_name].filter(Boolean).join(' ') || (c.nickname || c.nostr_alias || '');
+    lines.push(fold(`FN:${esc(fn)}`));
+    lines.push(fold(`N:${esc(c.last_name)};${esc(c.first_name)};;;`));
+    if (c.nickname) lines.push(fold(`NICKNAME:${esc(c.nickname)}`));
+
+    if (c.birthday) lines.push(fold(`BDAY:${c.birthday.replace(/-/g, '')}`));
+    if (c.anniversary) lines.push(fold(`ANNIVERSARY:${c.anniversary.replace(/-/g, '')}`));
+    if (c.gender) lines.push(fold(`GENDER:${esc(c.gender)}`));
+
+    if (c.phone) lines.push(fold(`TEL;TYPE=CELL:${esc(c.phone)}`));
+    if (c.email) lines.push(fold(`EMAIL;TYPE=HOME:${esc(c.email)}`));
+    if (c.website) lines.push(fold(`URL:${esc(c.website)}`));
+
+    if (c.organization) lines.push(fold(`ORG:${esc(c.organization)}`));
+    if (c.title) lines.push(fold(`TITLE:${esc(c.title)}`));
+    if (c.role) lines.push(fold(`ROLE:${esc(c.role)}`));
+
+    // ADR: PO-Box;Extended;Street;City;State;ZIP;Country
+    if (c.street || c.city || c.zip_code || c.state || c.country) {
+      lines.push(fold(`ADR;TYPE=HOME:;;${esc(c.street)};${esc(c.city)};${esc(c.state)};${esc(c.zip_code)};${esc(c.country)}`));
+    }
+
+    // Crypto addresses and Nostr as NOTE fields
+    const noteParts = [];
+    if (c.lightning_address) noteParts.push(`Lightning: ${c.lightning_address}`);
+    if (c.nostr_alias) noteParts.push(`Nostr-Alias: ${c.nostr_alias}`);
+    if (c.nostr_pubkey) noteParts.push(`Nostr-Pubkey: ${c.nostr_pubkey}`);
+    if (c.bitcoin_address) noteParts.push(`Bitcoin: ${c.bitcoin_address}`);
+    if (c.notes) noteParts.push(c.notes);
+    if (noteParts.length > 0) lines.push(fold(`NOTE:${escNote(noteParts.join('\n'))}`));
+
+    if (c.tags?.length) lines.push(fold(`CATEGORIES:${c.tags.map(esc).join(',')}`));
+
+    if (c.id) lines.push(fold(`UID:urn:uuid:${c.id}`));
+    if (c.updated_at) lines.push(fold(`REV:${c.updated_at.replace(/\.\d+/, '').replace(/[-:]/g, '').replace('T', 'T')}`));
+
+    lines.push('END:VCARD');
+    return lines.join('\r\n');
   }
 
   _renderContactDetail(p, t) {
@@ -2537,16 +2740,30 @@ class AlbyHubPanel extends HTMLElement {
     const hasLightning = Boolean(c.lightning_address);
     const hasBitcoin = Boolean(c.bitcoin_address);
 
-    const nostrSection = hasNostr ? `
-      <div class="field">
-        <label>${t('nostrMsgLabel')}</label>
-        <textarea class="inp" id="ab-quick-nostr-msg" rows="2" placeholder="${t('nostrMsgPlaceholder')}">${this._esc(this._abNostrMsg)}</textarea>
-      </div>
-      <button class="btn" id="ab-send-nostr-btn" data-pubkey="${this._esc(c.nostr_pubkey)}" style="margin-bottom:8px">${t('sendNostrMsgBtn')} (Nostr)</button>`
-    : `<p class="muted" style="font-size:0.82rem">${!c.nostr_pubkey ? t('noNostrPubkey') : t('nostrDisabled')}</p>`;
+    // Helper: inline QR code with copy button
+    const qrBlock = (addr, prefix, label, altText) => `
+      <div>
+        <code style="display:block;background:var(--secondary-background-color,#111);padding:5px 8px;border-radius:6px;font-size:0.72rem;word-break:break-all;margin-bottom:4px">${this._esc(addr)}</code>
+        <button class="filter-btn ab-copy-addr-btn" data-addr="${this._esc(addr)}" style="width:100%;margin-bottom:6px">${t('copyAddress')} ${prefix}</button>
+        <div class="qr-wrap" style="text-align:center">
+          <div class="muted" style="font-size:0.75rem;margin-bottom:4px">${this._esc(label)}</div>
+          <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(addr)}&size=200x200&margin=8" alt="${this._esc(altText)}" style="max-width:200px;border-radius:8px">
+        </div>
+      </div>`;
+
+    const nostrSection = c.nostr_pubkey ? `
+      ${qrBlock(c.nostr_pubkey, '🟣', t('qrNostr'), 'Nostr pubkey QR')}
+      ${hasNostr ? `
+        <div class="field" style="margin-top:8px">
+          <label>${t('nostrMsgLabel')}</label>
+          <textarea class="inp" id="ab-quick-nostr-msg" rows="2" placeholder="${t('nostrMsgPlaceholder')}">${this._esc(this._abNostrMsg)}</textarea>
+        </div>
+        <button class="btn" id="ab-send-nostr-btn" data-pubkey="${this._esc(c.nostr_pubkey)}" style="margin-bottom:8px">${t('sendNostrMsgBtn')} (Nostr)</button>` : ''}
+    ` : `<p class="muted" style="font-size:0.82rem">${t('noNostrPubkey')}</p>`;
 
     const lnSection = hasLightning ? `
-      <div style="display:flex;gap:8px">
+      ${qrBlock('lightning:' + c.lightning_address, '⚡', t('qrLightning'), 'Lightning address QR')}
+      <div style="display:flex;gap:8px;margin-top:8px">
         <div class="field" style="flex:1">
           <label>${t('lightningAmountLabel')}</label>
           <input type="number" class="inp" id="ab-quick-ln-amount" min="1" step="1" value="${this._esc(this._abLnAmount)}">
@@ -2559,45 +2776,58 @@ class AlbyHubPanel extends HTMLElement {
       <button class="btn" id="ab-send-ln-btn" data-ln="${this._esc(c.lightning_address)}" style="margin-bottom:8px">${t('sendLightningBtn')} ⚡</button>`
     : `<p class="muted" style="font-size:0.82rem">${t('noLightningAddress')}</p>`;
 
-    const btcSection = hasBitcoin ? `
-      <div class="field">
-        <label>${t('bitcoinAddressLabel')}</label>
-        <code style="display:block;background:var(--secondary-background-color,#111);padding:6px 8px;border-radius:6px;font-size:0.72rem;word-break:break-all">${this._esc(c.bitcoin_address)}</code>
-      </div>
-      <button class="filter-btn ab-copy-btc-btn" data-addr="${this._esc(c.bitcoin_address)}" style="width:100%;margin-bottom:4px">${t('copyAddress')}</button>
-      <div class="qr-wrap">
-        <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(c.bitcoin_address)}&size=200x200&margin=8" alt="Bitcoin QR" style="max-width:200px">
-      </div>`
+    const btcSection = hasBitcoin ? qrBlock(c.bitcoin_address, '₿', t('qrBitcoin'), 'Bitcoin address QR')
     : `<p class="muted" style="font-size:0.82rem">${t('noBitcoinAddress')}</p>`;
+
+    // ── Build extended contact info rows for header card ─────────────────────
+    const infoRow = (icon, val) => val ? `<span style="font-size:0.85rem">${icon} ${this._esc(val)}</span>` : '';
+    const contactInfoChips = [
+      infoRow('📛', c.nickname),
+      infoRow('🎂', c.birthday),
+      infoRow('📞', c.phone),
+      infoRow('📧', c.email),
+      infoRow('🌐', c.website),
+      infoRow('🏢', [c.organization, c.title, c.role].filter(Boolean).join(' · ')),
+      infoRow('📍', [c.street, c.city, c.zip_code, c.state, c.country].filter(Boolean).join(', ')),
+      c.nostr_alias ? `<span>🟣 ${this._esc(c.nostr_alias)}</span>` : '',
+      c.nostr_pubkey ? `<span title="${this._esc(c.nostr_pubkey)}" style="cursor:default;font-size:0.85rem">🔑 ${this._esc(c.nostr_pubkey.slice(0,16))}…</span>` : '',
+      c.lightning_address ? `<span style="font-size:0.85rem">⚡ ${this._esc(c.lightning_address)}</span>` : '',
+      c.bitcoin_address ? `<span style="font-size:0.85rem">₿ ${this._esc(c.bitcoin_address.slice(0,14))}…</span>` : '',
+      c.notes ? `<span class="muted" style="font-size:0.85rem">📝 ${this._esc(c.notes)}</span>` : '',
+    ].filter(Boolean);
 
     return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
       <!-- Header / back -->
       <div class="card" style="grid-column:1/-1">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
           <button class="filter-btn" id="ab-back-btn">${t('backBtn')}</button>
           <span style="font-size:1.1rem;font-weight:600">${this._esc(fullName)}</span>
           <button class="filter-btn ab-edit-btn" data-id="${this._esc(c.id)}" style="margin-left:auto;border-color:var(--primary-color,#f7931a);color:var(--primary-color,#f7931a)">${t('editBtn')}</button>
           <button class="ab-del-btn small-btn" data-id="${this._esc(c.id)}">${t('deleteBtn')}</button>
+          <button class="filter-btn ab-export-vcard-btn" data-id="${this._esc(c.id)}" title="${t('exportVcardBtn')}">${t('exportVcardBtn')}</button>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px 20px;font-size:0.85rem">
-          ${c.nostr_alias ? `<span>🟣 ${this._esc(c.nostr_alias)}</span>` : ''}
-          ${c.nostr_pubkey ? `<span title="${this._esc(c.nostr_pubkey)}" style="cursor:default">🔑 ${this._esc(c.nostr_pubkey.slice(0,16))}…</span>` : ''}
-          ${c.lightning_address ? `<span>⚡ ${this._esc(c.lightning_address)}</span>` : ''}
-          ${c.bitcoin_address ? `<span>₿ ${this._esc(c.bitcoin_address.slice(0,14))}…</span>` : ''}
-          ${c.notes ? `<span class="muted">📝 ${this._esc(c.notes)}</span>` : ''}
+        <div style="display:flex;flex-wrap:wrap;gap:6px 20px">
+          ${contactInfoChips.join('')}
           ${c.tags?.length ? c.tags.map((tg) => `<span style="background:rgba(247,147,26,.15);color:var(--primary-color,#f7931a);padding:1px 7px;border-radius:10px;font-size:0.75rem">${this._esc(tg)}</span>`).join('') : ''}
         </div>
         <div class="muted" style="font-size:0.72rem;margin-top:6px">${t('createdAt')}: ${this._esc(c.created_at ? new Date(c.created_at).toLocaleString() : '—')} &nbsp;|&nbsp; ${t('updatedAt')}: ${this._esc(c.updated_at ? new Date(c.updated_at).toLocaleString() : '—')}</div>
       </div>
 
-      <!-- Quick actions -->
+      <!-- Nostr address card -->
       <div class="card">
-        <div class="card-title">${t('quickSendTitle')}</div>
-        <div class="card-title" style="font-size:0.85rem;margin-top:10px">🟣 Nostr</div>
+        <div class="card-title">🟣 Nostr</div>
         ${nostrSection}
-        <div class="card-title" style="font-size:0.85rem;margin-top:10px">⚡ Lightning</div>
+      </div>
+
+      <!-- Lightning address card -->
+      <div class="card">
+        <div class="card-title">⚡ Lightning</div>
         ${lnSection}
-        <div class="card-title" style="font-size:0.85rem;margin-top:10px">₿ Bitcoin</div>
+      </div>
+
+      <!-- Bitcoin address card -->
+      <div class="card">
+        <div class="card-title">₿ Bitcoin</div>
         ${btcSection}
       </div>
 
@@ -3297,6 +3527,21 @@ class AlbyHubPanel extends HTMLElement {
     };
     bindAbField('ab-first-name',   'first_name');
     bindAbField('ab-last-name',    'last_name');
+    bindAbField('ab-nickname',     'nickname');
+    bindAbField('ab-birthday',     'birthday');
+    bindAbField('ab-anniversary',  'anniversary');
+    bindAbField('ab-gender',       'gender');
+    bindAbField('ab-phone',        'phone');
+    bindAbField('ab-email',        'email');
+    bindAbField('ab-website',      'website');
+    bindAbField('ab-organization', 'organization');
+    bindAbField('ab-title',        'title');
+    bindAbField('ab-role',         'role');
+    bindAbField('ab-street',       'street');
+    bindAbField('ab-city',         'city');
+    bindAbField('ab-zip',          'zip_code');
+    bindAbField('ab-state',        'state');
+    bindAbField('ab-country',      'country');
     bindAbField('ab-nostr-alias',  'nostr_alias');
     bindAbField('ab-nostr-pubkey', 'nostr_pubkey');
     bindAbField('ab-ln-address',   'lightning_address');
@@ -3316,6 +3561,21 @@ class AlbyHubPanel extends HTMLElement {
         const serviceData = {
           first_name: f.first_name.trim(),
           last_name: f.last_name.trim(),
+          nickname: f.nickname.trim(),
+          birthday: f.birthday.trim(),
+          anniversary: f.anniversary.trim(),
+          gender: f.gender.trim(),
+          phone: f.phone.trim(),
+          email: f.email.trim(),
+          website: f.website.trim(),
+          organization: f.organization.trim(),
+          title: f.title.trim(),
+          role: f.role.trim(),
+          street: f.street.trim(),
+          city: f.city.trim(),
+          zip_code: f.zip_code.trim(),
+          state: f.state.trim(),
+          country: f.country.trim(),
           nostr_alias: f.nostr_alias.trim(),
           nostr_pubkey: f.nostr_pubkey.trim(),
           lightning_address: f.lightning_address.trim(),
@@ -3375,6 +3635,21 @@ class AlbyHubPanel extends HTMLElement {
         this._contactForm = {
           first_name: c.first_name || '',
           last_name: c.last_name || '',
+          nickname: c.nickname || '',
+          birthday: c.birthday || '',
+          anniversary: c.anniversary || '',
+          gender: c.gender || '',
+          phone: c.phone || '',
+          email: c.email || '',
+          website: c.website || '',
+          organization: c.organization || '',
+          title: c.title || '',
+          role: c.role || '',
+          street: c.street || '',
+          city: c.city || '',
+          zip_code: c.zip_code || '',
+          state: c.state || '',
+          country: c.country || '',
           nostr_alias: c.nostr_alias || '',
           nostr_pubkey: c.nostr_pubkey || '',
           lightning_address: c.lightning_address || '',
@@ -3407,6 +3682,26 @@ class AlbyHubPanel extends HTMLElement {
       btn.addEventListener('click', () => {
         this._contactDetailId = null;
         this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('.ab-export-vcard-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cid = btn.dataset.id;
+        if (!cid || !Array.isArray(this._contacts)) return;
+        const c = this._contacts.find((x) => x.id === cid);
+        if (!c) return;
+        const vcf = this._buildVCard(c);
+        const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        const safeName = [c.first_name, c.last_name].filter(Boolean).join('_').replace(/[^a-zA-Z0-9_-]/g, '_') || c.id;
+        anchor.href = url;
+        anchor.download = `${safeName}.vcf`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
       });
     });
 
@@ -3465,7 +3760,8 @@ class AlbyHubPanel extends HTMLElement {
       });
     });
 
-    root.querySelectorAll('.ab-copy-btc-btn').forEach((btn) => {
+    // Unified copy-address button (replaces old .ab-copy-btc-btn)
+    root.querySelectorAll('.ab-copy-addr-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const addr = btn.dataset.addr;
         if (!addr) return;

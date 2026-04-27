@@ -58,22 +58,24 @@ class AddressBook:
 
     # ── public CRUD API ────────────────────────────────────────────────────────
 
+    # All fields that map 1-to-1 to a string in the stored contact dict.
+    _STRING_FIELDS: frozenset[str] = frozenset({
+        "last_name", "first_name", "nickname",
+        "nostr_alias", "nostr_pubkey",
+        "lightning_address", "bitcoin_address",
+        "notes",
+        "phone", "email", "birthday", "anniversary", "gender",
+        "organization", "title", "role", "website",
+        "street", "city", "zip_code", "state", "country",
+    })
+
     async def async_create(self, params: dict[str, Any]) -> dict[str, Any]:
         """Create and persist a new contact. Returns the created contact."""
         now = _now_iso()
-        contact: dict[str, Any] = {
-            "id": str(uuid.uuid4()),
-            "last_name": str(params.get("last_name") or "").strip(),
-            "first_name": str(params.get("first_name") or "").strip(),
-            "nostr_alias": str(params.get("nostr_alias") or "").strip(),
-            "nostr_pubkey": str(params.get("nostr_pubkey") or "").strip(),
-            "lightning_address": str(params.get("lightning_address") or "").strip(),
-            "bitcoin_address": str(params.get("bitcoin_address") or "").strip(),
-            "notes": str(params.get("notes") or "").strip(),
-            "tags": [str(t).strip() for t in (params.get("tags") or []) if str(t).strip()],
-            "created_at": now,
-            "updated_at": now,
-        }
+        contact: dict[str, Any] = {"id": str(uuid.uuid4()), "created_at": now, "updated_at": now}
+        for key in self._STRING_FIELDS:
+            contact[key] = str(params.get(key) or "").strip()
+        contact["tags"] = [str(t).strip() for t in (params.get("tags") or []) if str(t).strip()]
         self._contacts.append(contact)
         await self._save()
         _LOGGER.info(
@@ -102,18 +104,13 @@ class AddressBook:
         for i, c in enumerate(self._contacts):
             if c["id"] != contact_id:
                 continue
-            updatable = {
-                "last_name", "first_name", "nostr_alias", "nostr_pubkey",
-                "lightning_address", "bitcoin_address", "notes", "tags",
-            }
             updated = dict(c)
-            for key in updatable:
+            for key in self._STRING_FIELDS:
                 if key not in params:
                     continue
-                if key == "tags":
-                    updated[key] = [str(t).strip() for t in (params[key] or []) if str(t).strip()]
-                else:
-                    updated[key] = str(params[key] or "").strip()
+                updated[key] = str(params[key] or "").strip()
+            if "tags" in params:
+                updated["tags"] = [str(t).strip() for t in (params["tags"] or []) if str(t).strip()]
             updated["updated_at"] = _now_iso()
             self._contacts[i] = updated
             await self._save()
