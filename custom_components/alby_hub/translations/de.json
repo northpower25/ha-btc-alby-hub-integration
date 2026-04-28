@@ -208,6 +208,11 @@
       "create_invoice_btn": {
         "name": "Rechnung erstellen"
       }
+    },
+    "notify": {
+      "nostr_bot": {
+        "name": "Nostr Bot"
+      }
     }
   }
 }

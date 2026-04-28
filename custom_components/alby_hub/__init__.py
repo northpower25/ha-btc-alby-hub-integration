@@ -55,7 +55,7 @@ from .services import async_setup_services, async_unload_services
 # cached HA core module (e.g. homeassistant.components.text) is triggered
 # from the event loop as a side-effect.
 from . import binary_sensor, button, number, select, sensor, text  # noqa: F401
-from . import recurring_payments  # noqa: F401
+from . import notify, recurring_payments  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,10 +66,11 @@ PLATFORMS: list[Platform] = [
     Platform.NUMBER,
     Platform.SELECT,
     Platform.BUTTON,
+    Platform.NOTIFY,
 ]
 
 # Frontend panel configuration
-_CARD_VERSION = "6"
+_CARD_VERSION = "7"
 _PANEL_FILENAME = "alby-hub-card.js"
 _PANEL_URL_PATH = "alby-hub-panel"
 _PANEL_ELEMENT_NAME = "alby-hub-panel"
