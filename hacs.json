@@ -1,5 +1,5 @@
 {
-  "name": "Alby Hub integration for Bitcoin and Lightning",
+  "name": "Alby Hub and Nostr Bot integration for Bitcoin and Lightning in Home Assistant",
   "render_readme": true,
   "homeassistant": "2026.1"
 }
