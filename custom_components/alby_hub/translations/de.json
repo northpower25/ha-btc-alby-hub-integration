@@ -202,6 +202,12 @@
     "select": {
       "invoice_amount_unit": {
         "name": "Einheit des Rechnungsbetrags"
+      },
+      "lightning_contact": {
+        "name": "Lightning-Kontakt"
+      },
+      "nostr_contact": {
+        "name": "Nostr-Kontakt"
       }
     },
     "button": {

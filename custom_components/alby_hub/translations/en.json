@@ -198,6 +198,12 @@
     "select": {
       "invoice_amount_unit": {
         "name": "Invoice amount unit"
+      },
+      "lightning_contact": {
+        "name": "Lightning contact"
+      },
+      "nostr_contact": {
+        "name": "Nostr contact"
       }
     },
     "button": {

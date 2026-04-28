@@ -110,6 +110,10 @@ NUMBER_KEY_INVOICE_AMOUNT = "invoice_amount"
 SELECT_KEY_INVOICE_AMOUNT_UNIT = "invoice_amount_unit"
 BUTTON_KEY_CREATE_INVOICE = "create_invoice_btn"
 
+# Address book contact select entity keys
+SELECT_KEY_LIGHTNING_CONTACT = "lightning_contact"
+SELECT_KEY_NOSTR_CONTACT = "nostr_contact"
+
 # NWC Budget sensor keys
 SENSOR_KEY_NWC_BUDGET_TOTAL = "nwc_budget_total"
 SENSOR_KEY_NWC_BUDGET_USED = "nwc_budget_used"
