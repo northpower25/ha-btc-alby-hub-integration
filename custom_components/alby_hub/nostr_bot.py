@@ -106,6 +106,11 @@ class AlbyHubNostrBotManager:
         normalized = (npub or "").strip().lower()
         return bool(normalized and normalized in self._allowed_npubs)
 
+    @property
+    def allowed_npubs(self) -> set[str]:
+        """Return the set of whitelisted npubs."""
+        return self._allowed_npubs
+
     def add_message(
         self,
         direction: str,

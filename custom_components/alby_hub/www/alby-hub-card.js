@@ -16,7 +16,7 @@
  * @license MIT
  */
 
-const ALBY_HUB_VERSION = '1.3.0';
+const ALBY_HUB_VERSION = '1.4.0';
 const PANEL_ELEMENT_NAME = 'alby-hub-panel';
 const STATIC_BASE_PATH = '/alby_hub_local';
 
@@ -235,6 +235,45 @@ const TRANSLATIONS = {
       copyBtn: '📋 YAML kopieren',
       copied: '✅ Kopiert!',
       placeholder: 'Formular ausfüllen und auf "⚡ YAML generieren" klicken…',
+      haHint: '💡 <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> → einfügen → speichern.',
+    },
+    nostrAutoExamples: {
+      notifyTitle: '🤖 Nostr Automationen – Benachrichtigungen (Beispiele)',
+      controlTitle: '🤖 Nostr Automationen – 2-Wege Steuerung (Beispiele)',
+      intro: 'Beispiel auswählen → 📋 Kopieren → in HA unter <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> einfügen → anpassen → speichern.',
+      copy: '📋 Kopieren',
+      copied: '✅ Kopiert!',
+    },
+    nostrAutoBuilder: {
+      title: '⚙️ Nostr Automatisierungs-Generator',
+      intro: 'Felder ausfüllen → YAML generieren → kopieren → in HA-Automatisierungseditor einfügen.',
+      direction: 'Richtung',
+      dirNotify: 'Benachrichtigung senden (Nostr DM)',
+      dirControl: 'Auf Nostr-Befehl reagieren (2-Wege)',
+      triggerType: 'Auslöser-Typ',
+      trigStateOn: 'Entität wird eingeschaltet (→ on)',
+      trigStateOff: 'Entität wird ausgeschaltet (→ off)',
+      trigThreshAbove: 'Sensorwert überschreitet Grenzwert',
+      trigBalanceIncrease: 'Lightning-Balance steigt (Zahlung empfangen)',
+      trigNostrCommand: 'Nostr-Befehl empfangen',
+      trigEntityId: 'Entitäts-ID des Auslösers',
+      trigThreshold: 'Grenzwert',
+      trigCommandFilter: 'Befehlsfilter (optional, leer = alle)',
+      trigCommandFilterPlaceholder: 'z.B. STATUS oder leer lassen',
+      actionType: 'Aktion',
+      actSendNostr: 'Nostr-Benachrichtigung senden',
+      actTurnOn: 'Entität einschalten',
+      actTurnOff: 'Entität ausschalten',
+      actNostrAndToggle: 'Nostr senden + Entität schalten',
+      targetNpub: 'Ziel-npub (leer = alle Whitelist-npubs)',
+      targetNpubPlaceholder: 'npub1… oder leer lassen',
+      nostrMsg: 'Nostr-Nachricht',
+      nostrMsgPlaceholder: 'Nachrichtentext eingeben…',
+      targetEntityId: 'Ziel-Entität (z.B. switch.licht)',
+      generateBtn: '🟣 YAML generieren',
+      copyBtn: '📋 YAML kopieren',
+      copied: '✅ Kopiert!',
+      placeholder: 'Formular ausfüllen und auf "🟣 YAML generieren" klicken…',
       haHint: '💡 <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> → einfügen → speichern.',
     },
     unavailable: 'nicht verfügbar',
@@ -531,6 +570,45 @@ const TRANSLATIONS = {
       placeholder: 'Fill in the form and click "⚡ Generate YAML"…',
       haHint: '💡 <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b> → paste → save.',
     },
+    nostrAutoExamples: {
+      notifyTitle: '🤖 Nostr Automations – Notifications (Examples)',
+      controlTitle: '🤖 Nostr Automations – 2-Way Control (Examples)',
+      intro: 'Choose an example → 📋 Copy → in HA go to <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b>, paste, adapt and save.',
+      copy: '📋 Copy',
+      copied: '✅ Copied!',
+    },
+    nostrAutoBuilder: {
+      title: '⚙️ Nostr Automation Generator',
+      intro: 'Fill in the fields → generate YAML → copy → paste into the HA automation editor.',
+      direction: 'Direction',
+      dirNotify: 'Send notification (Nostr DM)',
+      dirControl: 'React to Nostr command (2-way)',
+      triggerType: 'Trigger type',
+      trigStateOn: 'Entity is turned on (→ on)',
+      trigStateOff: 'Entity is turned off (→ off)',
+      trigThreshAbove: 'Sensor value exceeds threshold',
+      trigBalanceIncrease: 'Lightning balance increases (payment received)',
+      trigNostrCommand: 'Nostr command received',
+      trigEntityId: 'Trigger entity ID',
+      trigThreshold: 'Threshold value',
+      trigCommandFilter: 'Command filter (optional, empty = all)',
+      trigCommandFilterPlaceholder: 'e.g. STATUS or leave empty',
+      actionType: 'Action',
+      actSendNostr: 'Send Nostr notification',
+      actTurnOn: 'Turn entity on',
+      actTurnOff: 'Turn entity off',
+      actNostrAndToggle: 'Send Nostr + toggle entity',
+      targetNpub: 'Target npub (empty = all whitelisted npubs)',
+      targetNpubPlaceholder: 'npub1… or leave empty',
+      nostrMsg: 'Nostr message',
+      nostrMsgPlaceholder: 'Enter message text…',
+      targetEntityId: 'Target entity (e.g. switch.light)',
+      generateBtn: '🟣 Generate YAML',
+      copyBtn: '📋 Copy YAML',
+      copied: '✅ Copied!',
+      placeholder: 'Fill in the form and click "🟣 Generate YAML"…',
+      haHint: '💡 <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b> → paste → save.',
+    },
     unavailable: 'unavailable',
     addressBook: {
       title: 'Address Book',
@@ -728,6 +806,19 @@ class AlbyHubPanel extends HTMLElement {
     this._pendingNostrMsg = '';
     this._pendingTestNsec = '';
     this._pendingTestMsg = '';
+    // Nostr automation builder state
+    this._nostrAutoForm = {
+      direction: 'notify',
+      triggerType: 'state_on',
+      trigEntityId: '',
+      threshold: '100',
+      commandFilter: '',
+      actionType: 'send_nostr',
+      targetNpub: '',
+      nostrMsg: '',
+      targetEntityId: '',
+    };
+    this._nostrAutoYaml = '';
     // Address book tab state
     this._contacts = null;        // null = not loaded
     this._contactsLoading = false;
@@ -1709,7 +1800,11 @@ class AlbyHubPanel extends HTMLElement {
           </table>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${this._buildNostrAutoExamplesCard('notify')}
+    ${this._buildNostrAutoExamplesCard('control')}
+    ${this._buildNostrAutoBuilderCard()}
+    `;
   }
 
   // ── Row helper ───────────────────────────────────────────────────────────────
@@ -2094,10 +2189,443 @@ class AlbyHubPanel extends HTMLElement {
     </div>`;
   }
 
+  // ── Nostr Automation examples card ──────────────────────────────────────────
+
+  _buildNostrAutoExamplesCard(type) {
+    const t = (k) => this._t(`nostrAutoExamples.${k}`);
+    const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
+    const isDE = lang === 'de';
+    const title = type === 'notify' ? t('notifyTitle') : t('controlTitle');
+    const storeKey = `nostr_${type}`;
+
+    const examples = type === 'notify' ? [
+      {
+        desc: isDE
+          ? 'Wenn ein Bewegungssensor auslöst → Nostr-Benachrichtigung senden'
+          : 'When a motion sensor triggers → send Nostr notification',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Bewegung erkannt → Nostr-Benachrichtigung' : 'Alby Hub – Motion detected → Nostr notification'}"`,
+          `description: >`,
+          `  ${isDE ? 'Ersetze binary_sensor.bewegung durch deinen Bewegungssensor.' : 'Replace binary_sensor.motion with your motion sensor.'}`,
+          `trigger:`,
+          `  - platform: state`,
+          `    entity_id: ${isDE ? 'binary_sensor.bewegung' : 'binary_sensor.motion'}`,
+          `    to: "on"`,
+          `action:`,
+          `  - action: notify.alby_hub_nostr_bot`,
+          `    data:`,
+          `      title: "${isDE ? '🚨 Bewegung erkannt' : '🚨 Motion detected'}"`,
+          `      message: >`,
+          `        ${isDE ? 'Bewegungsmelder ausgelöst um' : 'Motion sensor triggered at'}`,
+          `        {{ now().strftime('%H:%M:%S') }}`,
+          `mode: single`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Wenn eine Lightning-Zahlung empfangen wird → Nostr-Benachrichtigung senden'
+          : 'When a Lightning payment is received → send Nostr notification',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Zahlung empfangen → Nostr-Benachrichtigung' : 'Alby Hub – Payment received → Nostr notification'}"`,
+          `description: >`,
+          `  ${isDE ? 'Sendet eine Nostr-DM wenn die Lightning-Balance steigt.' : 'Sends a Nostr DM when the Lightning balance increases.'}`,
+          `trigger:`,
+          `  - platform: state`,
+          `    entity_id: sensor.alby_hub_lightning_balance`,
+          `condition:`,
+          `  - condition: template`,
+          `    value_template: >`,
+          `      {{ trigger.to_state.state | int(0) >`,
+          `         trigger.from_state.state | int(0) }}`,
+          `action:`,
+          `  - action: notify.alby_hub_nostr_bot`,
+          `    data:`,
+          `      title: "⚡ ${isDE ? 'Zahlung empfangen' : 'Payment received'}"`,
+          `      message: >`,
+          `        ${isDE ? 'Neue Balance' : 'New balance'}: {{ states('sensor.alby_hub_lightning_balance') }} sat`,
+          `mode: single`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Täglicher Morgenstatus per Nostr-Nachricht'
+          : 'Daily morning status via Nostr message',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Täglicher Morgenstatus via Nostr' : 'Alby Hub – Daily morning status via Nostr'}"`,
+          `description: >`,
+          `  ${isDE ? 'Sendet jeden Morgen um 08:00 Uhr den aktuellen Balance-Status.' : 'Sends the current balance status every morning at 08:00.'}`,
+          `trigger:`,
+          `  - platform: time`,
+          `    at: "08:00:00"`,
+          `action:`,
+          `  - action: notify.alby_hub_nostr_bot`,
+          `    data:`,
+          `      title: "📊 ${isDE ? 'Home Assistant Status' : 'Home Assistant Status'}"`,
+          `      message: >`,
+          `        ⚡ Lightning: {{ states('sensor.alby_hub_lightning_balance') }} sat`,
+          `        | ${isDE ? 'Preis' : 'Price'}: {{ states('sensor.alby_hub_bitcoin_price') }} €`,
+          `mode: single`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Sensor-Grenzwert überschritten → Nostr-Alarm senden'
+          : 'Sensor threshold exceeded → send Nostr alert',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Grenzwert → Nostr-Alarm' : 'Alby Hub – Threshold → Nostr alert'}"`,
+          `description: >`,
+          `  ${isDE ? 'Ersetze sensor.temperatur und Grenzwert 30 durch eigene Werte.' : 'Replace sensor.temperature and threshold 30 with your own values.'}`,
+          `trigger:`,
+          `  - platform: numeric_state`,
+          `    entity_id: ${isDE ? 'sensor.temperatur' : 'sensor.temperature'}`,
+          `    above: 30`,
+          `action:`,
+          `  - action: notify.alby_hub_nostr_bot`,
+          `    data:`,
+          `      title: "🌡️ ${isDE ? 'Temperaturalarm' : 'Temperature alert'}"`,
+          `      message: >`,
+          `        ${isDE ? 'Temperatur zu hoch' : 'Temperature too high'}:`,
+          `        {{ states('${isDE ? 'sensor.temperatur' : 'sensor.temperature'}') }}°C`,
+          `mode: single`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Nostr-Nachricht an bestimmten Kontakt senden (Dienst direkt)'
+          : 'Send Nostr message to specific contact (service directly)',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Alarm → Nostr-Nachricht an Kontakt' : 'Alby Hub – Alert → Nostr message to contact'}"`,
+          `description: >`,
+          `  ${isDE ? 'Nutzt alby_hub.nostr_send_bot_message um eine bestimmte npub anzusprechen.' : 'Uses alby_hub.nostr_send_bot_message to target a specific npub.'}`,
+          `trigger:`,
+          `  - platform: state`,
+          `    entity_id: ${isDE ? 'binary_sensor.haustuer' : 'binary_sensor.front_door'}`,
+          `    to: "on"`,
+          `action:`,
+          `  - action: alby_hub.nostr_send_bot_message`,
+          `    data:`,
+          `      target_npub: "npub1XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"`,
+          `      message: >`,
+          `        🚪 ${isDE ? 'Haustür geöffnet um' : 'Front door opened at'}`,
+          `        {{ now().strftime('%H:%M') }}`,
+          `mode: single`,
+        ].join('\n'),
+      },
+    ] : [
+      {
+        desc: isDE
+          ? 'Nostr-Befehl empfangen → Licht einschalten'
+          : 'Nostr command received → turn on light',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Nostr-Befehl → Licht einschalten' : 'Alby Hub – Nostr command → turn on light'}"`,
+          `description: >`,
+          `  ${isDE ? 'Reagiert auf eingehende Nostr-DM mit dem Text "LICHT AN".' : 'Reacts to incoming Nostr DM with the text "LIGHTS ON".'}`,
+          `trigger:`,
+          `  - platform: event`,
+          `    event_type: alby_hub_nostr_webhook_command`,
+          `    event_data:`,
+          `      message: "${isDE ? 'LICHT AN' : 'LIGHTS ON'}"`,
+          `action:`,
+          `  - action: light.turn_on`,
+          `    target:`,
+          `      entity_id: ${isDE ? 'light.wohnzimmer' : 'light.living_room'}`,
+          `  - action: alby_hub.nostr_send_bot_message`,
+          `    data:`,
+          `      target_npub: "{{ trigger.event.data.sender }}"`,
+          `      message: "✅ ${isDE ? 'Licht eingeschaltet!' : 'Light turned on!'}"`,
+          `mode: single`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Nostr-Statusabfrage → Balance zurücksenden'
+          : 'Nostr status query → reply with balance',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Nostr STATUS → Balance antworten' : 'Alby Hub – Nostr STATUS → reply with balance'}"`,
+          `description: >`,
+          `  ${isDE ? 'Sendet auf "STATUS" die aktuelle Balance zurück.' : 'Replies to "STATUS" with the current balance.'}`,
+          `trigger:`,
+          `  - platform: event`,
+          `    event_type: alby_hub_nostr_webhook_command`,
+          `    event_data:`,
+          `      message: "STATUS"`,
+          `action:`,
+          `  - action: alby_hub.nostr_send_bot_message`,
+          `    data:`,
+          `      target_npub: "{{ trigger.event.data.sender }}"`,
+          `      message: >`,
+          `        📊 Status:`,
+          `        ⚡ {{ states('sensor.alby_hub_lightning_balance') }} sat`,
+          `        | ₿ {{ states('sensor.alby_hub_bitcoin_price') }} EUR`,
+          `        | 🏠 HA {{ now().strftime('%Y-%m-%d %H:%M') }}`,
+          `mode: queued`,
+          `max: 5`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Beliebigen Nostr-Befehl empfangen → Script ausführen'
+          : 'Receive any Nostr command → run a script',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Nostr-Befehl → Script ausführen' : 'Alby Hub – Nostr command → run script'}"`,
+          `description: >`,
+          `  ${isDE ? 'Alle eingehenden Nostr-Befehle lösen das Script aus.' : 'All incoming Nostr commands trigger the script.'}`,
+          `trigger:`,
+          `  - platform: event`,
+          `    event_type: alby_hub_nostr_webhook_command`,
+          `action:`,
+          `  - variables:`,
+          `      cmd: "{{ trigger.event.data.message | upper }}"`,
+          `      sender: "{{ trigger.event.data.sender }}"`,
+          `  - choose:`,
+          `      - conditions:`,
+          `          - condition: template`,
+          `            value_template: "{{ cmd == '${isDE ? 'AN' : 'ON'}' }}"`,
+          `        sequence:`,
+          `          - action: switch.turn_on`,
+          `            target:`,
+          `              entity_id: ${isDE ? 'switch.hauptschalter' : 'switch.main_switch'}`,
+          `          - action: alby_hub.nostr_send_bot_message`,
+          `            data:`,
+          `              target_npub: "{{ sender }}"`,
+          `              message: "✅ ${isDE ? 'Eingeschaltet!' : 'Turned on!'}"`,
+          `      - conditions:`,
+          `          - condition: template`,
+          `            value_template: "{{ cmd == '${isDE ? 'AUS' : 'OFF'}' }}"`,
+          `        sequence:`,
+          `          - action: switch.turn_off`,
+          `            target:`,
+          `              entity_id: ${isDE ? 'switch.hauptschalter' : 'switch.main_switch'}`,
+          `          - action: alby_hub.nostr_send_bot_message`,
+          `            data:`,
+          `              target_npub: "{{ sender }}"`,
+          `              message: "✅ ${isDE ? 'Ausgeschaltet!' : 'Turned off!'}"`,
+          `    default:`,
+          `      - action: alby_hub.nostr_send_bot_message`,
+          `        data:`,
+          `          target_npub: "{{ sender }}"`,
+          `          message: "❓ ${isDE ? 'Unbekannter Befehl' : 'Unknown command'}: {{ cmd }}"`,
+          `mode: queued`,
+          `max: 10`,
+        ].join('\n'),
+      },
+      {
+        desc: isDE
+          ? 'Nostr-Befehl mit Authentifizierung (nur bekannte Sender)'
+          : 'Nostr command with sender verification (known senders only)',
+        yaml: [
+          `alias: "${isDE ? 'Alby Hub – Nostr gesicherter Befehl' : 'Alby Hub – Nostr secured command'}"`,
+          `description: >`,
+          `  ${isDE ? 'Befehl nur ausführen wenn Sender in der Whitelist ist.' : 'Only execute command if sender is in the allowed list.'}`,
+          `trigger:`,
+          `  - platform: event`,
+          `    event_type: alby_hub_nostr_webhook_command`,
+          `condition:`,
+          `  - condition: template`,
+          `    value_template: >`,
+          `      {{ trigger.event.data.sender in`,
+          `         ['npub1AAAA…', 'npub1BBBB…'] }}`,
+          `action:`,
+          `  - action: script.${isDE ? 'haus_steuerung' : 'home_control'}`,
+          `    data:`,
+          `      command: "{{ trigger.event.data.message }}"`,
+          `      sender: "{{ trigger.event.data.sender }}"`,
+          `mode: queued`,
+          `max: 5`,
+        ].join('\n'),
+      },
+    ];
+
+    if (!this._nostrAutoExamplesStore) this._nostrAutoExamplesStore = {};
+    this._nostrAutoExamplesStore[type] = examples;
+
+    const cards = examples.map((ex, idx) => `
+      <div class="auto-example">
+        <div class="auto-example-desc">${this._esc(ex.desc)}</div>
+        <pre class="auto-yaml"><code>${this._esc(ex.yaml)}</code></pre>
+        <button class="filter-btn copy-nostr-example-btn" data-type="${type}" data-idx="${idx}">${t('copy')}</button>
+      </div>`).join('');
+
+    return `<div class="card">
+      <div class="card-title">${title}</div>
+      <p class="muted" style="font-size:0.8rem">${t('intro')}</p>
+      ${cards}
+    </div>`;
+  }
+
+  // ── Nostr Automation builder card ────────────────────────────────────────────
+
+  _buildNostrAutoBuilderCard() {
+    const t = (k) => this._t(`nostrAutoBuilder.${k}`);
+    const f = this._nostrAutoForm;
+    const isNotify  = f.direction === 'notify';
+    const isControl = f.direction === 'control';
+    const isStateOn   = f.triggerType === 'state_on';
+    const isStateOff  = f.triggerType === 'state_off';
+    const isAbove     = f.triggerType === 'thresh_above';
+    const isBalance   = f.triggerType === 'balance_increase';
+    const isCommand   = f.triggerType === 'nostr_command';
+    const isSendNostr = f.actionType === 'send_nostr';
+    const isToggle    = f.actionType === 'nostr_and_toggle';
+
+    const triggerFields = isNotify ? `
+      <div class="field">
+        <label>${t('triggerType')}</label>
+        <select class="inp" id="nab-trig-type">
+          <option value="state_on"          ${isStateOn  ? 'selected' : ''}>${t('trigStateOn')}</option>
+          <option value="state_off"         ${isStateOff ? 'selected' : ''}>${t('trigStateOff')}</option>
+          <option value="thresh_above"      ${isAbove    ? 'selected' : ''}>${t('trigThreshAbove')}</option>
+          <option value="balance_increase"  ${isBalance  ? 'selected' : ''}>${t('trigBalanceIncrease')}</option>
+        </select>
+      </div>
+      ${(isStateOn || isStateOff) ? `
+      <div class="field">
+        <label>${t('trigEntityId')}</label>
+        <input type="text" class="inp" id="nab-trig-entity" placeholder="${isStateOn ? 'binary_sensor.motion' : 'switch.your_switch'}" value="${this._esc(f.trigEntityId)}">
+      </div>` : ''}
+      ${isAbove ? `
+      <div class="field">
+        <label>${t('trigEntityId')}</label>
+        <input type="text" class="inp" id="nab-trig-entity" placeholder="sensor.temperature" value="${this._esc(f.trigEntityId)}">
+      </div>
+      <div class="field">
+        <label>${t('trigThreshold')}</label>
+        <input type="number" class="inp" id="nab-threshold" value="${this._esc(f.threshold)}">
+      </div>` : ''}
+    ` : `
+      <div class="field">
+        <label>${t('triggerType')}</label>
+        <select class="inp" id="nab-trig-type" disabled>
+          <option value="nostr_command" selected>${t('trigNostrCommand')}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>${t('trigCommandFilter')}</label>
+        <input type="text" class="inp" id="nab-cmd-filter" placeholder="${t('trigCommandFilterPlaceholder')}" value="${this._esc(f.commandFilter)}">
+      </div>
+    `;
+
+    const actionFields = `
+      <div class="field">
+        <label>${t('actionType')}</label>
+        <select class="inp" id="nab-action-type">
+          <option value="send_nostr"       ${isSendNostr ? 'selected' : ''}>${t('actSendNostr')}</option>
+          <option value="turn_on"          ${f.actionType === 'turn_on'  ? 'selected' : ''}>${t('actTurnOn')}</option>
+          <option value="turn_off"         ${f.actionType === 'turn_off' ? 'selected' : ''}>${t('actTurnOff')}</option>
+          <option value="nostr_and_toggle" ${isToggle ? 'selected' : ''}>${t('actNostrAndToggle')}</option>
+        </select>
+      </div>
+      ${(isSendNostr || isToggle) ? `
+      <div class="field">
+        <label>${t('nostrMsg')}</label>
+        <input type="text" class="inp" id="nab-nostr-msg" placeholder="${t('nostrMsgPlaceholder')}" value="${this._esc(f.nostrMsg)}">
+      </div>` : ''}
+      ${(isSendNostr && isNotify) ? `
+      <div class="field">
+        <label>${t('targetNpub')}</label>
+        <input type="text" class="inp mono" id="nab-target-npub" placeholder="${t('targetNpubPlaceholder')}" value="${this._esc(f.targetNpub)}">
+      </div>` : ''}
+      ${(f.actionType === 'turn_on' || f.actionType === 'turn_off' || isToggle) ? `
+      <div class="field">
+        <label>${t('targetEntityId')}</label>
+        <input type="text" class="inp" id="nab-target-entity" placeholder="${isDE ? 'light.wohnzimmer' : 'light.living_room'}" value="${this._esc(f.targetEntityId)}">
+      </div>` : ''}
+    `;
+
+    const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
+    const isDE = lang === 'de';
+
+    const yamlBlock = this._nostrAutoYaml
+      ? `<pre class="auto-yaml" style="margin-top:10px"><code>${this._esc(this._nostrAutoYaml)}</code></pre>
+         <button class="filter-btn" id="nab-copy-btn" style="margin-top:6px;width:100%">${t('copyBtn')}</button>`
+      : `<p class="muted" style="font-size:0.8rem;margin-top:8px">${t('placeholder')}</p>`;
+
+    return `<div class="card">
+      <div class="card-title">${t('title')}</div>
+      <p class="muted" style="font-size:0.8rem">${t('intro')}</p>
+      <div class="field">
+        <label>${t('direction')}</label>
+        <select class="inp" id="nab-direction">
+          <option value="notify"  ${isNotify  ? 'selected' : ''}>${t('dirNotify')}</option>
+          <option value="control" ${isControl ? 'selected' : ''}>${t('dirControl')}</option>
+        </select>
+      </div>
+      ${triggerFields}
+      ${actionFields}
+      <button class="btn" id="nab-generate-btn" style="margin-top:4px">${t('generateBtn')}</button>
+      ${yamlBlock}
+      <p class="muted" style="font-size:0.73rem;margin-top:10px">${t('haHint')}</p>
+    </div>`;
+  }
+
+  _generateNostrAutomationYaml() {
+    const f    = this._nostrAutoForm;
+    const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
+    const isDE = lang === 'de';
+    const isNotify = f.direction === 'notify';
+
+    // ── Trigger ──────────────────────────────────────────────────────────────
+    let triggerBlock = '';
+    if (!isNotify) {
+      // Control: react to incoming nostr command
+      const cmdFilter = (f.commandFilter || '').trim();
+      triggerBlock = cmdFilter
+        ? `trigger:\n  - platform: event\n    event_type: alby_hub_nostr_webhook_command\n    event_data:\n      message: "${cmdFilter}"`
+        : `trigger:\n  - platform: event\n    event_type: alby_hub_nostr_webhook_command`;
+    } else if (f.triggerType === 'state_on') {
+      triggerBlock = `trigger:\n  - platform: state\n    entity_id: ${f.trigEntityId || 'binary_sensor.your_sensor'}\n    to: "on"`;
+    } else if (f.triggerType === 'state_off') {
+      triggerBlock = `trigger:\n  - platform: state\n    entity_id: ${f.trigEntityId || 'switch.your_switch'}\n    to: "off"`;
+    } else if (f.triggerType === 'thresh_above') {
+      triggerBlock = `trigger:\n  - platform: numeric_state\n    entity_id: ${f.trigEntityId || 'sensor.your_sensor'}\n    above: ${f.threshold || '100'}`;
+    } else {
+      // balance_increase
+      triggerBlock = `trigger:\n  - platform: state\n    entity_id: sensor.alby_hub_lightning_balance\ncondition:\n  - condition: template\n    value_template: >\n      {{ trigger.to_state.state | int(0) >\n         trigger.from_state.state | int(0) }}`;
+    }
+
+    // ── Action ───────────────────────────────────────────────────────────────
+    const msg = f.nostrMsg || (isDE ? '🏠 Home Assistant Benachrichtigung' : '🏠 Home Assistant notification');
+    let action = '';
+
+    if (f.actionType === 'send_nostr') {
+      if (isNotify && f.targetNpub.trim()) {
+        action = `action:\n  - action: alby_hub.nostr_send_bot_message\n    data:\n      target_npub: "${f.targetNpub.trim()}"\n      message: "${msg}"`;
+      } else if (isNotify) {
+        action = `action:\n  - action: notify.alby_hub_nostr_bot\n    data:\n      message: "${msg}"`;
+      } else {
+        action = `action:\n  - action: alby_hub.nostr_send_bot_message\n    data:\n      target_npub: "{{ trigger.event.data.sender }}"\n      message: "${msg}"`;
+      }
+    } else if (f.actionType === 'turn_on') {
+      action = `action:\n  - action: switch.turn_on\n    target:\n      entity_id: ${f.targetEntityId || 'switch.your_entity'}`;
+    } else if (f.actionType === 'turn_off') {
+      action = `action:\n  - action: switch.turn_off\n    target:\n      entity_id: ${f.targetEntityId || 'switch.your_entity'}`;
+    } else {
+      // nostr_and_toggle: toggle entity state + send nostr confirmation
+      const replyTarget = isNotify
+        ? (f.targetNpub.trim() ? `"${f.targetNpub.trim()}"` : `"npub1…"`)
+        : `"{{ trigger.event.data.sender }}"`;
+      action = [
+        `action:`,
+        `  - action: homeassistant.toggle`,
+        `    target:`,
+        `      entity_id: ${f.targetEntityId || 'switch.your_entity'}`,
+        `  - action: alby_hub.nostr_send_bot_message`,
+        `    data:`,
+        `      target_npub: ${replyTarget}`,
+        `      message: "${msg}"`,
+      ].join('\n');
+    }
+
+    const aliasStr = isNotify
+      ? (isDE ? 'Alby Hub – Nostr-Benachrichtigung senden' : 'Alby Hub – Send Nostr notification')
+      : (isDE ? 'Alby Hub – Nostr-Befehl empfangen' : 'Alby Hub – React to Nostr command');
+
+    return `alias: "${aliasStr}"\n${triggerBlock}\n${action}\nmode: single`;
+  }
+
   // ── Automation examples card ─────────────────────────────────────────────────
 
-  _buildAutoExamplesCard(direction) {
-    const t = (k) => this._t(`autoExamples.${k}`);
+  _buildAutoExamplesCard(direction) {    const t = (k) => this._t(`autoExamples.${k}`);
     const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
     const isDE = lang === 'de';
     const title = direction === 'receive' ? t('receiveTitle') : t('sendTitle');
@@ -3233,6 +3761,61 @@ class AlbyHubPanel extends HTMLElement {
           btn.disabled = false;
           btn.textContent = origText;
         });
+      });
+    });
+
+    // ── Nostr automation builder listeners ──────────────────────────────────
+
+    const bindNABField = (id, key, rerenderOnChange = false) => {
+      const el = root.querySelector(`#${id}`);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        this._nostrAutoForm[key] = el.value;
+        if (rerenderOnChange) { this._nostrAutoYaml = ''; this._updateContent(); }
+      });
+      el.addEventListener('input', () => { this._nostrAutoForm[key] = el.value; });
+    };
+    bindNABField('nab-direction',     'direction', true);
+    bindNABField('nab-trig-type',     'triggerType', true);
+    bindNABField('nab-trig-entity',   'trigEntityId');
+    bindNABField('nab-threshold',     'threshold');
+    bindNABField('nab-cmd-filter',    'commandFilter');
+    bindNABField('nab-action-type',   'actionType', true);
+    bindNABField('nab-nostr-msg',     'nostrMsg');
+    bindNABField('nab-target-npub',   'targetNpub');
+    bindNABField('nab-target-entity', 'targetEntityId');
+
+    root.querySelectorAll('#nab-generate-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._nostrAutoYaml = this._generateNostrAutomationYaml();
+        this._updateContent();
+      });
+    });
+
+    root.querySelectorAll('#nab-copy-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (!this._nostrAutoYaml) return;
+        const origText = btn.textContent;
+        navigator.clipboard.writeText(this._nostrAutoYaml).then(() => {
+          btn.textContent = this._t('nostrAutoBuilder.copied');
+          setTimeout(() => { btn.textContent = origText; }, 2000);
+        }).catch(() => { btn.textContent = origText; });
+      });
+    });
+
+    // ── Copy Nostr automation example buttons ────────────────────────────────
+
+    root.querySelectorAll('.copy-nostr-example-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        const idx  = parseInt(btn.dataset.idx, 10);
+        const yaml = this._nostrAutoExamplesStore?.[type]?.[idx]?.yaml;
+        if (!yaml) return;
+        const origText = btn.textContent;
+        navigator.clipboard.writeText(yaml).then(() => {
+          btn.textContent = this._t('nostrAutoExamples.copied');
+          setTimeout(() => { btn.textContent = origText; }, 2000);
+        }).catch(() => { btn.textContent = origText; });
       });
     });
 
