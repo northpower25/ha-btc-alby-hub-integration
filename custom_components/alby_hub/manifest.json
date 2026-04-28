@@ -1,6 +1,6 @@
 {
   "domain": "alby_hub",
-  "name": "Alby Hub",
+  "name": "Alby Hub and Nostr bot Integration",
   "codeowners": [
     "@northpower25"
   ],
