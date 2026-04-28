@@ -155,6 +155,7 @@ const TRANSLATIONS = {
       listenerInactive: 'Inaktiv',
       targetNpub: 'Ziel NPUB',
       targetNpubPlaceholder: 'npub1...',
+      npubEmpty: 'Keine Kontakte mit Nostr-Pubkey vorhanden',
       message: 'Nachricht',
       messagePlaceholder: 'Nachricht eingeben…',
       sendBtn: '🔐 Als Bot senden',
@@ -499,6 +500,7 @@ const TRANSLATIONS = {
       listenerInactive: 'Inactive',
       targetNpub: 'Target NPUB',
       targetNpubPlaceholder: 'npub1...',
+      npubEmpty: 'No contacts with a Nostr pubkey found',
       message: 'Message',
       messagePlaceholder: 'Enter message…',
       sendBtn: '🔐 Send as bot',
@@ -1773,16 +1775,8 @@ class AlbyHubPanel extends HTMLElement {
           </tr>`;
         }).join('');
 
-    // Build datalist for address book lookup in the target field
-    const contactOptions = Array.isArray(this._contacts)
-      ? this._contacts
-          .filter((c) => c.nostr_pubkey)
-          .map((c) => {
-            const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || c.nostr_alias || '';
-            return `<option value="${this._esc(c.nostr_pubkey)}">${this._esc(name ? name + ' – ' + c.nostr_pubkey.slice(0, 16) + '…' : c.nostr_pubkey)}</option>`;
-          })
-          .join('')
-      : '';
+    // Build contact list for the searchable target NPUB picker
+    const contactsWithNpub = (this._contacts || []).filter((c) => c.nostr_pubkey);
 
     return `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(420px,1fr))">
       <div class="card">
@@ -1797,8 +1791,14 @@ class AlbyHubPanel extends HTMLElement {
         ${plaintextWarning}
         <div class="field">
           <label>${t('targetNpub')}</label>
-          <input type="text" class="inp mono" id="nostr-target" placeholder="${t('targetNpubPlaceholder')}" value="${this._esc(this._pendingNostrTarget)}" list="nostr-ab-contacts" autocomplete="off">
-          <datalist id="nostr-ab-contacts">${contactOptions}</datalist>
+          <div class="srch-pick" data-picker-id="nostr-target">
+            <input type="text" class="inp mono srch-pick-input" id="nostr-target"
+              placeholder="${t('targetNpubPlaceholder')}"
+              value="${this._esc(this._pendingNostrTarget)}" autocomplete="off">
+            <div class="srch-pick-drop">
+              ${this._buildContactPickerOptions(contactsWithNpub, 'npub', t('npubEmpty'))}
+            </div>
+          </div>
         </div>
         <div class="field">
           <label>${t('message')}</label>
