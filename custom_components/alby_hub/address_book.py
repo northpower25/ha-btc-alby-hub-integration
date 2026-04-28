@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -58,6 +59,7 @@ class AddressBook:
             STORAGE_KEY_ADDRESS_BOOK,
         )
         self._contacts: list[dict[str, Any]] = []
+        self._listeners: list[Callable[[], None]] = []
 
     # ── lifecycle ──────────────────────────────────────────────────────────────
 
@@ -66,6 +68,28 @@ class AddressBook:
         data = await self._store.async_load() or {}
         self._contacts = data.get("contacts", [])
         _LOGGER.debug("Loaded %d address book contact(s)", len(self._contacts))
+
+    # ── listener management ────────────────────────────────────────────────────
+
+    def register_listener(self, callback: Callable[[], None]) -> None:
+        """Register a callback to be invoked after any contact change."""
+        if callback not in self._listeners:
+            self._listeners.append(callback)
+
+    def unregister_listener(self, callback: Callable[[], None]) -> None:
+        """Remove a previously registered listener."""
+        try:
+            self._listeners.remove(callback)
+        except ValueError:
+            pass
+
+    def _notify_listeners(self) -> None:
+        """Call all registered change listeners."""
+        for cb in list(self._listeners):
+            try:
+                cb()
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("Address book listener raised an exception", exc_info=True)
 
     # ── public CRUD API ────────────────────────────────────────────────────────
 
@@ -81,6 +105,7 @@ class AddressBook:
         contact["tags"] = [str(t).strip() for t in (params.get("tags") or []) if str(t).strip()]
         self._contacts.append(contact)
         await self._save()
+        self._notify_listeners()
         _LOGGER.info(
             "Created address book contact '%s %s'",
             contact["first_name"],
@@ -117,6 +142,7 @@ class AddressBook:
             updated["updated_at"] = _now_iso()
             self._contacts[i] = updated
             await self._save()
+            self._notify_listeners()
             _LOGGER.info(
                 "Updated address book contact '%s %s'",
                 updated["first_name"],
@@ -132,6 +158,7 @@ class AddressBook:
         if len(self._contacts) == before:
             return False
         await self._save()
+        self._notify_listeners()
         return True
 
     # ── private helpers ────────────────────────────────────────────────────────

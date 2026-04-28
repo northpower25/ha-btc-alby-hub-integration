@@ -58,6 +58,7 @@ send_payment:
     If payment_request is omitted, the value from text.alby_hub_invoice_input is used automatically.
     After successful payment the invoice_input entity is cleared.
     For Lightning address payments (user@domain.com), provide amount_sat, amount_btc, or amount_fiat.
+    Alternatively, use recipient_entity to select a contact directly from the address book.
   fields:
     config_entry_id:
       required: false
@@ -69,6 +70,16 @@ send_payment:
       description: BOLT11 payment request string or Lightning address. If omitted, read from invoice_input text entity.
       selector:
         text:
+    recipient_entity:
+      required: false
+      description: >
+        Optional: select a Lightning contact entity from the address book
+        (e.g. select.alby_hub_lightning_contact). The entity's current state
+        (or its 'address' attribute) is used as the payment target.
+        Takes precedence over payment_request when provided.
+      selector:
+        entity:
+          domain: select
     amount_sat:
       required: false
       description: Amount in satoshis (for Lightning address payments).
@@ -129,6 +140,7 @@ schedule_payment:
     The recipient must be a BOLT11 invoice (static) or Lightning address.
     Supports daily, weekly, monthly, and quarterly intervals with configurable
     start and end dates.
+    Alternatively, use recipient_entity to select a contact directly from the address book.
   fields:
     config_entry_id:
       required: false
@@ -136,11 +148,22 @@ schedule_payment:
       selector:
         text:
     recipient:
-      required: true
+      required: false
       description: >
         BOLT11 invoice string or Lightning address (user@domain.com) to pay.
+        Required when recipient_entity is not provided.
       selector:
         text:
+    recipient_entity:
+      required: false
+      description: >
+        Optional: select a Lightning contact entity from the address book
+        (e.g. select.alby_hub_lightning_contact). The entity's current state
+        (or its 'address' attribute) is used as the recipient.
+        Takes precedence over the recipient field when provided.
+      selector:
+        entity:
+          domain: select
     amount_sat:
       required: true
       description: Amount in satoshis to send on each occurrence.
@@ -254,6 +277,15 @@ update_scheduled_payment:
       description: New recipient (BOLT11 or Lightning address).
       selector:
         text:
+    recipient_entity:
+      required: false
+      description: >
+        Optional: select a Lightning contact entity from the address book
+        (e.g. select.alby_hub_lightning_contact) to update the recipient.
+        Takes precedence over the recipient field when provided.
+      selector:
+        entity:
+          domain: select
     amount_sat:
       required: false
       description: New amount in satoshis.
@@ -350,6 +382,7 @@ nostr_send_bot_message:
     The encryption method (NIP-04, NIP-44, both, or plaintext) is determined by
     the 'nostr_encryption_mode' setting configured in the integration options.
     NIP-04 (default) offers maximum compatibility with Damus, Primal, WhiteNoise, and Oxchat.
+    Alternatively, use target_entity to select a Nostr contact from the address book.
   fields:
     config_entry_id:
       required: false
@@ -357,10 +390,20 @@ nostr_send_bot_message:
       selector:
         text:
     target_npub:
-      required: true
-      description: Recipient npub (must be in whitelist).
+      required: false
+      description: Recipient npub (must be in whitelist). Required when target_entity is not provided.
       selector:
         text:
+    target_entity:
+      required: false
+      description: >
+        Optional: select a Nostr contact entity from the address book
+        (e.g. select.alby_hub_nostr_contact). The entity's current state
+        (or its 'address' attribute) is used as the target npub.
+        Takes precedence over target_npub when provided.
+      selector:
+        entity:
+          domain: select
     message:
       required: true
       description: Message text to send.

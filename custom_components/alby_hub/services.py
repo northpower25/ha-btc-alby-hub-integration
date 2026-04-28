@@ -43,9 +43,30 @@ from .helpers import AlbyHubRuntime, is_lightning_address
 from .nwc_client import async_nwc_request
 from .recurring_payments import VALID_FREQUENCIES, get_scheduler
 from .address_book import CONTACT_STRING_FIELDS, get_address_book
+from .select import extract_address_from_option
 
 _LOGGER = logging.getLogger(__name__)
 _MSATS_PER_SAT = 1000
+
+
+def _resolve_entity_address(hass: HomeAssistant, entity_id: str) -> str:
+    """Resolve a select entity_id to the raw address/pubkey value.
+
+    First checks the ``address`` state attribute (populated by the contact
+    select entities), then falls back to the entity's plain state string.
+    Returns an empty string when the entity cannot be found.
+    """
+    state = hass.states.get(entity_id)
+    if state is None:
+        _LOGGER.warning("Entity '%s' not found – ignoring recipient_entity / target_entity", entity_id)
+        return ""
+    # Prefer the 'address' attribute set by AlbyHubLightningContactSelect / AlbyHubNostrContactSelect
+    address = state.attributes.get("address", "")
+    if address:
+        return str(address).strip()
+    # Fall back to entity state (handles generic select entities or sensors)
+    raw = state.state or ""
+    return extract_address_from_option(raw)
 
 SERVICE_CREATE_INVOICE_SCHEMA = vol.Schema(
     {
@@ -63,6 +84,7 @@ SERVICE_SEND_PAYMENT_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
         vol.Optional("payment_request"): cv.string,
+        vol.Optional("recipient_entity"): cv.string,
         vol.Optional("amount_sat"): vol.All(vol.Coerce(int), vol.Range(min=1)),
         vol.Optional("amount_btc"): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional("amount_fiat"): vol.All(vol.Coerce(float), vol.Range(min=0)),
@@ -81,7 +103,8 @@ SERVICE_LIST_TRANSACTIONS_SCHEMA = vol.Schema(
 SERVICE_SCHEDULE_PAYMENT_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
-        vol.Required("recipient"): cv.string,
+        vol.Optional("recipient"): cv.string,
+        vol.Optional("recipient_entity"): cv.string,
         vol.Required("amount_sat"): vol.All(vol.Coerce(int), vol.Range(min=1)),
         vol.Optional("label"): cv.string,
         vol.Optional("memo"): cv.string,
@@ -111,6 +134,7 @@ SERVICE_UPDATE_SCHEDULED_PAYMENT_SCHEMA = vol.Schema(
     {
         vol.Required("schedule_id"): cv.string,
         vol.Optional("recipient"): cv.string,
+        vol.Optional("recipient_entity"): cv.string,
         vol.Optional("amount_sat"): vol.All(vol.Coerce(int), vol.Range(min=1)),
         vol.Optional("label"): cv.string,
         vol.Optional("memo"): cv.string,
@@ -134,7 +158,8 @@ SERVICE_RUN_SCHEDULED_PAYMENT_NOW_SCHEMA = vol.Schema(
 SERVICE_NOSTR_SEND_BOT_MESSAGE_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
-        vol.Required("target_npub"): cv.string,
+        vol.Optional("target_npub"): cv.string,
+        vol.Optional("target_entity"): cv.string,
         vol.Required("message"): cv.string,
     }
 )
@@ -266,7 +291,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_send_payment(call: ServiceCall) -> ServiceResponse:
         runtime = _resolve_runtime(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
 
-        payment_request = call.data.get("payment_request") or ""
+        # recipient_entity takes precedence over payment_request
+        payment_request = ""
+        if recipient_entity_id := call.data.get("recipient_entity"):
+            payment_request = _resolve_entity_address(hass, recipient_entity_id)
+            if not payment_request:
+                raise ServiceValidationError(
+                    f"recipient_entity '{recipient_entity_id}' resolved to an empty address. "
+                    "Make sure the entity exists and has a contact selected."
+                )
+        if not payment_request:
+            payment_request = call.data.get("payment_request") or ""
         if not payment_request:
             invoice_input_entity = runtime.text_entities.get(TEXT_KEY_INVOICE_INPUT)
             if invoice_input_entity is not None:
@@ -393,8 +428,22 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if scheduler is None:
             raise HomeAssistantError("Scheduler not initialised")
         entry_id = call.data.get(ATTR_CONFIG_ENTRY_ID) or _default_entry_id(hass)
+        data = dict(call.data)
+        # Resolve recipient_entity → recipient
+        if recipient_entity_id := data.pop("recipient_entity", None):
+            resolved = _resolve_entity_address(hass, recipient_entity_id)
+            if not resolved:
+                raise ServiceValidationError(
+                    f"recipient_entity '{recipient_entity_id}' resolved to an empty address. "
+                    "Make sure the entity exists and has a contact selected."
+                )
+            data["recipient"] = resolved
+        if not data.get("recipient"):
+            raise ServiceValidationError(
+                "Either 'recipient' or 'recipient_entity' must be provided."
+            )
         try:
-            schedule = await scheduler.async_create(entry_id, dict(call.data))
+            schedule = await scheduler.async_create(entry_id, data)
         except (ValueError, KeyError) as err:
             raise ServiceValidationError(str(err)) from err
         return {"schedule": schedule}
@@ -446,6 +495,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise HomeAssistantError("Scheduler not initialised")
         schedule_id = call.data["schedule_id"]
         updates = {k: v for k, v in call.data.items() if k != "schedule_id"}
+        # Resolve recipient_entity → recipient
+        if recipient_entity_id := updates.pop("recipient_entity", None):
+            resolved = _resolve_entity_address(hass, recipient_entity_id)
+            if not resolved:
+                raise ServiceValidationError(
+                    f"recipient_entity '{recipient_entity_id}' resolved to an empty address. "
+                    "Make sure the entity exists and has a contact selected."
+                )
+            updates["recipient"] = resolved
         updated = await scheduler.async_update(schedule_id, updates)
         if updated is None:
             raise ServiceValidationError(f"Schedule '{schedule_id}' not found")
@@ -481,10 +539,22 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         manager = runtime.nostr_bot_manager
         if manager is None:
             raise ServiceValidationError("Nostr bot/client is not enabled for this entry")
-        target_npub = call.data["target_npub"].strip()
+        # target_entity takes precedence over target_npub
+        target_npub = ""
+        if target_entity_id := call.data.get("target_entity"):
+            target_npub = _resolve_entity_address(hass, target_entity_id)
+            if not target_npub:
+                raise ServiceValidationError(
+                    f"target_entity '{target_entity_id}' resolved to an empty npub. "
+                    "Make sure the entity exists and has a Nostr contact selected."
+                )
+        if not target_npub:
+            target_npub = (call.data.get("target_npub") or "").strip()
+        if not target_npub:
+            raise ServiceValidationError("Either 'target_npub' or 'target_entity' must be provided.")
         message = call.data["message"].strip()
-        if not target_npub or not message:
-            raise ServiceValidationError("target_npub and message are required")
+        if not message:
+            raise ServiceValidationError("message is required")
         try:
             event_id = await manager.async_send_bot_message(target_npub, message)
         except ValueError as err:
