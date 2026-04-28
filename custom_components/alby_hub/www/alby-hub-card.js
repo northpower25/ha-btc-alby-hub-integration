@@ -2600,14 +2600,13 @@ class AlbyHubPanel extends HTMLElement {
     } else if (f.actionType === 'turn_off') {
       action = `action:\n  - action: switch.turn_off\n    target:\n      entity_id: ${f.targetEntityId || 'switch.your_entity'}`;
     } else {
-      // nostr_and_toggle
-      const toggleAction = isDE ? 'switch.turn_on' : 'switch.turn_on';
+      // nostr_and_toggle: toggle entity state + send nostr confirmation
       const replyTarget = isNotify
         ? (f.targetNpub.trim() ? `"${f.targetNpub.trim()}"` : `"npub1…"`)
         : `"{{ trigger.event.data.sender }}"`;
       action = [
         `action:`,
-        `  - action: ${toggleAction}`,
+        `  - action: homeassistant.toggle`,
         `    target:`,
         `      entity_id: ${f.targetEntityId || 'switch.your_entity'}`,
         `  - action: alby_hub.nostr_send_bot_message`,

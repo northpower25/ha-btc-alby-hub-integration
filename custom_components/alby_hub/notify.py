@@ -92,7 +92,7 @@ class AlbyHubNostrNotifyEntity(AlbyHubCoordinatorEntity, NotifyEntity):
 
         full_message = f"{title}: {message}" if title else message
 
-        recipients = list(self._manager._allowed_npubs)
+        recipients = list(self._manager.allowed_npubs)
         if not recipients:
             _LOGGER.warning(
                 "Alby Hub notify: no whitelisted npubs configured – message not sent"
