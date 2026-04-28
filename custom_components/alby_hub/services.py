@@ -554,7 +554,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise ServiceValidationError("Either 'target_npub' or 'target_entity' must be provided.")
         message = call.data["message"].strip()
         if not message:
-            raise ServiceValidationError("target_npub and message are required")
+            raise ServiceValidationError("message is required")
         try:
             event_id = await manager.async_send_bot_message(target_npub, message)
         except ValueError as err:
