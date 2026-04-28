@@ -66,6 +66,9 @@ const TRANSLATIONS = {
       how3: 'Dann <b>Zahlung senden</b> drücken.',
       sendBtn: '➤ Zahlung senden',
       balanceTitle: 'Guthaben',
+      addrBookLabel: 'Aus Adressbuch auswählen',
+      addrBookSearch: 'Name, Vorname oder Lightning-Adresse suchen…',
+      addrBookEmpty: 'Keine Kontakte mit Lightning-Adresse vorhanden',
     },
     budget: {
       usageTitle: 'Budget-Nutzung',
@@ -236,6 +239,10 @@ const TRANSLATIONS = {
       copied: '✅ Kopiert!',
       placeholder: 'Formular ausfüllen und auf "⚡ YAML generieren" klicken…',
       haHint: '💡 <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> → einfügen → speichern.',
+      entitySearch: 'Entitäts-ID suchen…',
+      recipientFromBook: 'Aus Adressbuch auswählen',
+      recipientSearch: 'Name, Vorname oder Lightning-Adresse suchen…',
+      recipientEmpty: 'Keine Kontakte mit Lightning-Adresse vorhanden',
     },
     nostrAutoExamples: {
       notifyTitle: '🤖 Nostr Automationen – Benachrichtigungen (Beispiele)',
@@ -275,6 +282,10 @@ const TRANSLATIONS = {
       copied: '✅ Kopiert!',
       placeholder: 'Formular ausfüllen und auf "🟣 YAML generieren" klicken…',
       haHint: '💡 <b>Einstellungen → Automationen → + Automatisierung erstellen → ⋮ → YAML bearbeiten</b> → einfügen → speichern.',
+      entitySearch: 'Entitäts-ID suchen…',
+      npubFromBook: 'Aus Adressbuch auswählen',
+      npubSearch: 'Name, Vorname oder Nostr-Pubkey suchen…',
+      npubEmpty: 'Keine Kontakte mit Nostr-Pubkey vorhanden',
     },
     unavailable: 'nicht verfügbar',
     addressBook: {
@@ -399,6 +410,9 @@ const TRANSLATIONS = {
       how3: 'Then press <b>Send Payment</b> below.',
       sendBtn: '➤ Send Payment',
       balanceTitle: 'Balance',
+      addrBookLabel: 'Select from Address Book',
+      addrBookSearch: 'Search by name or Lightning address…',
+      addrBookEmpty: 'No contacts with a Lightning address found',
     },
     budget: {
       usageTitle: 'Budget Usage',
@@ -569,6 +583,10 @@ const TRANSLATIONS = {
       copied: '✅ Copied!',
       placeholder: 'Fill in the form and click "⚡ Generate YAML"…',
       haHint: '💡 <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b> → paste → save.',
+      entitySearch: 'Search entity ID…',
+      recipientFromBook: 'Select from Address Book',
+      recipientSearch: 'Search by name or Lightning address…',
+      recipientEmpty: 'No contacts with a Lightning address found',
     },
     nostrAutoExamples: {
       notifyTitle: '🤖 Nostr Automations – Notifications (Examples)',
@@ -608,6 +626,10 @@ const TRANSLATIONS = {
       copied: '✅ Copied!',
       placeholder: 'Fill in the form and click "🟣 Generate YAML"…',
       haHint: '💡 <b>Settings → Automations → + Create Automation → ⋮ → Edit in YAML</b> → paste → save.',
+      entitySearch: 'Search entity ID…',
+      npubFromBook: 'Select from Address Book',
+      npubSearch: 'Search by name or Nostr pubkey…',
+      npubEmpty: 'No contacts with a Nostr pubkey found',
     },
     unavailable: 'unavailable',
     addressBook: {
@@ -727,6 +749,13 @@ const ENTITY_IDS = {
 
 // Minimum ms between content-only updates (throttle)
 const UPDATE_THROTTLE_MS = 2000;
+
+// Max number of HA entity suggestions shown in the entity picker dropdown
+const MAX_ENTITY_PICKER_RESULTS = 40;
+
+// Delay (ms) between an input blur and closing the picker dropdown,
+// allowing a mousedown on a dropdown option to fire before the drop hides.
+const PICKER_BLUR_DELAY_MS = 200;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // AlbyHubPanel – main Web Component
@@ -1314,14 +1343,25 @@ class AlbyHubPanel extends HTMLElement {
       : `<option value="SAT"${payUnit === 'SAT' ? ' selected' : ''}>SAT</option>
          <option value="BTC"${payUnit === 'BTC' ? ' selected' : ''}>BTC</option>`;
 
+    // Ensure contacts are loaded for the address book picker
+    if (this._contacts === null && !this._contactsLoading) this._loadContacts();
+    const contactsWithLn = (this._contacts || []).filter((c) => c.lightning_address);
+
     return `<div class="cards-grid">
       <div class="card">
         <div class="card-title">${t('paymentTitle')}</div>
         <div class="field">
           <label>${t('invoice')}</label>
-          <input type="text" class="inp mono" id="inv-input" placeholder="${t('invoicePlaceholder')}"
-            value="${this._esc(safeInput)}"
-            data-prefix="${this._esc(p)}">
+          <div class="srch-pick" data-picker-id="send-ln">
+            <input type="text" class="inp mono srch-pick-input" id="inv-input"
+              placeholder="${t('invoicePlaceholder')}"
+              value="${this._esc(safeInput)}"
+              data-prefix="${this._esc(p)}"
+              autocomplete="off">
+            <div class="srch-pick-drop">
+              ${this._buildContactPickerOptions(contactsWithLn, 'ln', t('addrBookEmpty'))}
+            </div>
+          </div>
         </div>
         <div class="field">
           <label>${t('amountTitle')}</label>
@@ -2468,6 +2508,13 @@ class AlbyHubPanel extends HTMLElement {
     const isSendNostr = f.actionType === 'send_nostr';
     const isToggle    = f.actionType === 'nostr_and_toggle';
 
+    // Ensure contacts are loaded for the npub address picker
+    if (this._contacts === null && !this._contactsLoading) this._loadContacts();
+    const contactsWithNpub = (this._contacts || []).filter((c) => c.nostr_pubkey);
+
+    const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
+    const isDE = lang === 'de';
+
     const triggerFields = isNotify ? `
       <div class="field">
         <label>${t('triggerType')}</label>
@@ -2481,12 +2528,22 @@ class AlbyHubPanel extends HTMLElement {
       ${(isStateOn || isStateOff) ? `
       <div class="field">
         <label>${t('trigEntityId')}</label>
-        <input type="text" class="inp" id="nab-trig-entity" placeholder="${isStateOn ? 'binary_sensor.motion' : 'switch.your_switch'}" value="${this._esc(f.trigEntityId)}">
+        <div class="srch-pick" data-picker-id="nab-trig-entity" data-entity-picker="1">
+          <input type="text" class="inp srch-pick-input" id="nab-trig-entity"
+            placeholder="${isStateOn ? 'binary_sensor.motion' : 'switch.your_switch'}"
+            value="${this._esc(f.trigEntityId)}" autocomplete="off">
+          <div class="srch-pick-drop"></div>
+        </div>
       </div>` : ''}
       ${isAbove ? `
       <div class="field">
         <label>${t('trigEntityId')}</label>
-        <input type="text" class="inp" id="nab-trig-entity" placeholder="sensor.temperature" value="${this._esc(f.trigEntityId)}">
+        <div class="srch-pick" data-picker-id="nab-trig-entity" data-entity-picker="1">
+          <input type="text" class="inp srch-pick-input" id="nab-trig-entity"
+            placeholder="sensor.temperature"
+            value="${this._esc(f.trigEntityId)}" autocomplete="off">
+          <div class="srch-pick-drop"></div>
+        </div>
       </div>
       <div class="field">
         <label>${t('trigThreshold')}</label>
@@ -2523,7 +2580,14 @@ class AlbyHubPanel extends HTMLElement {
       ${(isSendNostr && isNotify) ? `
       <div class="field">
         <label>${t('targetNpub')}</label>
-        <input type="text" class="inp mono" id="nab-target-npub" placeholder="${t('targetNpubPlaceholder')}" value="${this._esc(f.targetNpub)}">
+        <div class="srch-pick" data-picker-id="nab-target-npub">
+          <input type="text" class="inp mono srch-pick-input" id="nab-target-npub"
+            placeholder="${t('targetNpubPlaceholder')}"
+            value="${this._esc(f.targetNpub)}" autocomplete="off">
+          <div class="srch-pick-drop">
+            ${this._buildContactPickerOptions(contactsWithNpub, 'npub', t('npubEmpty'))}
+          </div>
+        </div>
       </div>` : ''}
       ${(f.actionType === 'turn_on' || f.actionType === 'turn_off' || isToggle) ? `
       <div class="field">
@@ -2531,9 +2595,6 @@ class AlbyHubPanel extends HTMLElement {
         <input type="text" class="inp" id="nab-target-entity" placeholder="${isDE ? 'light.wohnzimmer' : 'light.living_room'}" value="${this._esc(f.targetEntityId)}">
       </div>` : ''}
     `;
-
-    const lang = (this._hass?.language || 'en').split('-')[0].toLowerCase();
-    const isDE = lang === 'de';
 
     const yamlBlock = this._nostrAutoYaml
       ? `<pre class="auto-yaml" style="margin-top:10px"><code>${this._esc(this._nostrAutoYaml)}</code></pre>
@@ -2753,6 +2814,10 @@ class AlbyHubPanel extends HTMLElement {
     const isPayment = f.actionType === 'send_payment';
     const isNotify  = f.actionType === 'notify';
 
+    // Ensure contacts are loaded for the recipient address picker
+    if (this._contacts === null && !this._contactsLoading) this._loadContacts();
+    const contactsWithLn = (this._contacts || []).filter((c) => c.lightning_address);
+
     const triggerFields = isSend ? `
       <div class="field">
         <label>${t('triggerType')}</label>
@@ -2764,7 +2829,12 @@ class AlbyHubPanel extends HTMLElement {
       </div>
       <div class="field">
         <label>${t('trigEntityId')}</label>
-        <input type="text" class="inp" id="ab-trig-entity" placeholder="${isStateOn ? 'switch.your_switch' : 'sensor.your_sensor'}" value="${this._esc(f.trigEntityId)}">
+        <div class="srch-pick" data-picker-id="ab-trig-entity" data-entity-picker="1">
+          <input type="text" class="inp srch-pick-input" id="ab-trig-entity"
+            placeholder="${isStateOn ? 'switch.your_switch' : 'sensor.your_sensor'}"
+            value="${this._esc(f.trigEntityId)}" autocomplete="off">
+          <div class="srch-pick-drop"></div>
+        </div>
       </div>
       ${!isStateOn ? `<div class="field">
         <label>${t('trigThreshold')}</label>
@@ -2792,7 +2862,14 @@ class AlbyHubPanel extends HTMLElement {
       ${isPayment && isSend ? `
         <div class="field">
           <label>${t('recipient')}</label>
-          <input type="text" class="inp" id="ab-recipient" placeholder="user@lightning.address" value="${this._esc(f.recipient)}">
+          <div class="srch-pick" data-picker-id="ab-recipient">
+            <input type="text" class="inp srch-pick-input" id="ab-recipient"
+              placeholder="user@lightning.address"
+              value="${this._esc(f.recipient)}" autocomplete="off">
+            <div class="srch-pick-drop">
+              ${this._buildContactPickerOptions(contactsWithLn, 'ln', t('recipientEmpty'))}
+            </div>
+          </div>
         </div>
         <div class="field" style="display:flex;gap:6px">
           <div style="flex:1">
@@ -2982,6 +3059,38 @@ class AlbyHubPanel extends HTMLElement {
   }
 
   // ── Tab: Address Book ─────────────────────────────────────────────────────────
+
+  /**
+   * Build option divs for a searchable contact picker.
+   * type: 'ln'   → items are contacts with lightning_address
+   *       'npub' → items are contacts with nostr_pubkey
+   * emptyMsg: text to show when no matching contacts exist.
+   */
+  _buildContactPickerOptions(contacts, type, emptyMsg) {
+    if (!contacts.length) {
+      return `<div class="srch-pick-no-results">${this._esc(emptyMsg || '–')}</div>`;
+    }
+    return contacts.map((c) => {
+      let val, mainLabel, subLabel, searchStr;
+      if (type === 'ln') {
+        val = c.lightning_address;
+        mainLabel = [c.first_name, c.last_name].filter(Boolean).join(' ') || c.lightning_address;
+        subLabel = '⚡ ' + c.lightning_address;
+        searchStr = [c.first_name, c.last_name, c.lightning_address].filter(Boolean).join(' ').toLowerCase();
+      } else {
+        val = c.nostr_pubkey;
+        mainLabel = [c.first_name, c.last_name].filter(Boolean).join(' ') || c.nostr_alias || c.nostr_pubkey;
+        const alias = c.nostr_alias ? c.nostr_alias + ' · ' : '';
+        const keyShort = c.nostr_pubkey.length > 20 ? c.nostr_pubkey.slice(0, 20) + '…' : c.nostr_pubkey;
+        subLabel = '🟣 ' + alias + keyShort;
+        searchStr = [c.first_name, c.last_name, c.nostr_alias, c.nostr_pubkey].filter(Boolean).join(' ').toLowerCase();
+      }
+      return `<div class="srch-pick-opt" data-val="${this._esc(val)}" data-search="${this._esc(searchStr)}">
+        <div class="srch-pick-opt-main">${this._esc(mainLabel)}</div>
+        <div class="srch-pick-opt-sub">${this._esc(subLabel)}</div>
+      </div>`;
+    }).join('');
+  }
 
   _tabAddressBook(p) {
     const t = (k) => this._t(`addressBook.${k}`);
@@ -4145,6 +4254,69 @@ class AlbyHubPanel extends HTMLElement {
 
     this._autoStartDeviceCameraIfNeeded();
 
+    // ── Searchable picker listeners ───────────────────────────────────────────
+
+    root.querySelectorAll('.srch-pick').forEach((wrap) => {
+      const input = wrap.querySelector('.srch-pick-input');
+      const drop  = wrap.querySelector('.srch-pick-drop');
+      if (!input || !drop) return;
+
+      const isEntityPicker = wrap.dataset.entityPicker === '1';
+
+      const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+      /** Fill entity picker drop with filtered HA entities. */
+      const fillEntityOptions = (q) => {
+        const all = Object.keys(this._hass?.states || {}).sort();
+        const ql  = (q || '').toLowerCase().trim();
+        const matches = ql ? all.filter((id) => id.toLowerCase().includes(ql)) : all;
+        const items = matches.slice(0, MAX_ENTITY_PICKER_RESULTS);
+        drop.innerHTML = items.length
+          ? items.map((id) => `<div class="srch-pick-opt" data-val="${escHtml(id)}"><div class="srch-pick-opt-main">${escHtml(id)}</div></div>`).join('')
+          : `<div class="srch-pick-no-results">–</div>`;
+      };
+
+      /** Filter static contact options already rendered in HTML. */
+      const filterContactOptions = (q) => {
+        const ql = (q || '').toLowerCase().trim();
+        let visible = 0;
+        drop.querySelectorAll('.srch-pick-opt[data-val]').forEach((opt) => {
+          const match = !ql || (opt.dataset.search || '').includes(ql);
+          opt.style.display = match ? '' : 'none';
+          if (match) visible++;
+        });
+        const noRes = drop.querySelector('.srch-pick-no-results');
+        if (noRes) noRes.style.display = visible ? 'none' : '';
+      };
+
+      const showDrop = (q) => {
+        if (isEntityPicker) fillEntityOptions(q);
+        else filterContactOptions(q);
+        drop.style.display = 'block';
+      };
+
+      input.addEventListener('focus', () => { showDrop(input.value); });
+
+      input.addEventListener('input', () => { showDrop(input.value); });
+
+      input.addEventListener('blur', () => {
+        // Delay to allow mousedown on option to fire first
+        setTimeout(() => { drop.style.display = 'none'; }, PICKER_BLUR_DELAY_MS);
+      });
+
+      drop.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // prevent input blur before click registers
+        const opt = e.target.closest('[data-val]');
+        if (!opt) return;
+        const val = opt.dataset.val;
+        input.value = val;
+        drop.style.display = 'none';
+        // Dispatch events so existing bindXXXField listeners pick up the new value
+        input.dispatchEvent(new Event('input',  { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+
     // ── Address book listeners ────────────────────────────────────────────────
 
     root.querySelectorAll('[data-action="refresh-ab"]').forEach((btn) => {
@@ -4707,6 +4879,35 @@ class AlbyHubPanel extends HTMLElement {
         border: 1px solid var(--divider-color, #333);
       }
       .auto-yaml code { font-family: inherit; }
+
+      /* ── Searchable picker dropdown ── */
+      .srch-pick { position: relative; }
+      .srch-pick-drop {
+        display: none;
+        position: absolute;
+        z-index: 200;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 220px;
+        overflow-y: auto;
+        background: var(--card-background-color, #1e1e1e);
+        border: 1px solid var(--primary-color, #f7931a);
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 6px 16px rgba(0,0,0,.5);
+      }
+      .srch-pick-opt {
+        padding: 7px 10px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--divider-color, #2a2a2a);
+        color: var(--primary-text-color);
+      }
+      .srch-pick-opt:last-child { border-bottom: none; }
+      .srch-pick-opt:hover { background: rgba(247,147,26,.15); }
+      .srch-pick-opt-main { font-size: 0.88rem; font-weight: 500; }
+      .srch-pick-opt-sub  { font-size: 0.75rem; color: var(--secondary-text-color, #aaa); margin-top: 2px; }
+      .srch-pick-no-results { padding: 7px 10px; font-size: 0.82rem; color: var(--secondary-text-color, #aaa); font-style: italic; }
 
       /* ── Typography ── */
       .muted { color: var(--secondary-text-color, #aaa); font-size: 0.85rem; }
