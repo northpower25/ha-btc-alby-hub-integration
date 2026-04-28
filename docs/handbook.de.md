@@ -172,6 +172,14 @@ Aktuelle Entitäten:
 
 - **`button.alby_hub_create_invoice`** – Rechnung erstellen (ruft create_invoice mit den aktuellen number/select-Werten auf)
 
+### Notify-Entität
+
+- **`notify.alby_hub_nostr_bot`** – Sendet einen Nostr-DM an **alle** in der Whitelist konfigurierten NPubs (nur aktiv, wenn Nostr-Bot aktiviert ist). Nutzt den konfigurierten Verschlüsselungsmodus. Optional kann `title` angegeben werden (wird als „title: message" vorangestellt).
+
+### Diagnosesensor
+
+- **`sensor.alby_hub_api_debug_status`** (Diagnosekategorie) – Aktueller API-Verbindungsstatus mit detaillierten Debug-Attributen (z. B. letzter Fehler, Antwortzeit).
+
 ## Services
 
 ### Zahlungs-Services (Expert-Modus, lokale API)
@@ -202,6 +210,76 @@ Aktuelle Entitäten:
 - **`alby_hub.update_scheduled_payment`** – Ändert einen Dauerauftrag (via `schedule_id`).
 - **`alby_hub.delete_scheduled_payment`** – Löscht einen Dauerauftrag (via `schedule_id`).
 - **`alby_hub.run_scheduled_payment_now`** – Führt einen Dauerauftrag sofort aus.
+
+## Nostr-Bot
+
+### Konfiguration
+
+Der Nostr-Bot wird im Config-Flow aktiviert. Pflicht- und optionale Felder:
+
+- **Bot-Privatschlüssel (NSEC):** Leer lassen, damit der Bot beim ersten Start automatisch ein neues Schlüsselpaar erzeugt. Der generierte `nsec` wird einmalig im Config-Flow angezeigt – **jetzt sicher speichern** (Passwort-Manager, Papier-Backup). Er wird danach **nicht** mehr angezeigt.
+- **Erlaubte NPubs (Whitelist):** Kommagetrennte Nostr-Pubkeys (`npub…` oder 64-stelliger Hex), die der Bot akzeptiert.
+- **Webhook-Secret:** Beliebige Zeichenkette zur Absicherung des Webhook-Endpunkts.
+- **Nostr-Relays:** Liste der Relay-URLs, über die der Bot kommuniziert (Standard: mehrere öffentliche Relays).
+- **Verschlüsselungsmodus:** `nip04` (Standard, maximale Kompatibilität mit Damus, Primal, WhiteNoise, Oxchat), `nip44`, `both` (beide Standards gleichzeitig), `plaintext`.
+
+### Verschlüsselungsmodi
+
+| Modus | Beschreibung |
+|---|---|
+| `nip04` | Standard. Breite Kompatibilität mit den meisten Nostr-Clients. |
+| `nip44` | Modernere Verschlüsselung (ChaCha20-Poly1305). Nicht alle Clients unterstützen NIP-44. |
+| `both` | Sendet sowohl NIP-04 als auch NIP-44 – maximale Reichweite. |
+| `plaintext` | Unverschlüsselt. Nur für Tests, nicht für produktiven Einsatz. |
+
+### Nostr-Services
+
+- **`alby_hub.nostr_send_bot_message`** – Sendet eine verschlüsselte DM vom Bot an eine bestimmte NPub (muss in der Whitelist sein).
+  - Pflichtfelder: `target_npub`, `message`.
+  - Optionales Feld: `config_entry_id` (bei mehreren Alby-Hub-Einträgen).
+- **`alby_hub.nostr_send_test_message`** – Sendet eine Test-DM von einem eigenen `nsec` an den konfigurierten Bot-NPub (NIP-44). Nützlich zum Testen der Bot-Kommunikation.
+  - Pflichtfelder: `nsec`, `message`.
+- **`alby_hub.nostr_list_messages`** – Gibt den aktuellen Bot-Status und die letzten empfangenen/gesendeten Nachrichten zurück.
+  - Optionales Feld: `limit` (Standard 100, max. 250).
+
+### Notify-Entität
+
+Mit `notify.alby_hub_nostr_bot` kannst du aus Automationen direkt Nostr-DMs an **alle** Whitelist-NPubs senden:
+
+```yaml
+action:
+  - action: notify.alby_hub_nostr_bot
+    data:
+      message: "⚡ Zahlung empfangen!"
+      title: "Alby Hub"   # Optional – wird als "Alby Hub: Zahlung empfangen!" vorangestellt
+```
+
+### Relay-Listener
+
+Wenn der Bot aktiviert ist und gültige Relays konfiguriert sind, startet ein **Relay-Listener** automatisch im Hintergrund. Er empfängt eingehende Nostr-DMs an den Bot-NPub in Echtzeit und leitet Befehle als Home-Assistant-Events (`alby_hub_nostr_webhook_command`) weiter.
+
+### Webhook-Endpunkt
+
+Der Bot stellt unter `/api/alby_hub/nostr_webhook/{entry_id}` einen HTTP-Webhook bereit. Eingehende Anfragen werden per `X-Alby-Nostr-Secret`-Header und NPub-Whitelist geprüft.
+
+---
+
+## Adressbuch
+
+Das Adressbuch ermöglicht das Verwalten von Kontakten direkt in Home Assistant. Pro Kontakt können gespeichert werden: Vor-/Nachname, Lightning-Adresse, Bitcoin-Adresse, Nostr-Pubkey und -Alias, Notizen, Tags und weitere Felder.
+
+### Adressbuch-Services
+
+- **`alby_hub.address_book_create_contact`** – Erstellt einen neuen Kontakt.
+  - Optionale Felder: `first_name`, `last_name`, `lightning_address`, `bitcoin_address`, `nostr_pubkey`, `nostr_alias`, `notes`, `tags`.
+- **`alby_hub.address_book_list_contacts`** – Gibt alle Kontakte zurück (sortiert nach Nachname, Vorname).
+- **`alby_hub.address_book_get_contact`** – Gibt einen einzelnen Kontakt per `contact_id` zurück.
+- **`alby_hub.address_book_update_contact`** – Aktualisiert Felder eines bestehenden Kontakts (via `contact_id`).
+- **`alby_hub.address_book_delete_contact`** – Löscht einen Kontakt dauerhaft (via `contact_id`).
+
+Kontakt-IDs (UUIDs) erhält man über `address_book_list_contacts` oder `address_book_get_contact`.
+
+---
 
 ## Automatisierungen mit Alby Hub
 
@@ -415,7 +493,7 @@ Verfügbare Übersetzungen: Englisch (`en`), Deutsch (`de`).
 
 ## Dashboard
 
-Nach der Einrichtung wird automatisch ein **Alby Hub**-Panel in der Seitenleiste erstellt. Das Panel enthält sieben Reiter:
+Nach der Einrichtung wird automatisch ein **Alby Hub**-Panel in der Seitenleiste erstellt. Das Panel enthält acht Reiter:
 
 - **⚡ Übersicht** – Verbindungsstatus, Balances (sat / BTC / Fiat), Bitcoin-Preis, Blockhöhe, Verbindungsinfos
 - **↙ Empfangen** – Rechnung erstellen (Betrag + Einheit + Verwendungszweck), BOLT11-Anzeige mit QR-Code, Lightning-Adresse mit QR-Code, Automatisierungs-Beispiele
@@ -424,6 +502,7 @@ Nach der Einrichtung wird automatisch ein **Alby Hub**-Panel in der Seitenleiste
 - **₿ Netzwerk** – Bitcoin-Preis, Blockhöhe, Hashrate, Halving-Countdown
 - **📋 Aktivität** – Letzte Transaktionen (ein- und ausgehend, filterbar)
 - **🔁 Geplant** – Daueraufträge anlegen, bearbeiten, löschen und sofort ausführen
+- **🔒 Nostr** – Bot-NPub, Webhook-URL, Nachrichtenprotokoll, Testfenster für eigenen NSEC
 
 Alternativ steht unter `dashboards/alby-hub-dashboard.yaml` ein Lovelace-Template zum manuellen Import bereit.
 

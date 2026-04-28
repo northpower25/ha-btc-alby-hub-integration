@@ -172,6 +172,14 @@ Current entities:
 
 - **`button.alby_hub_create_invoice`** – create invoice (calls create_invoice with the current number/select values)
 
+### Notify entity
+
+- **`notify.alby_hub_nostr_bot`** – Sends a Nostr DM to **all** whitelisted NPubs (only active when the Nostr bot is enabled). Uses the configured encryption mode. Optional `title` is prepended as "title: message".
+
+### Diagnostic sensor
+
+- **`sensor.alby_hub_api_debug_status`** (diagnostic category) – Current API connection status with detailed debug attributes (e.g. last error, response time).
+
 ## Services
 
 ### Payment services (expert mode, local API)
@@ -202,6 +210,76 @@ Current entities:
 - **`alby_hub.update_scheduled_payment`** – Updates a recurring payment schedule (via `schedule_id`).
 - **`alby_hub.delete_scheduled_payment`** – Deletes a recurring payment schedule (via `schedule_id`).
 - **`alby_hub.run_scheduled_payment_now`** – Executes a schedule immediately.
+
+## Nostr bot
+
+### Configuration
+
+The Nostr bot is enabled in the config flow. Key fields:
+
+- **Bot private key (NSEC):** Leave empty to auto-generate a new key pair on first start. The generated `nsec` is displayed **once** in the config flow – **copy and save it securely** (password manager, paper backup). It will **not** be shown again.
+- **Allowed NPubs (whitelist):** Comma-separated Nostr public keys (`npub…` or 64-char hex) the bot will accept.
+- **Webhook secret:** Any string used to protect the webhook endpoint.
+- **Nostr relays:** List of relay URLs the bot communicates through (default: several public relays).
+- **Encryption mode:** `nip04` (default, maximum compatibility with Damus, Primal, WhiteNoise, Oxchat), `nip44`, `both`, or `plaintext`.
+
+### Encryption modes
+
+| Mode | Description |
+|---|---|
+| `nip04` | Default. Broadest compatibility with most Nostr clients. |
+| `nip44` | Modern encryption (ChaCha20-Poly1305). Not all clients support NIP-44. |
+| `both` | Sends both NIP-04 and NIP-44 – maximum reach. |
+| `plaintext` | Unencrypted. For testing only, not for production. |
+
+### Nostr services
+
+- **`alby_hub.nostr_send_bot_message`** – Sends an encrypted DM from the bot to a specific NPub (must be whitelisted).
+  - Required fields: `target_npub`, `message`.
+  - Optional field: `config_entry_id` (when multiple Alby Hub entries exist).
+- **`alby_hub.nostr_send_test_message`** – Sends a NIP-44 test DM from a custom `nsec` to the configured bot NPub. Useful for testing bot communication.
+  - Required fields: `nsec`, `message`.
+- **`alby_hub.nostr_list_messages`** – Returns current bot status and recent inbound/outbound messages.
+  - Optional field: `limit` (default 100, max 250).
+
+### Notify entity
+
+Use `notify.alby_hub_nostr_bot` in automations to send Nostr DMs to **all** whitelisted NPubs:
+
+```yaml
+action:
+  - action: notify.alby_hub_nostr_bot
+    data:
+      message: "⚡ Payment received!"
+      title: "Alby Hub"   # Optional – prepended as "Alby Hub: Payment received!"
+```
+
+### Relay listener
+
+When the bot is enabled and valid relays are configured, a **relay listener** starts automatically in the background. It receives incoming Nostr DMs sent to the bot NPub in real time and forwards commands as Home Assistant events (`alby_hub_nostr_webhook_command`).
+
+### Webhook endpoint
+
+The bot exposes an HTTP webhook at `/api/alby_hub/nostr_webhook/{entry_id}`. Incoming requests are verified using the `X-Alby-Nostr-Secret` header and the NPub whitelist.
+
+---
+
+## Address book
+
+The address book allows managing contacts directly in Home Assistant. Each contact can store: first/last name, Lightning address, Bitcoin address, Nostr public key and alias, notes, tags, and more.
+
+### Address book services
+
+- **`alby_hub.address_book_create_contact`** – Creates a new contact.
+  - Optional fields: `first_name`, `last_name`, `lightning_address`, `bitcoin_address`, `nostr_pubkey`, `nostr_alias`, `notes`, `tags`.
+- **`alby_hub.address_book_list_contacts`** – Returns all contacts (sorted by last name, first name).
+- **`alby_hub.address_book_get_contact`** – Returns a single contact by `contact_id`.
+- **`alby_hub.address_book_update_contact`** – Updates fields of an existing contact (via `contact_id`).
+- **`alby_hub.address_book_delete_contact`** – Permanently deletes a contact (via `contact_id`).
+
+Contact IDs (UUIDs) are obtained via `address_book_list_contacts` or `address_book_get_contact`.
+
+---
 
 ## Automations with Alby Hub
 
@@ -407,3 +485,67 @@ push payments without creating an invoice.
 3. Call `alby_hub.send_payment` (no parameters needed if you filled the entity).
 
 ## Troubleshooting
+
+- Verify the NWC URI (complete, correct scheme `nostr+walletconnect://`).
+- Check scopes/permissions in Alby Hub.
+- Review Home Assistant logs for integration errors.
+- If the Nostr bot does not connect, verify relay URLs and that the bot NSEC is set.
+- For expert mode issues, check that the local API URL (`http://<host>:8080`) is reachable from Home Assistant.
+
+## Language / display language
+
+Home Assistant automatically displays all entities and the config flow in the language configured under
+**Profile → Language**. No additional setup required.
+Available translations: English (`en`), German (`de`).
+
+## Dashboard
+
+After setup, an **Alby Hub** panel is automatically created in the sidebar. The panel contains eight tabs:
+
+- **⚡ Overview** – connection status, balances (sat / BTC / fiat), Bitcoin price, block height, connection info
+- **↙ Receive** – create invoice (amount + unit + memo), BOLT11 display with QR code, Lightning address with QR code, automation examples
+- **↗ Send** – invoice input, QR code scan (device camera / HA camera entity / file), send payment, automation examples
+- **💰 Budget** – NWC spending limits (total / used / remaining / renewal period)
+- **₿ Network** – Bitcoin price, block height, hashrate, halving countdown
+- **📋 Activity** – recent transactions (incoming and outgoing, filterable)
+- **🔁 Scheduled** – create, edit, delete, and immediately run recurring payments
+- **🔒 Nostr** – bot NPub, webhook URL, message log, test window for custom NSEC
+
+A Lovelace template is also available at `dashboards/alby-hub-dashboard.yaml` for manual import.
+
+## Update security: what to do before every update
+
+Before **every** update to the integration, add-on, or Alby Hub environment:
+
+1. **Create a Home Assistant backup/snapshot** (including configuration).
+2. Ensure NWC connection data (URI/secret) is securely available or can be recreated.
+3. Ensure recovery data for the wallet/node backend is available (e.g. seed, channel backups, credentials – depending on setup).
+4. Consider temporarily disabling automations that trigger payments until the update is verified.
+
+Important: Home Assistant and this integration do **not** replace a wallet/node backup.
+
+## What data you must have backed up before an update or reinstallation
+
+- Home Assistant backup/snapshot
+- NWC connection data or a documented recreation process
+- Alby Hub credentials/recovery information
+- Wallet/node recovery data of the actual fund-holding backend
+
+Without this data, access to features and potentially to funds may be lost after a failed update or reinstallation (see "Recovery after a failed update or reinstallation").
+
+## Where Bitcoin funds are stored per scenario
+
+- **Cloud/NWC scenario:** Funds are in the wallet/node environment behind the NWC connection, not in Home Assistant.
+- **Local add-on/expert scenario:** Funds are in the locally operated Alby Hub/wallet/node environment or its connected backend, not in this integration.
+
+The integration provides control/display only and holds no funds.
+
+## Recovery after a failed update or reinstallation
+
+1. Restore Home Assistant and the add-on/environment to a stable state.
+2. Re-import backed-up configuration and connection data.
+3. Reconfigure the integration (NWC/expert settings).
+4. Restore access to the wallet/node environment using its own recovery procedures.
+5. Only then re-enable payment automations.
+
+If wallet/node recovery data is missing, access to funds may be permanently lost.

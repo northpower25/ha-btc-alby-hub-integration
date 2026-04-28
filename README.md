@@ -18,18 +18,21 @@ Diese Integration ist für alle Home-Assistant-Installationsarten gedacht (HA OS
 
 ## Status
 
-MVP-Implementierung mit:
+Aktuelle Implementierung:
 
 - Config-Flow für Cloud- und Expert-Modus
 - NWC-Eingabefeld als geschütztes Passwortfeld
 - Auswahl von Bitcoin-Preis-/Netzwerk-Datenanbietern im Config-Flow
-- NWC-URI- und Scope-Prüfung inklusive „Continue with warning“-Verhalten
+- NWC-URI- und Scope-Prüfung inklusive “Continue with warning”-Verhalten
 - Expert-Modus: optionaler lokaler API-Health-Check und Relay-Priorisierung (`ws://<host>:3334`)
-- Basis-Entitäten für Verbindung, Balances, Bitcoin-Preis und Netzwerkdaten
-- Basis-Services für Invoice-Erstellung und Payment (lokale API, Expert-Modus)
-- Automatische Erstellung eines Alby-Hub-Dashboards mit vorgeschlagenen Karten für Empfang/Senden und Markt-/Netzwerkdaten
-- JS-basiertes Alby-Hub-Panel mit QR-Scan im Senden-Reiter inkl. Chrome/Edge-Kamera-Kompatibilitäts-Fallback
-- Nostr Webhook Bot/Client (Config-Flow konfigurierbar) mit NIP-44-DM-Versand, Whitelist-ACL, Webhook-Befehlsempfang, automatischer Bot-NSEC/NPUB-Erzeugung bei leerem Feld und eigenem Nostr-Reiter im Panel
+- Sensoren für Verbindung, Balances, Bitcoin-Preis, Netzwerkdaten, NWC-Budget und API-Debug-Status
+- Services für Invoice-Erstellung und Payment (NWC / lokale API)
+- Wiederkehrende Zahlungen (Daueraufträge) mit Datumssteuerung und sofort-Ausführung
+- Adressbuch mit CRUD-Services (Kontakte mit Lightning-Adresse, Nostr-Schlüssel, Bitcoin-Adresse u. v. m.)
+- Automatisches Alby-Hub-Panel in der Seitenleiste mit acht Reitern (Übersicht, Empfangen, Senden, Budget, Netzwerk, Aktivität, Geplant, Nostr)
+- QR-Code-Scan im Senden-Reiter (Browser-Kamera mit BarcodeDetector/html5-qrcode-Fallback, HA-Kamera-Snapshot, Datei-Upload)
+- Nostr Webhook Bot/Client (Config-Flow konfigurierbar) mit konfigurierbarem Verschlüsselungsmodus (NIP-04 Standard, NIP-44, beide, Klartext), Whitelist-ACL, Webhook-Befehlsempfang, Relay-Listener, automatischer Bot-NSEC/NPUB-Erzeugung und eigenem Nostr-Reiter im Panel
+- Notify-Entität (`notify.alby_hub_nostr_bot`) für Nostr-DM-Versand an alle Whitelist-NPubs aus Automationen
 
 ## Installation (HACS) – Kurzanleitung
 

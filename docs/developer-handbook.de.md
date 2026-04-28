@@ -124,24 +124,35 @@ Regeln:
 
 ```
 custom_components/alby_hub/
-├── __init__.py          # Entry point, Platform-Setup, Dashboard-Bootstrap
-├── config_flow.py       # Setup-Wizard (Cloud/Expert) mit allen Feldern
-├── const.py             # Alle Konstanten, Config-Keys, Provider-Namen
-├── coordinator.py       # Datenabruf (Balances, Bitcoin-Preis, Netzwerkdaten)
-├── api.py               # Lokale Alby Hub HTTP API (nur Expert-Modus)
-├── nwc.py               # NWC-URI-Parsing und Scope-Validierung
-├── entity.py            # Basis-Entity-Klasse mit Device-Info
-├── helpers.py           # AlbyHubRuntime (Datencontainer pro Entry)
-├── sensor.py            # Alle Sensor-Entitäten
-├── binary_sensor.py     # Verbindungsstatus
-├── text.py              # Text-Entitäten (invoice_input, last_invoice)
-├── services.py          # Service-Handler (create_invoice, send_payment)
-├── services.yaml        # Service-Deklarationen für HA-UI
-├── strings.json         # Basis-Übersetzung (Englisch/Fallback)
-├── manifest.json        # Integration-Metadaten, Abhängigkeiten
+├── __init__.py             # Entry point, Platform-Setup, Panel-Bootstrap
+├── config_flow.py          # Setup-Wizard (Cloud/Expert) mit allen Feldern
+├── const.py                # Alle Konstanten, Config-Keys, Provider-Namen
+├── coordinator.py          # Datenabruf (Balances, Bitcoin-Preis, Netzwerkdaten)
+├── api.py                  # Lokale Alby Hub HTTP API (nur Expert-Modus)
+├── nwc.py                  # NWC-URI-Parsing und Scope-Validierung
+├── nwc_client.py           # Async NWC-WebSocket-Client
+├── entity.py               # Basis-Entity-Klasse mit Device-Info
+├── helpers.py              # AlbyHubRuntime (Datencontainer pro Entry)
+├── sensor.py               # Sensor-Entitäten (Balances, Preis, Netzwerk, Budget, Debug)
+├── binary_sensor.py        # Verbindungsstatus
+├── text.py                 # Text-Entitäten (invoice_input)
+├── number.py               # Number-Entität (invoice_amount)
+├── select.py               # Select-Entität (invoice_amount_unit)
+├── button.py               # Button-Entität (create_invoice)
+├── notify.py               # Notify-Entität (nostr_bot → DM an alle Whitelist-NPubs)
+├── nostr_bot.py            # NostrBotManager + WebhookView
+├── nostr_client.py         # Low-level Nostr-Kryptographie und Relay-Messaging
+├── nostr_relay_listener.py # Async Relay-Listener (eingehende DMs)
+├── recurring_payments.py   # Daueraufträge (Scheduler, Storage)
+├── address_book.py         # Adressbuch-CRUD (Storage)
+├── services.py             # Service-Handler (alle Services)
+├── services.yaml           # Service-Deklarationen für HA-UI
+├── strings.json            # Basis-Übersetzung (Englisch/Fallback)
+├── manifest.json           # Integration-Metadaten, Abhängigkeiten
+├── www/                    # Frontend-Assets (JS-Panel, QR-Popup)
 └── translations/
-    ├── de.json          # Deutsche Übersetzung
-    └── en.json          # Englische Übersetzung
+    ├── de.json             # Deutsche Übersetzung
+    └── en.json             # Englische Übersetzung
 ```
 
 ### AlbyHubRuntime (pro Config-Entry)
@@ -149,10 +160,16 @@ custom_components/alby_hub/
 ```python
 @dataclass
 class AlbyHubRuntime:
-    coordinator: AlbyHubDataUpdateCoordinator  # Entitätsdaten, Polling
-    api_client: AlbyHubApiClient | None        # HTTP-Client (nur Expert)
-    nwc_info: NwcConnectionInfo                # Geparste NWC-Daten
-    text_entities: dict[str, AlbyHubTextEntity]  # invoice_input, last_invoice
+    coordinator: AlbyHubDataUpdateCoordinator      # Entitätsdaten, Polling
+    api_client: AlbyHubApiClient | None            # HTTP-Client (nur Expert)
+    nwc_info: NwcConnectionInfo                    # Geparste NWC-Daten
+    session: ClientSession                         # Gemeinsame aiohttp-Session
+    text_entities: dict[str, AlbyHubTextEntity]    # invoice_input
+    number_entities: dict[str, ...]                # invoice_amount
+    select_entities: dict[str, ...]                # invoice_amount_unit
+    last_invoice_entity: AlbyHubLastInvoiceSensor | None
+    nostr_bot_manager: AlbyHubNostrBotManager | None
+    nostr_relay_listener: NostrRelayListener | None
 ```
 
 ---
@@ -163,23 +180,37 @@ class AlbyHubRuntime:
 
 | key | Einheit | Quelle |
 |---|---|---|
-| `balance_lightning` | sat | Lokale API (Expert) |
-| `balance_onchain` | sat | Lokale API (Expert) |
+| `balance_lightning` | sat | NWC |
+| `balance_onchain` | sat | NWC |
 | `lightning_address` | – | NWC lud16-Parameter |
 | `relay` | – | NWC relay-Parameter |
-| `version` | – | Lokale API (Expert) |
+| `version` | – | NWC / Lokale API (Expert) |
 | `bitcoin_price` | Dynamisch (Währung aus Config) | Preis-Provider |
 | `bitcoin_block_height` | – | Netzwerk-Provider |
 | `bitcoin_hashrate` | EH/s | Netzwerk-Provider |
 | `blocks_until_halving` | blocks | Berechnet |
 | `next_halving_eta` | Timestamp | Berechnet |
+| `nwc_budget_total` | sat | NWC `get_budget` |
+| `nwc_budget_used` | sat | NWC `get_budget` |
+| `nwc_budget_remaining` | sat | NWC `get_budget` |
+| `nwc_budget_renewal` | – | NWC `get_budget` |
+| `api_debug_status` | – | Intern (Diagnose) |
 
 ### Text-Entitäten
 
 | key | Beschreibung | Schreibbar von |
 |---|---|---|
 | `invoice_input` | BOLT11 Eingabe (Senden) | Nutzer / Companion App QR |
-| `last_invoice` | Zuletzt erzeugter Invoice (Empfangen) | Service create_invoice |
+
+### Notify-Entität
+
+| key | Beschreibung |
+|---|---|
+| `nostr_bot` | Nostr-DM an alle Whitelist-NPubs (nur wenn Nostr-Bot aktiv) |
+
+### Letzter-Invoice-Sensor (Sonderfall)
+
+`AlbyHubLastInvoiceSensor` (`sensor.alby_hub_last_invoice`) speichert den vollen BOLT11-String als Attribut `bolt11` (State-Limit 255 Zeichen wird so umgangen). State ist `"set"` / `""`. Wird via `RestoreEntity` über Neustarts hinweg beibehalten.
 
 ### Binary Sensoren
 
@@ -215,6 +246,60 @@ Sendet eine BOLT11-Zahlung.
 | `payment_request` | str | Optional: BOLT11-String. Wird automatisch aus `text.alby_hub_invoice_input` gelesen, wenn leer. |
 
 Nach Erfolg: `text.alby_hub_invoice_input` wird geleert.
+
+### `alby_hub.nostr_send_bot_message`
+
+Sendet eine verschlüsselte Nostr-DM vom Bot an eine Whitelist-NPub.
+
+| Parameter | Typ | Beschreibung |
+|---|---|---|
+| `target_npub` | str | Pflicht: Empfänger-NPub (muss in Whitelist sein) |
+| `message` | str | Pflicht: Nachrichtentext |
+| `config_entry_id` | str | Optional: bei mehreren Einträgen |
+
+### `alby_hub.nostr_send_test_message`
+
+Sendet eine NIP-44-DM von einem eigenen `nsec` an den Bot-NPub.
+
+| Parameter | Typ | Beschreibung |
+|---|---|---|
+| `nsec` | str | Pflicht: Privater Testschlüssel (nsec oder 64-stelliger Hex) |
+| `message` | str | Pflicht: Nachrichtentext |
+
+### `alby_hub.nostr_list_messages`
+
+Gibt Bot-Status und letzte Nachrichten zurück.
+
+| Parameter | Typ | Beschreibung |
+|---|---|---|
+| `limit` | int | Optional: max. Nachrichten (Standard 100, max. 250) |
+
+### `alby_hub.address_book_create_contact`
+
+Erstellt einen neuen Adressbuch-Kontakt. Alle Felder optional, mindestens `first_name` oder `last_name` empfohlen.
+
+### `alby_hub.address_book_list_contacts`
+
+Gibt alle Kontakte zurück (sortiert nach Nachname, Vorname).
+
+### `alby_hub.address_book_get_contact`
+
+| Parameter | Typ | Beschreibung |
+|---|---|---|
+| `contact_id` | str | Pflicht: UUID des Kontakts |
+
+### `alby_hub.address_book_update_contact`
+
+| Parameter | Typ | Beschreibung |
+|---|---|---|
+| `contact_id` | str | Pflicht: UUID des Kontakts |
+| (weitere Felder) | | Nur angegebene Felder werden geändert |
+
+### `alby_hub.address_book_delete_contact`
+
+| Parameter | Typ | Beschreibung |
+|---|---|---|
+| `contact_id` | str | Pflicht: UUID des Kontakts |
 
 ---
 
